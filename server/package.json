@@ -1,0 +1,25 @@
+{
+  "name": "seqsync-server",
+  "version": "1.0.0",
+  "description": "Backend server for poSEQr notation system",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "poseqr",
+    "notation",
+    "api",
+    "express",
+    "postgresql"
+  ],
+  "author": "kristampol",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "pg": "^8.16.0"
+  }
+}

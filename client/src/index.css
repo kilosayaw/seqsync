@@ -1,0 +1,26 @@
+/* client/src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: Add some global styles if needed */
+body {
+  @apply bg-zinc-950 text-gray-100 antialiased;
+  font-family: 'Inter', sans-serif; /* Or your preferred font */
+}
+
+/* Example: Custom scrollbar styling (optional) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #2d3748; /* gray-800 */
+}
+::-webkit-scrollbar-thumb {
+  background: #4a5568; /* gray-600 */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #718096; /* gray-500 */
+}

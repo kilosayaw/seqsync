@@ -1,0 +1,23 @@
+{
+  "name": "seqsync-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo for the SĒQsync platform, containing client and server applications.",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "build:client": "npm run build --workspace=client",
+    "build:server": "echo \"No build script for server yet, or define one in server/package.json\"",
+    "start:server": "npm start --workspace=server",
+    "lint": "echo \"Linting not set up yet\"",
+    "test": "echo \"Tests not set up yet\"",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}
