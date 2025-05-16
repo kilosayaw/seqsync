@@ -1,2 +1,44 @@
-node_modules
+# Dependencies
+/node_modules
+/client/node_modules
+/server/node_modules
+
+# Build output
+/dist
+/client/dist
+/server/dist
+/build
+/client/build
+/server/build
+
+# Environment variables
 .env
+.env.*
+!.env.example # Important: keep .env.example if you have one
+/client/.env
+/client/.env.*
+!/client/.env.example
+/server/.env
+/server/.env.*
+!/server/.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE and OS files
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-workspace
+*.DS_Store
+Thumbs.db
+
+# Optional: Coverage directory
+coverage
