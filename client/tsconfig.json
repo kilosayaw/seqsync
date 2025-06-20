@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    // ... other options like target, lib, jsx, module, moduleResolution etc.
+    "allowJs": true, // Important if you have .js/.jsx files
+    "skipLibCheck": true, // Often helpful
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true, // For Vite projects, TypeScript is usually for type checking only
+    "isolatedModules": true, // Common for Vite/Babel setups
+    // ...
+  },
+  "include": ["src"], // This tells TS to look in the src directory
+  "references": [{ "path": "./tsconfig.node.json" }] // Common in Vite setups
+}

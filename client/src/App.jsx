@@ -1,12 +1,34 @@
-// client/src/App.jsx
 import React from 'react';
-import SequencerPage from './pages/SequencerPage.jsx'; // Make sure this path is correct
-// import './index.css'; // Not needed here, already in main.jsx
+
+// Import the new, architecturally sound main component
+import Studio from './components/core/studio/Studio'; 
+
+// Import ToastContainer to handle all notifications globally
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
-  console.log("App.jsx rendering SequencerPage");
+  // We no longer render the old StepSequencerControls.
+  // We now render the Studio component, which handles everything.
   return (
-    <SequencerPage />
+    <>
+      {/* The Studio component contains all providers and the main layout */}
+      <Studio />
+
+      {/* Place the ToastContainer here at the root of your app */}
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
+    </>
   );
 }
 

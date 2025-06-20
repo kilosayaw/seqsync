@@ -1,17 +1,13 @@
-// client/src/pages/SequencerPage.jsx
+// src/pages/SequencerPage.jsx
 import React from 'react';
-import StepSequencerControls from '../components/Sequencer/StepSequencerControls.jsx'; // Verify path
+import Studio from '../components/core/studio/Studio';
 
 const SequencerPage = () => {
-  console.log("SequencerPage.jsx rendering StepSequencerControls");
-  const handleFullSequenceUpdate = (sequenceData) => {
-    console.log('Full sequence updated in Page:', sequenceData);
-  };
-
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-start pt-3 sm:pt-5 font-mono">
-      {/* <h1 className="text-2xl sm:text-3xl font-bold text-sky-400 mb-3 sm:mb-5">poSĒQr Sequencer</h1> */} {/* Can uncomment later */}
-      <StepSequencerControls onFullSequenceDataChange={handleFullSequenceUpdate} />
+    // The Studio component is designed to manage its own layout and fill the screen.
+    // This parent div ensures the page context gives it the space it needs.
+    <div className="w-full h-screen bg-dark-bg overflow-hidden">
+      <Studio />
     </div>
   );
 };

@@ -1,22 +1,36 @@
-// client/src/main.jsx
+// src/main.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import './index.css'; // This imports your Tailwind styles
+import { RouterProvider } from 'react-router-dom';
+import router from './router'; 
+import { AuthProvider } from './contexts/AuthContext';
+import { SequencerSettingsProvider } from './contexts/SequencerSettingsContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import './icons.js'; 
+import './index.css'; 
+import ErrorBoundary from './components/common/ErrorBoundary';
 
-// Log to ensure this file is even running
-console.log("main.jsx IS EXECUTING");
-
-const rootElement = document.getElementById('root');
-if (rootElement) {
-  console.log("Found #root element, attempting to render React app...");
-  ReactDOM.createRoot(rootElement).render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
-} else {
-  console.error("#root element NOT FOUND in the DOM. React cannot mount.");
-  // Optionally, display an error message directly in the body for visibility
-  document.body.innerHTML = '<h1 style="color:red;">Error: #root element not found for React. Check index.html.</h1>';
-}
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <ErrorBoundary>
+      <AuthProvider>
+        <SequencerSettingsProvider> {/* Wrap with SequencerSettingsProvider if it exists */}
+          <RouterProvider router={router} />
+          <ToastContainer
+            position="bottom-right"
+            autoClose={4000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="dark" 
+          />
+        </SequencerSettingsProvider>
+      </AuthProvider>
+    </ErrorBoundary>
+  </React.StrictMode>
+);
