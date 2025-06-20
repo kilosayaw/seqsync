@@ -1,0 +1,60 @@
+ ```html
+ <!DOCTYPE html>
+ <html>
+ <head><title>Audio Test</title></head>
+ <body>
+   <button id="loadAndPlay">Load and Play BD0000.wav</button>
+   <script>
+     let audioCtx;
+     let buffer;
+
+     async function loadSound() {
+       if (!audioCtx) {
+         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+       }
+       if (audioCtx.state === 'suspended') {
+         await audioCtx.resume();
+       }
+       try {
+         const response = await fetch('/BD0000.wav'); // Assuming BD0000.wav is in public folder
+         if (!response.ok) {
+           console.error('HTTP error:', response.status);
+           alert('HTTP error loading sound');
+           return;
+         }
+         const arrayBuffer = await response.arrayBuffer();
+         console.log('ArrayBuffer fetched, size:', arrayBuffer.byteLength);
+         audioCtx.decodeAudioData(arrayBuffer, 
+           (decodedBuffer) => {
+             buffer = decodedBuffer;
+             console.log('Sound decoded successfully!', buffer);
+             alert('Sound decoded successfully! Click button again to play.');
+           },
+           (err) => {
+             console.error('Error decoding audio data:', err);
+             alert('Error decoding audio data: ' + err);
+           }
+         );
+       } catch (e) {
+         console.error('Error fetching or decoding:', e);
+         alert('Error fetching or decoding: ' + e);
+       }
+     }
+
+     document.getElementById('loadAndPlay').onclick = () => {
+       if (!buffer) {
+         loadSound();
+       } else if (audioCtx && audioCtx.state === 'running') {
+         const source = audioCtx.createBufferSource();
+         source.buffer = buffer;
+         source.connect(audioCtx.destination);
+         source.start();
+         console.log('Playing sound...');
+       } else {
+         alert('Audio context not ready or sound not loaded.');
+       }
+     };
+   </script>
+ </body>
+ </html>
+ ```
