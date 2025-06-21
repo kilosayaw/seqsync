@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import { ReactP5Wrapper } from 'react-p5-wrapper';
 
-// --- UPGRADED Thumbnail Sketch with Depth Sizing ---
 function thumbnailSketch(p5) {
     let pose = null;
     p5.setup = () => {
@@ -23,42 +22,47 @@ function thumbnailSketch(p5) {
         p5.translate(p5.width / 2, p5.height / 2);
         p5.scale(0.4);
 
+        // --- Layer 1: Draw the Static 3x3 Grid ---
+        p5.stroke(255, 255, 255, 35); // Faint white lines
+        p5.strokeWeight(1.5);
+        const gridSize = 100;
+        const third = gridSize / 3;
+        p5.line(-third / 2, -gridSize / 2, -third / 2, gridSize / 2);
+        p5.line(third / 2, -gridSize / 2, third / 2, gridSize / 2);
+        p5.line(-gridSize / 2, -third / 2, gridSize / 2, -third / 2);
+        p5.line(-gridSize / 2, third / 2, gridSize / 2, third / 2);
+        
         if (!pose || !pose.jointInfo) return;
         
+        // --- Layer 2: Draw the Stick Figure on top of the grid ---
         const jointInfo = pose.jointInfo;
         const connections = [
-            ['LS', 'RS'], ['LS', 'LE'], ['LE', 'LW'], ['RS', 'RE'], ['RE', 'RW'],
-            ['LS', 'LH'], ['RS', 'RH'], ['LH', 'RH'], ['LH', 'LK'], ['LK', 'LA'],
-            ['RH', 'RK'], ['RK', 'RA']
+            ['N', 'LS'], ['N', 'RS'], ['LS', 'RS'],
+            ['LS', 'LE'], ['LE', 'LW'], ['RS', 'RE'], ['RE', 'RW'],
+            ['LS', 'LH'], ['RS', 'RH'], ['LH', 'RH'],
+            ['LH', 'LK'], ['LK', 'LA'], ['RH', 'RK'], ['RK', 'RA']
         ];
         
         // Draw bones
-        p5.stroke(255);
-        p5.strokeWeight(5);
+        p5.stroke(255); // Solid white
+        p5.strokeWeight(4);
         connections.forEach(([startKey, endKey]) => {
             const startJoint = jointInfo[startKey];
             const endJoint = jointInfo[endKey];
             if (startJoint?.vector && endJoint?.vector) {
-                p5.line(startJoint.vector.x * 100, -startJoint.vector.y * 100, endJoint.vector.x * 100, -endJoint.vector.y * 100);
+                p5.line(
+                    startJoint.vector.x * 100, -startJoint.vector.y * 100,
+                    endJoint.vector.x * 100, -endJoint.vector.y * 100
+                );
             }
         });
 
-        // Draw joints with zDisplacement-based sizing
+        // Draw joints
+        p5.stroke(255, 255, 0); // Bright yellow
+        p5.strokeWeight(8);
         for (const key in jointInfo) {
             if (jointInfo[key]?.vector) {
-                const joint = jointInfo[key];
-                const zDisplacement = joint.zDisplacement || 0;
-                let radius = 10; // Neutral (0Z)
-
-                if (zDisplacement === 1) { // Forward (+1Z)
-                    radius = 15;
-                } else if (zDisplacement === -1) { // Backward (-1Z)
-                    radius = 5;
-                }
-                
-                p5.stroke(255); // Use white for better visibility in the small thumbnail
-                p5.strokeWeight(radius);
-                p5.point(joint.vector.x * 100, -joint.vector.y * 100);
+                p5.point(jointInfo[key].vector.x * 100, -jointInfo[key].vector.y * 100);
             }
         }
     };
@@ -70,17 +74,14 @@ const ButtonWrapper = styled.div`
   height: 100%;
   aspect-ratio: 1 / 1;
   border-radius: var(--border-radius-small, 4px);
-  
+  overflow: hidden;
   border: 2px solid ${({ $isActive, $isCurrentStep }) => 
     ($isCurrentStep ? 'var(--color-highlight-strong, #00FFFF)' : 
     ($isActive ? 'var(--color-accent, #00AACC)' : 'var(--color-border, #444)'))};
-  
   box-shadow: ${({ $isCurrentStep }) => $isCurrentStep ? '0 0 8px 2px var(--color-highlight-strong, #00FFFF)' : 'none'};
-  
   background-color: var(--color-background-lighter, #333);
   transition: all 0.1s ease-in-out;
   cursor: pointer;
-
   &:hover {
     border-color: var(--color-accent-light, #7FFFD4);
   }

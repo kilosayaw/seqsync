@@ -6,8 +6,8 @@ const SequenceContext = createContext(null);
 
 const createEmptyBar = () => Array(16).fill(null).map(() => ({
     pose: createEmptyPose(),
-    thumbnail: null,
-    sound: null,
+    thumbnail: null, // For video-file-based thumbnails
+    videoThumbnail: null, // For live-capture thumbnails
 }));
 
 const createInitialData = (bars = 2) => {
@@ -22,7 +22,6 @@ export const SequenceProvider = ({ children }) => {
     const [songData, setSongData] = useState(() => createInitialData());
     const [history, setHistory] = useState([createInitialData()]);
     const [historyIndex, setHistoryIndex] = useState(0);
-    const [clipboard, setClipboard] = useState(null);
 
     const updateSongData = (newData, addToHistory = true) => {
         if (addToHistory) {
@@ -39,6 +38,13 @@ export const SequenceProvider = ({ children }) => {
         if (!newData[barIndex]) newData[barIndex] = createEmptyBar();
         newData[barIndex][beatIndex].pose = pose;
         updateSongData(newData);
+    }, [songData]);
+
+    const setBeatThumbnail = useCallback((barIndex, beatIndex, thumbnail) => {
+        const newData = JSON.parse(JSON.stringify(songData));
+        if (!newData[barIndex]) newData[barIndex] = createEmptyBar();
+        newData[barIndex][beatIndex].videoThumbnail = thumbnail;
+        updateSongData(newData, false); // Do not add to undo history
     }, [songData]);
     
     const setThumbnails = useCallback((thumbnails) => {
@@ -63,7 +69,7 @@ export const SequenceProvider = ({ children }) => {
     }, []);
 
     const getBeatData = useCallback((barIndex, beatIndex) => {
-        return songData[barIndex]?.[beatIndex] || { pose: createEmptyPose(), thumbnail: null, sound: null };
+        return songData[barIndex]?.[beatIndex] || { pose: createEmptyPose(), thumbnail: null, videoThumbnail: null };
     }, [songData]);
 
     const resetSequence = (bars = 2) => {
@@ -133,11 +139,32 @@ export const SequenceProvider = ({ children }) => {
         }
     };
 
+    const setJointOrientation = useCallback((barIndex, beatIndex, jointAbbrev, orientation) => {
+        const newData = JSON.parse(JSON.stringify(songData));
+        if (newData[barIndex]?.[beatIndex]?.pose?.jointInfo?.[jointAbbrev]) {
+            newData[barIndex][beatIndex].pose.jointInfo[jointAbbrev].orientation = orientation;
+            updateSongData(newData); // Use our existing updater with history
+        } else {
+            console.warn("Could not set orientation: joint data not found for", {barIndex, beatIndex, jointAbbrev});
+        }
+    }, [songData]);
+    
+    const setGroundingState = useCallback((barIndex, beatIndex, side, grounding) => {
+        const newData = JSON.parse(JSON.stringify(songData));
+        if (newData[barIndex]?.[beatIndex]?.pose) {
+            if (!newData[barIndex][beatIndex].pose.grounding) {
+                newData[barIndex][beatIndex].pose.grounding = {};
+            }
+            if (side === 'left') {
+                newData[barIndex][beatIndex].pose.grounding.L = grounding;
+            } else {
+                newData[barIndex][beatIndex].pose.grounding.R = grounding;
+            }
+            updateSongData(newData);
+        }
+    }, [songData]);
+
     const value = {
-        songData,
-        getBeatData,
-        setPoseForBeat,
-        setThumbnails,
         resetSequence,
         copyBeat,
         pasteBeat,
@@ -152,6 +179,13 @@ export const SequenceProvider = ({ children }) => {
         onAddSound,
         onDeleteSound,
         onClearPoseData,
+        songData,
+        getBeatData,
+        setPoseForBeat,
+        setBeatThumbnail, 
+        setThumbnails,
+        setJointOrientation, 
+        setGroundingState,
     };
 
     return (

@@ -7,23 +7,24 @@ const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
 export const PlaybackProvider = ({ children }) => {
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
     const [bpm, setBpm] = useState(120);
     const [currentStep, setCurrentStep] = useState(0);
     const [elapsedTime, setElapsedTime] = useState(0);
     const [isMetronomeEnabled, setIsMetronomeEnabled] = useState(false);
-    const [isRecording, setIsRecording] = useState(false);
 
-    const { setPoseForBeat } = useSequence();
-    const { setSelectedBar } = useUIState();
+    const { songData, setPoseForBeat, setBeatThumbnail } = useSequence();
+    const { selectedBar, setSelectedBar } = useUIState();
 
     const metronomeBufferRef = useRef(null);
     const startTimeRef = useRef(0);
     const visualTimerRef = useRef(null);
+    const livePoseRef = useRef(null);
     const totalBeatsElapsedRef = useRef(0);
     const tapTimestamps = useRef([]);
     const tapTimeoutRef = useRef(null);
-    const livePoseRef = useRef(null);
-    
+    const videoElementForCapture = useRef(null);
+
     useEffect(() => {
         const loadMetronomeSound = async () => {
             try {
@@ -36,37 +37,31 @@ export const PlaybackProvider = ({ children }) => {
         loadMetronomeSound();
     }, []);
 
+    // The main, unified playback and recording loop
     useEffect(() => {
-        // If playback is stopped, cancel any running animation frame and do nothing further.
         if (!isPlaying) {
-            if (visualTimerRef.current) {
-                cancelAnimationFrame(visualTimerRef.current);
-            }
+            cancelAnimationFrame(visualTimerRef.current);
             return;
         }
 
-        // The main "tick" function that runs on every frame.
         const tick = () => {
             const now = audioContext.currentTime;
             const elapsed = now - startTimeRef.current;
             setElapsedTime(elapsed);
 
             const secondsPerBeat = 60.0 / bpm;
-            const totalBeatsNow = Math.floor(elapsed / secondsPerBeat);
+            const beatsNow = Math.floor(elapsed / secondsPerBeat);
             
-            // This condition ensures we only fire events ONCE per beat.
-            if (totalBeatsNow > totalBeatsElapsedRef.current) {
-                totalBeatsElapsedRef.current = totalBeatsNow;
+            if (beatsNow > totalBeatsElapsedRef.current) {
+                totalBeatsElapsedRef.current = beatsNow;
                 
-                // Calculate the current bar and the beat within that bar (0-15)
-                const currentBar = Math.floor(totalBeatsNow / 16);
-                const currentBeatInBar = totalBeatsNow % 16;
+                const currentBar = Math.floor(beatsNow / 16);
+                const currentBeatInBar = beatsNow % 16;
                 
-                // Update the UI state
-                setSelectedBar(currentBar);
+                if (currentBar !== selectedBar) setSelectedBar(currentBar);
                 setCurrentStep(currentBeatInBar);
 
-                // Play the metronome sound if it's enabled
+                // <<< FIX: Play metronome sound reliably on every beat change >>>
                 if (isMetronomeEnabled && metronomeBufferRef.current) {
                     const source = audioContext.createBufferSource();
                     source.buffer = metronomeBufferRef.current;
@@ -74,31 +69,22 @@ export const PlaybackProvider = ({ children }) => {
                     source.start();
                 }
 
-                // --- "Pose Stamping" Logic ---
-                // If recording is active, save the pose from the *previous* beat.
                 if (isRecording && livePoseRef.current) {
-                    // We calculate the previous beat's index to avoid timing issues.
-                    const beatToRecord = (totalBeatsNow - 1) % 16;
-                    const barToRecord = Math.floor((totalBeatsNow - 1) / 16);
+                    const barToRecord = Math.floor((beatsNow - 1) / 16);
+                    const beatToRecord = (beatsNow - 1) % 16;
                     
-                    if (totalBeatsNow > 0) {
-                        console.log(`[Recording] Stamping pose to Bar: ${barToRecord}, Beat: ${beatToRecord}`);
-                        // The entire pose object, including zDisplacement and isFaceVisible, is saved.
+                    if (beatsNow > 0) {
                         setPoseForBeat(barToRecord, beatToRecord, livePoseRef.current);
+                        // Video thumbnail logic can be re-added here later
                     }
                 }
             }
-            // Schedule the next frame
             visualTimerRef.current = requestAnimationFrame(tick);
         };
-
-        // Start the loop
         visualTimerRef.current = requestAnimationFrame(tick);
-        
-        // Cleanup function: This runs when the component unmounts or dependencies change.
         return () => cancelAnimationFrame(visualTimerRef.current);
-
-    }, [isPlaying, bpm, isMetronomeEnabled, isRecording, setPoseForBeat, setSelectedBar]); // Dependencies that trigger a re-run of this effect
+    // <<< FIX: Add isRecording to the dependency array >>>
+    }, [isPlaying, bpm, isRecording, isMetronomeEnabled, selectedBar, setPoseForBeat, setSelectedBar]);
 
     const togglePlay = () => {
         const newIsPlaying = !isPlaying;
@@ -107,28 +93,26 @@ export const PlaybackProvider = ({ children }) => {
         if (newIsPlaying) {
             if (audioContext.state === 'suspended') audioContext.resume();
             startTimeRef.current = audioContext.currentTime;
-            totalBeatsElapsedRef.current = -1; // Reset to ensure first beat fires correctly
+            totalBeatsElapsedRef.current = -1;
             setCurrentStep(0);
             setSelectedBar(0);
             setElapsedTime(0);
         } else {
-             // When stopping, also turn off recording
-            setIsRecording(false);
+            setIsRecording(false); // Always stop recording when playback stops
         }
     };
-
+    
     const toggleRecord = () => {
         const nextRecordingState = !isRecording;
         console.log(`[Playback] Toggling Record. New state: ${nextRecordingState ? 'ON' : 'OFF'}`);
+        // If we are starting to record, also ensure we are playing
         if (nextRecordingState && !isPlaying) {
-            togglePlay(); // Start playing if we hit record and we're stopped
+            setIsPlaying(true);
         }
         setIsRecording(nextRecordingState);
     };
 
-    const updateLivePose = (pose) => {
-        livePoseRef.current = pose;
-    };
+    const updateLivePose = (pose) => { livePoseRef.current = pose; };
     
     const tapTempo = useCallback(() => {
         if (audioContext.state === 'suspended') audioContext.resume();
@@ -151,18 +135,10 @@ export const PlaybackProvider = ({ children }) => {
     const toggleMetronome = () => setIsMetronomeEnabled(p => !p);
 
     const value = {
-        isPlaying,
-        isRecording,
-        bpm,
-        setBpm,
-        currentStep,
-        elapsedTime,
-        togglePlay,
-        toggleRecord,
-        updateLivePose,
-        isMetronomeEnabled,
-        toggleMetronome,
-        tapTempo,
+        isPlaying, isRecording, bpm, setBpm, currentStep, elapsedTime,
+        togglePlay, toggleRecord, updateLivePose,
+        isMetronomeEnabled, toggleMetronome, tapTempo,
+        setVideoElementForCapture: (el) => { videoElementForCapture.current = el; }
     };
 
     return (

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import BeatButton from '../sequencer/BeatButton';
 import { useUIState } from '../../../contexts/UIStateContext';
@@ -12,15 +13,22 @@ const GridContainer = styled.div`
   padding: 10px;
   background-color: var(--color-background-deep, #222);
   border-radius: var(--border-radius-medium, 8px);
-  width: 100%;
-  max-width: 800px;
-  box-sizing: border-box;
+  width: 100%; 
+  max-width: none;
 `;
 
-const BeatGrid = () => {
+const BeatGrid = ({ onBeatSelect }) => {
   const { selectedBar, selectedBeat, setSelectedBeat } = useUIState();
   const { getBeatData } = useSequence();
-  const { currentStep } = usePlayback(); // Get the live playhead position
+  const { currentStep } = usePlayback();
+
+  const handleBeatClick = (beatIndex) => {
+    setSelectedBeat(beatIndex);
+    // <<< FIX: This line was missing. It calls the function from Studio.jsx >>>
+    if (onBeatSelect) {
+      onBeatSelect(selectedBar, beatIndex);
+    }
+  };
 
   return (
     <GridContainer>
@@ -34,14 +42,18 @@ const BeatGrid = () => {
           <BeatButton
             key={`${selectedBar}-${index}`}
             beatData={beatData}
-            onClick={() => setSelectedBeat(index)}
+            onClick={() => handleBeatClick(index)}
             isActive={selectedBeat === index} 
-            isCurrentStep={currentStep === index} // Pass the playhead status
+            isCurrentStep={currentStep === index}
           />
         );
       })}
     </GridContainer>
   );
+};
+
+BeatGrid.propTypes = {
+    onBeatSelect: PropTypes.func.isRequired,
 };
 
 export default BeatGrid;

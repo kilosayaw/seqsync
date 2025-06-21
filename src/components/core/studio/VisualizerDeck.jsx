@@ -1,17 +1,15 @@
 import React, { useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import PropTypes from 'prop-types';
 import { useMotionAnalysis } from '../../../hooks/useMotionAnalysis';
 import { usePlayback } from '../../../contexts/PlaybackContext';
 import { useUIState } from '../../../contexts/UIStateContext';
 import { useMedia } from '../../../contexts/MediaContext';
 import P5SkeletalVisualizer from '../pose_editor/P5SkeletalVisualizer';
-import P5_2DSkeletalPreview from '../../visualizers/P5_2DSkeletalPreview';
 
 const DeckContainer = styled.div`
   position: relative;
   width: 100%;
-  max-width: 640px;
+  max-width: 640px; /* Enforce a max width for consistency */
   margin: auto;
   aspect-ratio: 16 / 9;
   background-color: #111;
@@ -21,6 +19,12 @@ const DeckContainer = styled.div`
   justify-content: center;
   align-items: center;
   color: #555;
+`;
+
+const DisplayContainer = styled.div`
+  /* ... */
+  width: 100%; /* It will now fill the ContentStack container */
+  /* ... */
 `;
 
 const VideoElement = styled.video`
@@ -39,31 +43,40 @@ const VisualizerOverlay = styled.div`
     pointer-events: none;
 `;
 
-const VisualizerDeck = () => { // Component no longer takes props
+const VisualizerDeck = () => {
   const videoRef = useRef(null);
-  const { updateLivePose } = usePlayback();
-  
-  // <<< FIX: Get all necessary state directly from the UI context >>>
-  const { isLiveCamActive, isMirrored, visualizerMode } = useUIState(); 
-  
+  const { updateLivePose, setVideoElementForCapture } = usePlayback(); // <<< FIX: Get the function from the hook
+  const { isLiveCamActive, isMirrored, visualizerMode, selectedJoint } = useUIState(); 
   const { mediaUrl } = useMedia();
-
   const { livePoseData, startLiveTracking, stopLiveTracking } = useMotionAnalysis({
     onPoseUpdate: updateLivePose,
   });
 
+  // This effect now correctly passes the video element to the context
+  useEffect(() => {
+    if (setVideoElementForCapture) {
+        setVideoElementForCapture(videoRef.current);
+    }
+  }, [setVideoElementForCapture]);
+
+  // Effect to handle switching between live cam and uploaded video
+    // This effect handles switching the video source between live cam and uploaded media
   useEffect(() => {
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
+    // --- Live Camera Logic ---
     if (isLiveCamActive) {
       let stream;
       const setupLiveCam = async () => {
         try {
+          // Request access to the user's camera
           stream = await navigator.mediaDevices.getUserMedia({ video: true });
           videoElement.srcObject = stream;
-          videoElement.onloadedmetadata = () => {
+          // Wait for the video metadata to load before playing
+          videoElement.onloadeddata = () => {
             videoElement.play();
+            // Start the motion analysis loop
             startLiveTracking(videoElement);
           };
         } catch (err) {
@@ -72,16 +85,23 @@ const VisualizerDeck = () => { // Component no longer takes props
       };
       setupLiveCam();
 
+      // This is the cleanup function that runs when the effect ends
+      // (e.g., when the user toggles the live cam off)
       return () => {
         stopLiveTracking();
-        if (stream) stream.getTracks().forEach(track => track.stop());
+        if (stream) {
+          // Stop all camera tracks to turn off the camera light
+          stream.getTracks().forEach(track => track.stop());
+        }
       };
     } else {
+      // --- Uploaded Media Logic ---
+      // If live cam is not active, stop tracking and set the video source to the uploaded media URL.
       stopLiveTracking();
-      videoElement.srcObject = null;
+      videoElement.srcObject = null; // Clear the camera stream
       videoElement.src = mediaUrl;
     }
-  }, [isLiveCamActive, mediaUrl, startLiveTracking, stopLiveTracking]);
+  }, [isLiveCamActive, mediaUrl, startLiveTracking, stopLiveTracking]); // Dependencies for this effect
 
   return (
     <DeckContainer>
@@ -92,23 +112,21 @@ const VisualizerDeck = () => { // Component no longer takes props
             autoPlay 
             playsInline 
             muted={isLiveCamActive} 
-            // Use transient prop for styling
             $isMirrored={isLiveCamActive && isMirrored} 
           />
           <VisualizerOverlay>
-            {isLiveCamActive && livePoseData && (
-              visualizerMode === '2D' 
-                ? <P5_2DSkeletalPreview poseData={livePoseData} isMirrored={isMirrored} />
-                : <P5SkeletalVisualizer poseData={livePoseData} isMirrored={isMirrored} />
-            )}
-          </VisualizerOverlay>
+                {isLiveCamActive && livePoseData && (
+                    <P5SkeletalVisualizer 
+                        poseData={livePoseData} 
+                        mode={visualizerMode}
+                        highlightJoint={selectedJoint}
+                    />
+                )}
+            </VisualizerOverlay>
         </>
-      ) : (
-        <span>Visualizer Deck</span>
-      )}
+      ) : ( <span>Visualizer Deck</span> )}
     </DeckContainer>
   );
 };
 
-// Component no longer needs propTypes since it gets state from context.
 export default VisualizerDeck;

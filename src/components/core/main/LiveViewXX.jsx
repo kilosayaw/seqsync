@@ -5,7 +5,7 @@ import { useMotionAnalysis } from '../../../hooks/useMotionAnalysis';
 import { usePlayback } from '../../../contexts/PlaybackContext';
 import { useUIState } from '../../../contexts/UIStateContext';
 import P5SkeletalVisualizer from '../pose_editor/P5SkeletalVisualizer';
-import P5_2DSkeletalPreview from '../../visualizers/P5_2DSkeletalPreview';
+import P5_2DSkeletalPreview from '../../visualizers/P5_2DSkeletalPreviewX';
 
 const LiveViewContainer = styled.div`
   position: relative;
