@@ -1,135 +1,132 @@
-import React, { useCallback, useState } from 'react';
-import PropTypes from 'prop-types';
-import { useUIState } from '../../../contexts/UIStateContext';
+import React, { useRef, useEffect } from 'react';
+import styled from 'styled-components';
+import { useMotionAnalysis } from '../../../hooks/useMotionAnalysis';
 import { usePlayback } from '../../../contexts/PlaybackContext';
-import { useSequence } from '../../../contexts/SequenceContext';
-import { useP5PoseAnimator } from '../../../hooks/useP5PoseAnimator';
-import { useActionLogger } from '../../../hooks/useActionLogger';
+import { useUIState } from '../../../contexts/UIStateContext';
 import { useMedia } from '../../../contexts/MediaContext';
-import { calculateValidKneePolygon } from '../../../utils/biomechanics';
-import FootDisplay from '../pose_editor/FootDisplay';
-import AngleOfAttack from '../pose_editor/AngleOfAttack';
-import TactileJoystick from '../../common/TactileJoystick';
-import VideoMediaPlayer from '../media/VideoMediaPlayer';
+import P5SkeletalVisualizer from '../pose_editor/P5SkeletalVisualizer';
 
-const VisualizerDeck = ({ livePoseData }) => {
-    const log = useActionLogger('VisualizerDeck');
-    const { activeBeatData, activeEditingJoint, currentEditingBar, activeBeatIndex, nudgeKneeValue } = useUIState();
-    const { isPlaying, isRecording } = usePlayback();
-    const { updateBeatDynamics } = useSequence();
-    const { mediaStream, mediaUrl, videoPlayerRef } = useMedia();
+const DeckContainer = styled.div`
+  position: relative;
+  width: 100%;
+  max-width: 640px; /* Enforce a max width for consistency */
+  margin: auto;
+  aspect-ratio: 16 / 9;
+  background-color: #111;
+  border-radius: var(--border-radius-medium);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #555;
+`;
 
-    const isLive = isPlaying || isRecording;
-    const hasMedia = !!mediaUrl || !!mediaStream;
-    const targetPose = isLive && livePoseData ? livePoseData : activeBeatData;
-    const { animatedPose } = useP5PoseAnimator(targetPose?.jointInfo, isLive);
-    const { jointInfo } = animatedPose;
-    const { grounding = {} } = targetPose || {};
+const DisplayContainer = styled.div`
+  /* ... */
+  width: 100%; /* It will now fill the ContentStack container */
+  /* ... */
+`;
 
-    // Calculate valid knee paths for the Angle of Attack overlays
-    const validLeftKneePath = calculateValidKneePolygon(jointInfo, 'L');
-    const validRightKneePath = calculateValidKneePolygon(jointInfo, 'R');
+const VideoElement = styled.video`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: ${({ $isMirrored }) => ($isMirrored ? 'scaleX(1)' : 'scaleX(-1)')};
+`;
 
-    // Determine which overlays should be active based on the selected joint
-    const showLK_Overlay = activeEditingJoint === 'LK';
-    const showRK_Overlay = activeEditingJoint === 'RK';
+const VisualizerOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+`;
 
-    // Handlers for child components
-    const handleKneeUpdate = useCallback((side, vector) => {
-        const kneeAbbrev = `${side}K`;
-        updateBeatDynamics(currentEditingBar, activeBeatIndex, {
-            jointInfo: { [kneeAbbrev]: { vector } }
-        });
-    }, [currentEditingBar, activeBeatIndex, updateBeatDynamics]);
+const VisualizerDeck = () => {
+  const videoRef = useRef(null);
+  const { updateLivePose, setVideoElementForCapture } = usePlayback(); // <<< FIX: Get the function from the hook
+  const { isLiveCamActive, isMirrored, visualizerMode, selectedJoint } = useUIState(); 
+  const { mediaUrl } = useMedia();
+  const { livePoseData, startLiveTracking, stopLiveTracking } = useMotionAnalysis({
+    onPoseUpdate: updateLivePose,
+  });
 
-    const handleKneeNudge = useCallback((side, dx, dy) => {
-        const step = 0.05; // Sensitivity of the joystick
-        nudgeKneeValue(side, dx * step, dy * step);
-    }, [nudgeKneeValue]);
-    
-    const handleGroundingChange = useCallback((side, groundingKey) => {
-        log('GroundingChange', { side, key: groundingKey });
-        updateBeatDynamics(currentEditingBar, activeBeatIndex, { grounding: { [side]: groundingKey } });
-    }, [currentEditingBar, activeBeatIndex, updateBeatDynamics, log]);
+  // This effect now correctly passes the video element to the context
+  useEffect(() => {
+    if (setVideoElementForCapture) {
+        setVideoElementForCapture(videoRef.current);
+    }
+  }, [setVideoElementForCapture]);
 
-    const handleRotationChange = useCallback((side, newRotation) => {
-        const jointAbbrev = side === 'L' ? 'LA' : 'RA';
-        updateBeatDynamics(currentEditingBar, activeBeatIndex, { jointInfo: { [jointAbbrev]: { rotation: newRotation } } });
-    }, [currentEditingBar, activeBeatIndex, updateBeatDynamics]);
+  // Effect to handle switching between live cam and uploaded video
+    // This effect handles switching the video source between live cam and uploaded media
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
 
-    const handleAnkleRotationChange = useCallback((side, newAnkleRotation) => {
-        const jointAbbrev = side === 'L' ? 'LA' : 'RA';
-        updateBeatDynamics(currentEditingBar, activeBeatIndex, { jointInfo: { [jointAbbrev]: { in_ex_rotation: newAnkleRotation } } });
-    }, [currentEditingBar, activeBeatIndex, updateBeatDynamics]);
-    
-    return (
-        <div className="w-full h-full flex flex-col items-center justify-center p-2 bg-gray-900/50 rounded-lg overflow-hidden">
-            <div className="grid grid-cols-[3fr_2fr_3fr] gap-4 w-full h-full items-center justify-center">
-                
-                {/* --- Left Column: Foot Display and Tactile Joystick --- */}
-                <div className="relative w-full h-full flex flex-col justify-center items-center gap-4">
-                    <FootDisplay 
-                        side="L" 
-                        groundPoints={grounding.L} 
-                        rotation={jointInfo?.LA?.rotation || 0} 
-                        ankleRotation={jointInfo?.LA?.in_ex_rotation || 0} 
-                        onRotate={handleRotationChange} 
-                        onGroundingChange={handleGroundingChange} 
-                        onAnkleRotationChange={handleAnkleRotationChange}
+    // --- Live Camera Logic ---
+    if (isLiveCamActive) {
+      let stream;
+      const setupLiveCam = async () => {
+        try {
+          // Request access to the user's camera
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          videoElement.srcObject = stream;
+          // Wait for the video metadata to load before playing
+          videoElement.onloadeddata = () => {
+            videoElement.play();
+            // Start the motion analysis loop
+            startLiveTracking(videoElement);
+          };
+        } catch (err) {
+          console.error("Failed to initialize camera:", err);
+        }
+      };
+      setupLiveCam();
+
+      // This is the cleanup function that runs when the effect ends
+      // (e.g., when the user toggles the live cam off)
+      return () => {
+        stopLiveTracking();
+        if (stream) {
+          // Stop all camera tracks to turn off the camera light
+          stream.getTracks().forEach(track => track.stop());
+        }
+      };
+    } else {
+      // --- Uploaded Media Logic ---
+      // If live cam is not active, stop tracking and set the video source to the uploaded media URL.
+      stopLiveTracking();
+      videoElement.srcObject = null; // Clear the camera stream
+      videoElement.src = mediaUrl;
+    }
+  }, [isLiveCamActive, mediaUrl, startLiveTracking, stopLiveTracking]); // Dependencies for this effect
+
+  return (
+    <DeckContainer>
+      { (isLiveCamActive || mediaUrl) ? (
+        <>
+          <VideoElement 
+            ref={videoRef} 
+            autoPlay 
+            playsInline 
+            muted={isLiveCamActive} 
+            $isMirrored={isLiveCamActive && isMirrored} 
+          />
+          <VisualizerOverlay>
+                {isLiveCamActive && livePoseData && (
+                    <P5SkeletalVisualizer 
+                        poseData={livePoseData} 
+                        mode={visualizerMode}
+                        highlightJoint={selectedJoint}
                     />
-                    {/* The joystick is always present but only controls the knee when LK is active */}
-                    <TactileJoystick onNudge={(dx, dy) => handleKneeNudge('L', dx, dy)} />
-                    {showLK_Overlay && (
-                        <AngleOfAttack 
-                            side="L"
-                            currentVector={jointInfo?.LK?.vector || { x: 0, y: -0.2, z: 0 }}
-                            validPath={validLeftKneePath}
-                            onUpdate={handleKneeUpdate}
-                        />
-                    )}
-                </div>
-                
-                {/* --- Center Column: Video Player --- */}
-                <div className="h-full w-full flex flex-col items-center justify-center">
-                    <div className="relative w-full aspect-[9/16] bg-black rounded-lg shadow-2xl overflow-hidden max-w-[220px]">
-                        {hasMedia ? (
-                            <VideoMediaPlayer ref={videoPlayerRef} mediaUrl={mediaUrl} mediaStream={mediaStream} isPlaying={isPlaying} />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-black/50">
-                                <p className="text-xs text-gray-500 text-center p-2">No Media Loaded</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* --- Right Column: Foot Display and Tactile Joystick --- */}
-                <div className="relative w-full h-full flex flex-col justify-center items-center gap-4">
-                     <FootDisplay 
-                        side="R" 
-                        groundPoints={grounding.R} 
-                        rotation={jointInfo?.RA?.rotation || 0} 
-                        ankleRotation={jointInfo?.RA?.in_ex_rotation || 0} 
-                        onRotate={handleRotationChange} 
-                        onGroundingChange={handleGroundingChange} 
-                        onAnkleRotationChange={handleAnkleRotationChange}
-                    />
-                     <TactileJoystick onNudge={(dx, dy) => handleKneeNudge('R', dx, dy)} />
-                     {showRK_Overlay && (
-                        <AngleOfAttack 
-                            side="R"
-                            currentVector={jointInfo?.RK?.vector || { x: 0, y: -0.2, z: 0 }}
-                            validPath={validRightKneePath}
-                            onUpdate={handleKneeUpdate}
-                        />
-                     )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-VisualizerDeck.propTypes = { 
-    livePoseData: PropTypes.object 
+                )}
+            </VisualizerOverlay>
+        </>
+      ) : ( <span>Visualizer Deck</span> )}
+    </DeckContainer>
+  );
 };
 
 export default VisualizerDeck;

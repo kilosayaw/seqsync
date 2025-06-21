@@ -1,15 +1,27 @@
-// client/src/hooks/useMotionAnalysis.js
 import { useState, useRef, useCallback, useEffect } from 'react';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import * as tf from '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 import { toast } from 'react-toastify';
 import { UI_PADS_PER_BAR } from '../utils/constants';
+import { calculateZDisplacement } from '../utils/biomechanics';
 
-const transformTfPoseToSeqPose = (tfPose, videoElement) => {
-    if (!tfPose || !tfPose.keypoints) return { jointInfo: {}, grounding: {} };
+const v_sub = (v1, v2) => ({ x: v1.x - v2.x, y: v1.y - v2.y, z: v1.z - v2.z });
+const v_mag = (v) => Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+const v_dot = (v1, v2) => v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+const v_angle = (v1, v2) => {
+    const mag1 = v_mag(v1);
+    const mag2 = v_mag(v2);
+    if (mag1 === 0 || mag2 === 0) return 0;
+    const cosTheta = v_dot(v1, v2) / (mag1 * mag2);
+    return Math.acos(Math.max(-1, Math.min(1, cosTheta))) * (180 / Math.PI);
+};
+
+// This is the upgraded data transformation pipeline.
+const transformTfPoseToSeqPose = (tfPose, videoElement, previousPose) => {
+    if (!tfPose || !tfPose.keypoints) return null;
     const { videoWidth, videoHeight } = videoElement;
-    if (videoWidth === 0 || videoHeight === 0) return null; // Prevent division by zero
+    if (videoWidth === 0 || videoHeight === 0) return null;
 
     const jointInfo = {};
     const jointMap = {
@@ -17,22 +29,75 @@ const transformTfPoseToSeqPose = (tfPose, videoElement) => {
         'right_elbow': 'RE', 'left_wrist': 'LW', 'right_wrist': 'RW', 'left_hip': 'LH',
         'right_hip': 'RH', 'left_knee': 'LK', 'right_knee': 'RK', 'left_ankle': 'LA', 'right_ankle': 'RA'
     };
+
+    const nose = tfPose.keypoints.find(k => k.name === 'nose');
+    const isFaceVisible = nose?.score > 0.5;
+
     tfPose.keypoints.forEach(keypoint => {
         const abbrev = jointMap[keypoint.name];
         if (abbrev && keypoint.score > 0.3) {
-            const vectorX = (keypoint.x / videoWidth) * 2 - 1;
-            const vectorY = (keypoint.y / videoHeight) * -2 + 1;
+            const currentVector = {
+                x: (keypoint.x / videoWidth) * 2 - 1,
+                y: (keypoint.y / videoHeight) * -2 + 1,
+                z: keypoint.z ? (keypoint.z / videoWidth) * -1 : 0,
+            };
             jointInfo[abbrev] = {
-                vector: { x: Number(vectorX.toFixed(4)), y: Number(vectorY.toFixed(4)), z: 0 },
-                score: Number(keypoint.score.toFixed(4))
+                vector: { x: Number(currentVector.x.toFixed(4)), y: Number(currentVector.y.toFixed(4)), z: Number(currentVector.z.toFixed(4)) },
+                score: Number(keypoint.score.toFixed(4)),
             };
         }
     });
+
+    const currentPoseForComparison = { jointInfo };
+    const zDisplacements = calculateZDisplacement(currentPoseForComparison, previousPose, isFaceVisible);
+
+    for (const key in jointInfo) {
+        if(jointInfo[key]) jointInfo[key].zDisplacement = zDisplacements[key] || 0;
+    }
+    
+    // --- NEW: Flexion/Extension & Rotation Logic ---
+    const getFlexionState = (p1, p2, p3) => {
+        if (!p1?.vector || !p2?.vector || !p3?.vector) return 'NEU';
+        const v1 = v_sub(p1.vector, p2.vector);
+        const v2 = v_sub(p3.vector, p2.vector);
+        const angle = v_angle(v1, v2);
+        if (angle < 140) return 'FLEX';
+        if (angle > 165) return 'EXT';
+        return 'NEU';
+    };
+
+    const getShoulderRotation = (shoulder, elbow, wrist) => {
+        if (!shoulder?.vector || !elbow?.vector || !wrist?.vector) return 'NEU';
+        const shoulderToWrist = v_sub(wrist.vector, shoulder.vector);
+        const shoulderToElbow = v_sub(elbow.vector, shoulder.vector);
+        const crossZ = shoulderToWrist.x * shoulderToElbow.y - shoulderToWrist.y * shoulderToElbow.x;
+        if (crossZ > 0.05) return 'IN';
+        if (crossZ < -0.05) return 'OUT';
+        return 'NEU';
+    };
+
+    if (jointInfo.LS && jointInfo.LE && jointInfo.LW) {
+        jointInfo.LE.orientation = getFlexionState(jointInfo.LS, jointInfo.LE, jointInfo.LW);
+        jointInfo.LS.orientation = getShoulderRotation(jointInfo.LS, jointInfo.LE, jointInfo.LW);
+    }
+    if (jointInfo.RS && jointInfo.RE && jointInfo.RW) {
+        jointInfo.RE.orientation = getFlexionState(jointInfo.RS, jointInfo.RE, jointInfo.RW);
+        jointInfo.RS.orientation = getShoulderRotation(jointInfo.RS, jointInfo.RE, jointInfo.RW);
+    }
+    if (jointInfo.LH && jointInfo.LK && jointInfo.LA) {
+        jointInfo.LK.orientation = getFlexionState(jointInfo.LH, jointInfo.LK, jointInfo.LA);
+    }
+    if (jointInfo.RH && jointInfo.RK && jointInfo.RA) {
+        jointInfo.RK.orientation = getFlexionState(jointInfo.RH, jointInfo.RK, jointInfo.RA);
+    }
+
     const grounding = { L: null, R: null, L_weight: 50 };
     if (jointInfo['LA']?.score > 0.5) grounding.L = 'L123T12345';
     if (jointInfo['RA']?.score > 0.5) grounding.R = 'R123T12345';
-    return { jointInfo, grounding };
+    
+    return { jointInfo, grounding, isFaceVisible };
 };
+
 
 export const useMotionAnalysis = ({ onPoseUpdate, onAnalysisComplete }) => {
     const [detector, setDetector] = useState(null);
@@ -45,24 +110,24 @@ export const useMotionAnalysis = ({ onPoseUpdate, onAnalysisComplete }) => {
     const videoRef = useRef(null);
     const rafIdRef = useRef(null);
     const analysisControllerRef = useRef(null);
+    const previousPoseRef = useRef(null);
 
-    // --- DEFINITIVE FIX for Infinite Loop ---
-    // Store callbacks in a ref to ensure the animation loop has a stable reference.
     const callbacksRef = useRef({ onPoseUpdate, onAnalysisComplete });
     useEffect(() => {
         callbacksRef.current.onPoseUpdate = onPoseUpdate;
         callbacksRef.current.onAnalysisComplete = onAnalysisComplete;
     }, [onPoseUpdate, onAnalysisComplete]);
 
-    // Initialize Detector once on mount
     useEffect(() => {
         const init = async () => {
+            console.log('[MotionAnalysis] Initializing detector...');
             try {
                 await tf.ready();
                 await tf.setBackend('webgl');
                 const model = poseDetection.SupportedModels.MoveNet;
                 const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
                 setDetector(await poseDetection.createDetector(model, detectorConfig));
+                console.log('[MotionAnalysis] Detector initialized successfully.');
             } catch (err) {
                 console.error("Failed to initialize pose detector:", err);
                 toast.error('Failed to load analysis engine.');
@@ -73,39 +138,34 @@ export const useMotionAnalysis = ({ onPoseUpdate, onAnalysisComplete }) => {
         init();
     }, []);
 
-    // The core animation loop. This function is now stable.
     const estimationLoop = useCallback(async () => {
-        if (!detector || !videoRef.current || !document.contains(videoRef.current)) {
-            setIsTracking(false); // Stop tracking if conditions fail
-            return;
-        }
-
+        if (!detector || !videoRef.current || !document.contains(videoRef.current)) { /* ... */ return; }
         const poses = await detector.estimatePoses(videoRef.current, { flipHorizontal: false });
         if (poses && poses.length > 0) {
-            const seqPose = transformTfPoseToSeqPose(poses[0], videoRef.current);
-            if (seqPose) { // Only update if transformation was successful
+            const seqPose = transformTfPoseToSeqPose(poses[0], videoRef.current, previousPoseRef.current);
+            if (seqPose) {
                 setLivePoseData(seqPose);
+                previousPoseRef.current = { jointInfo: seqPose.jointInfo };
                 if (callbacksRef.current.onPoseUpdate) {
                     callbacksRef.current.onPoseUpdate(seqPose);
                 }
             }
         }
-        
-        // Schedule the next frame
         rafIdRef.current = requestAnimationFrame(estimationLoop);
     }, [detector]);
 
-    // This effect manages the starting and stopping of the animation loop
+
     useEffect(() => {
         if (isTracking) {
+            console.log('[MotionAnalysis] Starting estimation loop.');
             rafIdRef.current = requestAnimationFrame(estimationLoop);
         } else {
             if (rafIdRef.current) {
+                console.log('[MotionAnalysis] Stopping estimation loop.');
                 cancelAnimationFrame(rafIdRef.current);
                 rafIdRef.current = null;
             }
         }
-        // Cleanup function to stop the loop if the hook unmounts
         return () => {
             if (rafIdRef.current) {
                 cancelAnimationFrame(rafIdRef.current);
@@ -116,6 +176,7 @@ export const useMotionAnalysis = ({ onPoseUpdate, onAnalysisComplete }) => {
     const startLiveTracking = useCallback((videoElement) => {
         if (!detector || isInitializing) return;
         if (videoElement && videoElement.videoWidth > 0) {
+            console.log('[MotionAnalysis] Starting live tracking.');
             videoRef.current = videoElement;
             setIsTracking(true);
         } else {
@@ -124,6 +185,7 @@ export const useMotionAnalysis = ({ onPoseUpdate, onAnalysisComplete }) => {
     }, [detector, isInitializing]);
     
     const stopLiveTracking = useCallback(() => {
+        console.log('[MotionAnalysis] Stopping live tracking.');
         setIsTracking(false);
     }, []);
 
@@ -156,13 +218,14 @@ export const useMotionAnalysis = ({ onPoseUpdate, onAnalysisComplete }) => {
 
                 const poses = await detector.estimatePoses(videoElement, { flipHorizontal: false });
                 if (poses && poses.length > 0) {
-                    const poseData = transformTfPoseToSeqPose(poses[0], videoElement);
+                    const poseData = transformTfPoseToSeqPose(poses[0], videoElement, previousPoseRef.current);
                     if (poseData) {
                         results.push({
                             bar: Math.floor(i / UI_PADS_PER_BAR),
                             beat: i % UI_PADS_PER_BAR,
                             poseData
                         });
+                        previousPoseRef.current = { jointInfo: poseData.jointInfo };
                     }
                 }
                 setAnalysisProgress(((i + 1) / totalSteps) * 100);
@@ -188,14 +251,7 @@ export const useMotionAnalysis = ({ onPoseUpdate, onAnalysisComplete }) => {
     }, []);
 
     return {
-        isInitializing,
-        isTracking,
-        isAnalyzing,
-        analysisProgress,
-        livePoseData,
-        startLiveTracking,
-        stopLiveTracking,
-        startFullAnalysis,
-        cancelFullAnalysis,
+        isInitializing, isTracking, isAnalyzing, analysisProgress, livePoseData,
+        startLiveTracking, stopLiveTracking, startFullAnalysis, cancelFullAnalysis,
     };
 };

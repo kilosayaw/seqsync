@@ -1,148 +1,103 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
+import styled from 'styled-components';
 import { DndContext } from '@dnd-kit/core';
-import { toast } from 'react-toastify';
 
-// PROVIDERS & CONTEXTS
-import { SequenceProvider, useSequence } from '../../../contexts/SequenceContext.jsx';
-import { PlaybackProvider } from '../../../contexts/PlaybackContext.jsx';
-import { UIStateProvider, useUIState } from '../../../contexts/UIStateContext.jsx';
-import { MediaProvider, useMedia } from '../../../contexts/MediaContext.jsx';
-import { AnalysisProvider } from '../../../contexts/AnalysisContext.jsx';
+import TopHeader from './TopHeader';
+import BeatGrid from '../main/BeatGrid';
+import VisualizerDeck from './VisualizerDeck';
+import FootControl from '../grounding/FootControl';
+import JointSelector from './JointSelector';
+import NotationDisplay from '../notation/NotationDisplay';
 
-// HOOKS
-import { useMotionAnalysis } from '../../../hooks/useMotionAnalysis.js';
-import { useKeyboardControls } from '../../../hooks/useKeyboardControls.js';
+import { useMedia } from '../../../contexts/MediaContext';
+import { useSequence } from '../../../contexts/SequenceContext';
+import { useUIState } from '../../../contexts/UIStateContext';
 
-// CHILD COMPONENTS
-import StudioHeader from '../main/StudioHeader.jsx';
-import BeatGrid from '../main/BeatGrid.jsx';
-import NotationDisplay from '../main/NotationDisplay.jsx';
-import VisualizerDeck from './VisualizerDeck.jsx';
-import SideJointSelector from '../pose_editor/SideJointSelector.jsx';
-import PoseEditorModal from '../pose_editor/PoseEditorModal.jsx';
-import TransitionSelector from '../pose_editor/TransitionSelector.jsx';
-import JointInputPanel from '../pose_editor/JointInputPanel.jsx';
-import IntentPalette from '../pose_editor/IntentPalette.jsx';
+const StudioLayout = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: #0f172a;
+  overflow: hidden;
+`;
 
-// UTILS
-import { UI_LEFT_JOINTS_ABBREVS_NEW, UI_RIGHT_JOINTS_ABBREVS_NEW } from '../../../utils/constants';
+const MainContent = styled.div`
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Center the main cockpit vertically */
+    padding: 1rem;
+    min-height: 0;
+`;
 
-const StudioLayout = () => {
-    // --- CONTEXTS ---
-    const { initializeSequenceFromOnsets, applyTransitionToBeat, updateBeatDynamics } = useSequence();
-    const { livePoseData, startLiveTracking, stopLiveTracking } = useMotionAnalysis({ onPoseUpdate: null });
-    const { setMediaFile, mediaStream, mediaDuration, videoPlayerRef } = useMedia();
-    const { bpm, setBpm } = useSequence();
-    const { activeEditingJoint, setActiveEditingJoint, currentEditingBar, activeBeatIndex, activeIntent, isPoseEditorOpen, closePoseEditor } = useUIState();
+// This is the main container for the entire interactive area
+const Cockpit = styled.div`
+    display: flex;
+    align-items: flex-start; /* Align all direct children to the top */
+    gap: 10px; /* <<< FIX: Set the 10px margin between columns >>> */
+    width: 100%;
+    max-width: 1200px;
+`;
 
-    useKeyboardControls();
+const CentralColumn = styled.main`
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px; /* <<< FIX: Set the 10px margin between central elements >>> */
+    min-width: 0;
+`;
 
-    const handleJointDataUpdate = useCallback((jointAbbrev, newJointData) => {
-        updateBeatDynamics(currentEditingBar, activeBeatIndex, {
-            jointInfo: { [jointAbbrev]: newJointData }
-        });
-    }, [currentEditingBar, activeBeatIndex, updateBeatDynamics]);
+const SideColumn = styled.aside`
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    /* <<< FIX: The height of the buttons + wheels will now define the panel height >>> */
+`;
 
-    const handleIntentSelect = useCallback((intentValue) => {
-        if (!activeEditingJoint) {
-            toast.info("Select a joint before assigning an intent.");
-            return;
-        }
-        handleJointDataUpdate(activeEditingJoint, { intent: intentValue });
-        toast.success(`Intent '${intentValue}' set for ${activeEditingJoint}`);
-    }, [activeEditingJoint, handleJointDataUpdate]);
-
-    const handleFileSelection = useCallback((file) => {
-        if (!file) return;
-        const onBpmDetected = (detectedBpm) => setBpm(detectedBpm);
-        const onOnsetsDetected = (onsets) => initializeSequenceFromOnsets(onsets, bpm, mediaDuration);
-        setMediaFile(file, onBpmDetected, onOnsetsDetected);
-    }, [setMediaFile, setBpm, initializeSequenceFromOnsets, bpm, mediaDuration]);
+const Studio = () => {
+    const { onSave, onLoad, songData } = useSequence();
+    const { handleFileChange } = useMedia();
+    const { selectedBar, selectedBeat } = useUIState();
+    const [isPoseEditorOpen, setPoseEditorOpen] = useState(false);
     
-    const handleDragEnd = useCallback((event) => {
-        const { active, over } = event;
-        if (!over || !active.data.current || !over.data.current) return;
-        if (active.data.current.type === 'transition-icon' && over.data.current.type === 'transition-drop') {
-            const curveType = active.id;
-            const targetBeatIndex = over.data.current.targetBeat;
-            applyTransitionToBeat(currentEditingBar, targetBeatIndex, curveType, active.data.current.targetMode);
-            toast.success(`Transition '${curveType}' applied to beat ${targetBeatIndex + 1}.`);
-        }
-    }, [applyTransitionToBeat, currentEditingBar]);
-
-    useEffect(() => {
-        if (mediaStream && videoPlayerRef.current) startLiveTracking(videoPlayerRef.current);
-        return () => stopLiveTracking();
-    }, [mediaStream, videoPlayerRef, startLiveTracking, stopLiveTracking]);
-
+    const currentBeatData = songData[selectedBar]?.[selectedBeat];
+    const leftFootGround = currentBeatData?.pose?.grounding?.L;
+    const rightFootGround = currentBeatData?.pose?.grounding?.R;
+    
+    const handleOpenPoseEditor = () => setPoseEditorOpen(true);
+    const handleClosePoseEditor = () => setPoseEditorOpen(false);
+    const handleBeatSelect = () => {};
+    const handleDragEnd = () => {};
     return (
         <DndContext onDragEnd={handleDragEnd}>
-             <div className="p-2 bg-dark-bg text-text-primary h-screen flex flex-col font-sans select-none overflow-hidden" style={{ height: '100dvh' }}>
-                <header className="flex-shrink-0">
-                    <StudioHeader />
-                </header>
-                
-                <main className="flex-grow grid grid-cols-[140px_1fr_140px] gap-3 overflow-hidden py-2">
-                    {/* Left Sidebar */}
-                    <aside className="flex flex-col items-center h-full overflow-y-auto scrollbar-thin scrollbar-thumb-element-bg pt-4 space-y-2">
-                        <SideJointSelector side="L" />
-                        {activeEditingJoint && UI_LEFT_JOINTS_ABBREVS_NEW.some(j => j.abbrev === activeEditingJoint) && (
-                            <div className="w-full p-1 space-y-2">
-                                {activeEditingJoint !== 'LK' && (
-                                    <JointInputPanel jointAbbrev={activeEditingJoint} onClose={() => setActiveEditingJoint(null)} />
-                                )}
-                                <IntentPalette onIntentSelect={handleIntentSelect} activeIntent={activeIntent} />
-                            </div>
-                        )}
-                    </aside>
+            <StudioLayout>
+                <TopHeader onSave={onSave} onLoad={onLoad} onFileSelected={handleFileChange} onOpenPoseEditor={handleOpenPoseEditor} />
+                <MainContent>
+                    <Cockpit>
+                        <SideColumn>
+                            <JointSelector side="left" />
+                            <FootControl side="left" groundingState={leftFootGround} />
+                        </SideColumn>
 
-                    {/* Center Content */}
-                    <div className="flex flex-col gap-2 overflow-hidden">
-                        <div className="flex-shrink-0">
-                             <BeatGrid />
-                        </div>
-                        <div className="flex-grow min-h-0">
-                            <VisualizerDeck livePoseData={livePoseData} />
-                        </div>
-                    </div>
-                    
-                    {/* Right Sidebar */}
-                    <aside className="flex flex-col items-center h-full overflow-y-auto scrollbar-thin scrollbar-thumb-element-bg pt-4 space-y-2">
-                        <SideJointSelector side="R" />
-                        {activeEditingJoint && UI_RIGHT_JOINTS_ABBREVS_NEW.some(j => j.abbrev === activeEditingJoint) && (
-                            <div className="w-full p-1 space-y-2">
-                                {activeEditingJoint !== 'RK' && (
-                                     <JointInputPanel jointAbbrev={activeEditingJoint} onClose={() => setActiveEditingJoint(null)} />
-                                )}
-                                <IntentPalette onIntentSelect={handleIntentSelect} activeIntent={activeIntent} />
-                            </div>
-                         )}
-                    </aside>
-                </main>
+                        <CentralColumn>
+                            <VisualizerDeck />
+                            <NotationDisplay />
+                            <BeatGrid onBeatSelect={handleBeatSelect} />
+                        </CentralColumn>
 
-                <footer className="flex-shrink-0 mt-auto">
-                    <NotationDisplay />
-                </footer>
+                        <SideColumn>
+                            <JointSelector side="right" />
+                            <FootControl side="right" groundingState={rightFootGround} />
+                        </SideColumn>
+                    </Cockpit>
+                </MainContent>
                 
-                <TransitionSelector />
-                <PoseEditorModal isOpen={isPoseEditorOpen} onClose={closePoseEditor} barIndex={currentEditingBar} beatIndex={activeBeatIndex} />
-            </div>
+                {isPoseEditorOpen && <PoseEditorModal isOpen={isPoseEditorOpen} onClose={handleClosePoseEditor} />}
+            </StudioLayout>
         </DndContext>
     );
 };
 
-// The provider wrapper remains the same, ensuring all contexts are available.
-const Studio = () => ( 
-    <SequenceProvider> 
-        <UIStateProvider> 
-            <PlaybackProvider> 
-                <MediaProvider> 
-                    <AnalysisProvider> 
-                        <StudioLayout /> 
-                    </AnalysisProvider> 
-                </MediaProvider> 
-            </PlaybackProvider> 
-        </UIStateProvider> 
-    </SequenceProvider> 
-);
 export default Studio;

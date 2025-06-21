@@ -1,77 +1,59 @@
-import React, { useCallback, useMemo } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
+import styled from 'styled-components';
+import BeatButton from '../sequencer/BeatButton';
 import { useUIState } from '../../../contexts/UIStateContext';
 import { useSequence } from '../../../contexts/SequenceContext';
 import { usePlayback } from '../../../contexts/PlaybackContext';
-import BeatButton from '../sequencer/BeatButton';
-import { UI_PADS_PER_BAR } from '../../../utils/constants';
-import { useActionLogger } from '../../../hooks/useActionLogger';
 
-const BeatGrid = () => {
-    const { currentEditingBar, activeBeatIndex, viewMode, currentSoundInBank, handleBeatClick } = useUIState();
-    const { songData, updateStateAndHistory } = useSequence();
-    const { isPlaying, isRecording, currentStep, currentBar } = usePlayback();
-    const log = useActionLogger('BeatGrid');
+const GridContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+  padding: 10px;
+  background-color: var(--color-background-deep, #222);
+  border-radius: var(--border-radius-medium, 8px);
+  width: 100%; 
+  max-width: none;
+`;
 
-    const currentBarBeats = useMemo(() => {
-        const beats = songData[currentEditingBar]?.beats || [];
-        return Array.from({ length: UI_PADS_PER_BAR }, (_, i) => beats[i] || { id: `${currentEditingBar}-${i}`, sounds: [], jointInfo: {}, grounding: {} });
-    }, [songData, currentEditingBar]);
+const BeatGrid = ({ onBeatSelect }) => {
+  const { selectedBar, selectedBeat, setSelectedBeat } = useUIState();
+  const { getBeatData } = useSequence();
+  const { currentStep } = usePlayback();
 
-    const handleAddSound = useCallback((barIdx, beatIdx) => {
-        if (!currentSoundInBank) return;
-        updateStateAndHistory(d => {
-            const beat = d[barIdx].beats[beatIdx];
-            if (!beat.sounds) beat.sounds = [];
-            if (!beat.sounds.includes(currentSoundInBank) && beat.sounds.length < 4) {
-                beat.sounds.push(currentSoundInBank);
-            }
-        }, `Add Sound: ${currentSoundInBank}`);
-    }, [updateStateAndHistory, currentSoundInBank]);
+  const handleBeatClick = (beatIndex) => {
+    setSelectedBeat(beatIndex);
+    // <<< FIX: This line was missing. It calls the function from Studio.jsx >>>
+    if (onBeatSelect) {
+      onBeatSelect(selectedBar, beatIndex);
+    }
+  };
 
-    const handleDeleteSound = useCallback((barIdx, beatIdx, soundName) => {
-        updateStateAndHistory(d => {
-            if (d[barIdx]?.beats[beatIdx]?.sounds) {
-                d[barIdx].beats[beatIdx].sounds = d[barIdx].beats[beatIdx].sounds.filter(s => s !== soundName);
-            }
-        }, `Delete Sound: ${soundName}`);
-    }, [updateStateAndHistory]);
-    
-    const handleClearPoseData = useCallback((barIdx, beatIdx) => {
-        updateStateAndHistory(d => {
-            const beat = d[barIdx].beats[beatIdx];
-            if (beat) {
-                beat.jointInfo = {};
-                beat.grounding = { L: null, R: null, L_weight: 50 };
-                beat.thumbnail = null;
-            }
-        }, 'Clear Pose Data');
-    }, [updateStateAndHistory]);
+  return (
+    <GridContainer>
+      {Array.from({ length: 16 }).map((_, index) => {
+        const beatData = { 
+          ...getBeatData(selectedBar, index), 
+          beatIndex: index 
+        };
 
-    return (
-        <section aria-label="Beat Sequencer Grid" className="w-full relative flex-shrink-0">
-            {/* --- DEFINITIVE FIX: Reduced padding and gap to shrink buttons proportionally --- */}
-            {/* You can adjust `p-1` and `gap-1` to fine-tune the size. */}
-            <div className="w-full bg-gray-800/30 p-1 rounded-lg grid grid-cols-8 grid-rows-2 gap-1">
-                {currentBarBeats.map((beat, index) => (
-                    <BeatButton
-                        key={`beat-btn-${index}`}
-                        beatData={beat}
-                        barIndex={currentEditingBar}
-                        beatIndex={index}
-                        isActive={activeBeatIndex === index}
-                        isCurrentStep={isPlaying && currentBar === currentEditingBar && currentStep === index}
-                        isRecording={isRecording}
-                        viewMode={viewMode}
-                        onClick={handleBeatClick}
-                        onAddSound={() => handleAddSound(currentEditingBar, index)}
-                        onDeleteSound={handleDeleteSound}
-                        onClearPoseData={handleClearPoseData}
-                        currentSoundInBank={currentSoundInBank}
-                    />
-                ))}
-            </div>
-        </section>
-    );
+        return (
+          <BeatButton
+            key={`${selectedBar}-${index}`}
+            beatData={beatData}
+            onClick={() => handleBeatClick(index)}
+            isActive={selectedBeat === index} 
+            isCurrentStep={currentStep === index}
+          />
+        );
+      })}
+    </GridContainer>
+  );
+};
+
+BeatGrid.propTypes = {
+    onBeatSelect: PropTypes.func.isRequired,
 };
 
 export default BeatGrid;

@@ -1,73 +1,60 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faAnchor, faBolt, faBalanceScale, faWalking } from '@fortawesome/free-solid-svg-icons';
-import Tooltip from '../../common/Tooltip';
+import { faBolt, faBalanceScale } from '@fortawesome/free-solid-svg-icons';
 
-// A small, reusable sub-component for displaying a single piece of info.
-const InfoItem = ({ icon, label, value, colorClass = 'text-gray-300', tooltipContent }) => (
-    <Tooltip content={tooltipContent} placement="top">
-        <div className="flex items-center gap-2 text-xs cursor-help">
-            <FontAwesomeIcon icon={icon} className="text-gray-500 w-3" />
-            <span className="font-semibold text-gray-400">{label}:</span>
-            <span className={`font-mono ${colorClass}`}>{value}</span>
-        </div>
-    </Tooltip>
+const InfoItem = ({ icon, label, value }) => (
+    <div className="flex items-center gap-1.5 text-xs">
+        <FontAwesomeIcon icon={icon} className="text-gray-400 w-3" />
+        <span className="text-gray-300 font-medium">{label}:</span>
+        <span className="text-white font-mono">{value}</span>
+    </div>
 );
 
-const StabilityBar = ({ score, isStable }) => {
-    const barColor = isStable ? 'bg-green-500' : 'bg-yellow-500';
+const StabilityBar = ({ value }) => {
+    const width = Math.max(0, Math.min(100, value));
+    let colorClass = 'bg-green-500';
+    if (width < 60) colorClass = 'bg-yellow-500';
+    if (width < 30) colorClass = 'bg-red-500';
+
     return (
-        <div className="w-full bg-gray-700 rounded-full h-1.5">
-            <div 
-                className={`h-1.5 rounded-full transition-all duration-300 ${barColor}`}
-                style={{ width: `${score}%` }}
+        <div className="w-full bg-gray-900/50 rounded-full h-2.5">
+            <div
+                className={`h-2.5 rounded-full transition-all duration-300 ${colorClass}`}
+                style={{ width: `${width}%` }}
             ></div>
         </div>
     );
 };
 
 const PoseInfoDisplay = ({ poseDynamics }) => {
-    const {
-        anchors = [],
-        driver = 'N/A',
-        isStable = false,
-        stabilityScore = 0,
-        gait = { isContralateral: false, description: 'N/A' },
-    } = poseDynamics || {};
+    if (!poseDynamics) return null;
+
+    const { momentum, driver, stability } = poseDynamics;
 
     return (
-        <div className="w-full bg-gray-900/50 p-3 rounded-lg mt-2 grid grid-cols-2 gap-x-6 gap-y-2 backdrop-blur-sm">
-            <InfoItem 
-                icon={faAnchor} 
-                label="Anchors" 
-                value={anchors.length > 0 ? anchors.join(', ') : 'None'}
-                tooltipContent="The grounded points forming the Base of Support."
-            />
-            <InfoItem 
-                icon={faBolt} 
-                label="Driver" 
-                value={driver}
-                tooltipContent="The primary joint initiating movement based on its 'Intent'."
-            />
-            <div className="col-span-2 flex flex-col gap-1" title={`Stability Score: ${stabilityScore}%`}>
+        <div className="w-full bg-gray-800/60 p-2 rounded-md space-y-2">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <InfoItem icon={faBolt} label="Momentum" value={momentum.toFixed(0)} />
+                <InfoItem icon={faBalanceScale} label="Driver" value={driver || 'N/A'} />
+            </div>
+            <div className="space-y-1">
                 <div className="flex justify-between items-center text-xs">
-                     <span className="font-semibold text-gray-400 flex items-center gap-1.5">
-                        <FontAwesomeIcon icon={faBalanceScale} className="text-gray-500 w-3" />
-                        Stability
-                     </span>
-                     <span className={isStable ? 'text-green-400' : 'text-yellow-400'}>
-                        {isStable ? 'Stable' : 'Unstable'}
-                     </span>
+                    <span className="text-gray-300 font-medium">Stability</span>
+                    <span className="text-white font-mono">{Math.round(stability)}%</span>
                 </div>
-                <StabilityBar score={stabilityScore} isStable={isStable} />
+                <StabilityBar value={stability} />
             </div>
         </div>
     );
 };
 
 PoseInfoDisplay.propTypes = {
-    poseDynamics: PropTypes.object,
+    poseDynamics: PropTypes.shape({
+        momentum: PropTypes.number,
+        driver: PropTypes.string,
+        stability: PropTypes.number,
+    }).isRequired,
 };
 
 export default PoseInfoDisplay;

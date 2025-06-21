@@ -1,163 +1,141 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { toast } from 'react-toastify';
-import { UI_PADS_PER_BAR } from '../utils/constants';
+import React, { createContext, useState, useContext, useCallback, useRef } from 'react';
+import MusicTempo from 'music-tempo';
+import { usePlayback } from './PlaybackContext';
+import { useUIState } from './UIStateContext';
+import { useSequence } from './SequenceContext';
 
 const MediaContext = createContext(null);
 
 export const MediaProvider = ({ children }) => {
     const [mediaFile, setMediaFile] = useState(null);
-    const [mediaStream, setMediaStream] = useState(null);
-    const [mediaUrl, setMediaUrl] = useState(null);
-    const [mediaDuration, setMediaDuration] = useState(0);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [progress, setProgress] = useState(0);
-    
-    const videoPlayerRef = useRef(null);
-    const bpmWorkerRef = useRef(null);
-    const onsetWorkerRef = useRef(null);
-    const frameWorkerRef = useRef(null);
-    const analysisControllerRef = useRef(new AbortController());
+    const [mediaUrl, setMediaUrl] = useState('');
+    const [mediaType, setMediaType] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState('');
+    const videoRef = useRef(null);
 
-    const handleSetMediaFile = useCallback(async (file, onBpm, onOnsets, onThumbnailsComplete) => {
+    const { setBpm } = usePlayback();
+    const { setTotalBars } = useUIState();
+    const { setThumbnails } = useSequence();
+
+    const generateThumbnails = useCallback(async (videoUrl, duration, bpm) => {
+        console.log('[Slicer] Starting thumbnail generation...');
+        return new Promise((resolve) => { // <<< We don't need to reject anymore
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            video.muted = true;
+            video.src = videoUrl;
+
+            let beatIndex = 0;
+            const thumbnails = {};
+            const timePerBeat = 60 / bpm;
+            const totalBeats = Math.floor(duration / timePerBeat);
+
+            video.onloadedmetadata = () => {
+                const calculatedBars = Math.ceil(totalBeats / 16);
+                setTotalBars(calculatedBars > 0 ? calculatedBars : 1);
+                console.log(`[Slicer] Video loaded. Total beats to slice: ${totalBeats}, Calculated Bars: ${calculatedBars}`);
+                seekNextBeat();
+            };
+
+            const seekNextBeat = () => {
+                if (beatIndex >= totalBeats) {
+                    console.log('[Slicer] Finished generating all thumbnails.');
+                    setThumbnails(thumbnails);
+                    resolve(); // Successfully finish
+                    return;
+                }
+                const timeTarget = beatIndex * timePerBeat;
+                video.currentTime = timeTarget;
+            };
+
+            video.onseeked = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                
+                const bar = Math.floor(beatIndex / 16);
+                const beatInBar = beatIndex % 16;
+                
+                if (!thumbnails[bar]) thumbnails[bar] = {};
+                thumbnails[bar][beatInBar] = dataUrl;
+
+                setLoadingMessage(`Slicing Beat ${beatIndex + 1} / ${totalBeats}`);
+                
+                beatIndex++;
+                seekNextBeat();
+            };
+
+            // <<< FIX: Gracefully handle the error instead of crashing >>>
+            video.onerror = (e) => {
+                console.warn(
+                    "[Slicer] Could not decode video for thumbnail generation. " +
+                    "This is a browser/codec issue. BPM and bar count are still set. " +
+                    "Try a standard MP4 (H.264) file for thumbnail support.", e
+                );
+                // We resolve the promise here to allow the app to continue,
+                // just without thumbnails.
+                resolve(); 
+            };
+        });
+    }, [setThumbnails, setTotalBars]);
+
+
+    const processMediaFile = useCallback(async (file) => {
         if (!file) return;
 
-        setIsAnalyzing(true);
-        setProgress(0);
-        analysisControllerRef.current = new AbortController();
-
-        if (mediaUrl) URL.revokeObjectURL(mediaUrl);
-        const newUrl = URL.createObjectURL(file);
-        setMediaFile(file);
-        setMediaUrl(newUrl);
-        setMediaStream(null);
-        toast.info(`Loaded: ${file.name}`);
-
-        if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
-            try {
-                // STAGE 1: Decode Audio Buffer Once
-                setProgress(10);
-                const buffer = await file.arrayBuffer();
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const audioBuffer = await audioContext.decodeAudioData(buffer.slice(0));
-                setMediaDuration(audioBuffer.duration);
-
-                // STAGE 2: Get BPM & Onsets Concurrently
-                toast.info("Analyzing audio for rhythm...");
-                setProgress(25);
-
-                const bpmPromise = new Promise((resolve, reject) => {
-                    bpmWorkerRef.current.onmessage = e => e.data.type === 'success' ? resolve(e.data.bpm) : reject(new Error(e.data.message));
-                    bpmWorkerRef.current.onerror = e => reject(e);
-                    // Pass a transferable buffer
-                    const channelData = audioBuffer.getChannelData(0);
-                    bpmWorkerRef.current.postMessage({ audioData: channelData.buffer }, [channelData.buffer]);
-                });
-
-                const onsetPromise = new Promise((resolve, reject) => {
-                    onsetWorkerRef.current.onmessage = e => e.data.type === 'ONSET_RESULTS' ? resolve(e.data.payload.onsets) : reject(new Error(e.data.payload.message));
-                    onsetWorkerRef.current.onerror = e => reject(e);
-                    // Pass a separate transferable buffer
-                    const onsetChannelData = audioBuffer.getChannelData(0); 
-                    onsetWorkerRef.current.postMessage({ audioData: onsetChannelData.buffer, sampleRate: audioContext.sampleRate }, [onsetChannelData.buffer]);
-                });
-
-                const [detectedBpm, onsets] = await Promise.all([bpmPromise, onsetPromise]);
-                
-                setProgress(60);
-                onBpm(Math.round(detectedBpm));
-                onOnsets(onsets);
-                
-                // STAGE 3: Video Thumbnail Generation (if applicable)
-                if (file.type.startsWith('video/') && onsets.length > 0) {
-                    toast.info(`Extracting ${onsets.length} video frames...`);
-                    const video = document.createElement('video');
-                    video.crossOrigin = "anonymous";
-                    video.muted = true;
-                    video.src = newUrl;
-                    await new Promise(resolve => video.onloadedmetadata = resolve);
-
-                    const thumbnailResults = [];
-                    frameWorkerRef.current.onmessage = (e) => {
-                        if (e.data.type === 'THUMBNAIL_RESULT') {
-                            thumbnailResults.push(e.data.payload);
-                            setProgress(60 + (thumbnailResults.length / onsets.length) * 40);
-                            if (thumbnailResults.length === onsets.length) {
-                                onThumbnailsComplete(thumbnailResults);
-                            }
-                        }
-                    };
-
-                    for (const onset of onsets) {
-                        if (analysisControllerRef.current.signal.aborted) throw new Error("Aborted");
-                        if (onset.time > video.duration) continue;
-                        video.currentTime = onset.time;
-                        await new Promise(resolve => video.onseeked = resolve);
-                        const bitmap = await createImageBitmap(video);
-                        const timePerStep = (60 / detectedBpm) / (UI_PADS_PER_BAR / 4);
-                        const stepIndex = Math.floor(onset.time / timePerStep);
-                        const bar = Math.floor(stepIndex / UI_PADS_PER_BAR);
-                        const beat = stepIndex % UI_PADS_PER_BAR;
-                        frameWorkerRef.current.postMessage({ type: 'PROCESS_FRAME', payload: { imageBitmap: bitmap, bar, beat } }, [bitmap]);
-                    }
-                } else {
-                     setProgress(100);
-                }
-                toast.success("Analysis complete!");
-
-            } catch (error) {
-                if (error.message !== "Aborted") toast.error(`Analysis failed: ${error.message}`);
-            } finally {
-                setTimeout(() => {
-                    setIsAnalyzing(false);
-                    setProgress(0);
-                }, 1500);
-            }
-        } else {
-            setIsAnalyzing(false);
-        }
-    }, [mediaUrl]);
-    
-    const handleSetMediaStream = useCallback((stream) => {
-        if (mediaUrl) URL.revokeObjectURL(mediaUrl);
-        setMediaFile(null);
-        setMediaUrl(null);
-        setMediaDuration(0);
-        setMediaStream(stream);
-    }, [mediaUrl]);
-
-    useEffect(() => {
+        setIsLoading(true);
+        setMediaUrl(URL.createObjectURL(file));
+        setMediaType(file.type.startsWith('video') ? 'video' : 'audio');
+        
         try {
-            bpmWorkerRef.current = new Worker('/workers/BPMDetectorWorker.js', { type: 'module' });
-            onsetWorkerRef.current = new Worker('/workers/OnsetDetectorWorker.js', { type: 'module' });
-            frameWorkerRef.current = new Worker('/workers/MediaFrameWorker.js', { type: 'module' });
-        } catch (err) {
-            console.error("FATAL: Could not initialize Web Workers.", err);
-            toast.error("Failed to initialize analysis engine. Please refresh.");
+            setLoadingMessage('Analyzing BPM...');
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const arrayBuffer = await file.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            
+            const musicTempo = new MusicTempo(audioBuffer.getChannelData(0));
+            const detectedBpm = Math.round(musicTempo.tempo);
+            
+            setBpm(detectedBpm); 
+            console.log(`[BPM] Detected BPM: ${detectedBpm}`);
+
+            if (file.type.startsWith('video')) {
+                // Now this function will not throw an unhandled rejection
+                await generateThumbnails(URL.createObjectURL(file), audioBuffer.duration, detectedBpm);
+            }
+
+        } catch (error) {
+            console.error("Error processing media file:", error);
+            // This alert will now only show for non-video-decoding errors (e.g., corrupt audio)
+            alert("Could not process the media file. The audio data may be corrupt.");
+        } finally {
+            setIsLoading(false);
+            setLoadingMessage('');
         }
-        return () => {
-            bpmWorkerRef.current?.terminate();
-            onsetWorkerRef.current?.terminate();
-            frameWorkerRef.current?.terminate();
-        };
-    }, []);
+    }, [setBpm, generateThumbnails]);
 
-    const cancelFullAnalysis = () => {
-        analysisControllerRef.current.abort();
-        setIsAnalyzing(false);
-        setProgress(0);
-        toast.warn("Analysis cancelled.");
-    }
+    const handleFileChange = (file) => {
+        if (file) {
+            processMediaFile(file);
+        }
+    };
 
-    const value = useMemo(() => ({
-        mediaFile, mediaStream, mediaUrl, videoPlayerRef, mediaDuration,
-        setMediaFile: handleSetMediaFile, setMediaStream: handleSetMediaStream,
-        isAnalyzing, progress, cancelFullAnalysis
-    }), [
-        mediaFile, mediaStream, mediaUrl, mediaDuration, handleSetMediaFile, handleSetMediaStream, 
-        isAnalyzing, progress, cancelFullAnalysis
-    ]);
+    const value = {
+        mediaUrl,
+        isLoading,
+        loadingMessage,
+        handleFileChange,
+    };
 
-    return <MediaContext.Provider value={value}>{children}</MediaContext.Provider>;
+    return (
+        <MediaContext.Provider value={value}>
+            {children}
+        </MediaContext.Provider>
+    );
 };
 
 export const useMedia = () => {

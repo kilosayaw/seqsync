@@ -1,146 +1,132 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrashAlt, faPlus, faUserNinja } from '@fortawesome/free-solid-svg-icons';
-import { MODES, UI_PADS_PER_BAR } from '../../../utils/constants';
-import { unlockAudioContext } from '../../../utils/audioManager';
-import TransitionIndicator from './TransitionIndicator';
-import BeatWaveform from './BeatWaveform'; 
+import styled from 'styled-components';
+import { ReactP5Wrapper } from 'react-p5-wrapper';
 
-const SoundTag = ({ soundName, onDelete }) => (
-    <div className="relative group text-xs bg-brand-seq/80 text-white rounded px-2 py-0.5 shadow-md">
-        {soundName === 'HIT' ? 'Hit' : soundName}
-        <div 
-            onClick={onDelete}
-            className="absolute inset-0 bg-red-600/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded"
-            title={`Delete ${soundName}`}
-        >
-            <FontAwesomeIcon icon={faTrashAlt} />
-        </div>
-    </div>
-);
-SoundTag.propTypes = { soundName: PropTypes.string.isRequired, onDelete: PropTypes.func.isRequired };
+function thumbnailSketch(p5) {
+    let pose = null;
+    p5.setup = () => {
+        p5.createCanvas(100, 100);
+        p5.noLoop();
+    };
 
-const BeatButton = ({
-  beatData,
-  barIndex,
-  beatIndex,
-  isActive,
-  isCurrentStep,
-  isRecording,
-  viewMode,
-  onClick,
-  onAddSound,
-  onDeleteSound,
-  onClearPoseData,
-  currentSoundInBank,
-}) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const hasSounds = beatData.sounds && beatData.sounds.length > 0;
-  const hasMovementData = beatData.jointInfo && Object.keys(beatData.jointInfo).length > 0;
-  const hasWaveform = beatData.waveform && beatData.waveform.length > 0;
-  const hasVideoThumbnail = !!beatData.videoThumbnail;
-  const hasManualThumbnail = !!beatData.thumbnail;
-  const canAddSound = viewMode === MODES.SEQ && beatData.sounds?.length < 4 && currentSoundInBank;
+    p5.updateWithProps = (props) => {
+        if (props.pose) {
+            pose = props.pose;
+            p5.redraw();
+        }
+    };
 
-  const handleMainClick = () => {
-    unlockAudioContext();
-    onClick(beatIndex);
-  };
-  
-  const handleAddClick = (e) => {
-    e.stopPropagation();
-    if (canAddSound) onAddSound();
-  };
+    p5.draw = () => {
+        p5.clear();
+        p5.translate(p5.width / 2, p5.height / 2);
+        p5.scale(0.4);
 
-  const handleClearPoseClick = (e) => {
-    e.stopPropagation();
-    onClearPoseData(barIndex, beatIndex);
-  };
+        // --- Layer 1: Draw the Static 3x3 Grid ---
+        p5.stroke(255, 255, 255, 35); // Faint white lines
+        p5.strokeWeight(1.5);
+        const gridSize = 100;
+        const third = gridSize / 3;
+        p5.line(-third / 2, -gridSize / 2, -third / 2, gridSize / 2);
+        p5.line(third / 2, -gridSize / 2, third / 2, gridSize / 2);
+        p5.line(-gridSize / 2, -third / 2, gridSize / 2, -third / 2);
+        p5.line(-gridSize / 2, third / 2, gridSize / 2, third / 2);
+        
+        if (!pose || !pose.jointInfo) return;
+        
+        // --- Layer 2: Draw the Stick Figure on top of the grid ---
+        const jointInfo = pose.jointInfo;
+        const connections = [
+            ['N', 'LS'], ['N', 'RS'], ['LS', 'RS'],
+            ['LS', 'LE'], ['LE', 'LW'], ['RS', 'RE'], ['RE', 'RW'],
+            ['LS', 'LH'], ['RS', 'RH'], ['LH', 'RH'],
+            ['LH', 'LK'], ['LK', 'LA'], ['RH', 'RK'], ['RK', 'RA']
+        ];
+        
+        // Draw bones
+        p5.stroke(255); // Solid white
+        p5.strokeWeight(4);
+        connections.forEach(([startKey, endKey]) => {
+            const startJoint = jointInfo[startKey];
+            const endJoint = jointInfo[endKey];
+            if (startJoint?.vector && endJoint?.vector) {
+                p5.line(
+                    startJoint.vector.x * 100, -startJoint.vector.y * 100,
+                    endJoint.vector.x * 100, -endJoint.vector.y * 100
+                );
+            }
+        });
 
-  const buttonClasses = `
-    relative w-full h-full rounded-lg border-2 transition-all duration-150
-    flex items-center justify-center text-lg font-mono text-gray-400
-    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 overflow-hidden
-    ${isCurrentStep ? 'border-white scale-105 shadow-lg' : 'border-gray-700'}
-    ${isActive ? 'border-pos-yellow' : 'hover:border-gray-500'}
-    ${(viewMode === MODES.POS && (hasMovementData || hasVideoThumbnail)) ? 'bg-pos-yellow/20' : ''}
-    ${(viewMode === MODES.SEQ && (hasSounds || hasWaveform)) ? 'bg-brand-seq/30' : 'bg-gray-800/50'}
-  `;
+        // Draw joints
+        p5.stroke(255, 255, 0); // Bright yellow
+        p5.strokeWeight(8);
+        for (const key in jointInfo) {
+            if (jointInfo[key]?.vector) {
+                p5.point(jointInfo[key].vector.x * 100, -jointInfo[key].vector.y * 100);
+            }
+        }
+    };
+}
 
-  const renderContent = () => {
-    if (viewMode === MODES.POS) {
-        if (hasVideoThumbnail) return <div className="absolute inset-0 w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${beatData.videoThumbnail})` }} />;
-        if (hasManualThumbnail) return <div className="absolute inset-0 w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${beatData.thumbnail})` }} />;
-        if (hasMovementData) return <FontAwesomeIcon icon={faUserNinja} className="text-pos-yellow/50 text-2xl" />;
-    }
-    if (viewMode === MODES.SEQ) {
-        if (hasWaveform) return <BeatWaveform points={beatData.waveform} />;
-        if (hasSounds) return (
-            <div className="absolute inset-0 z-10 flex flex-wrap items-center justify-center gap-1 p-1">
-                {beatData.sounds.map(sound => (
-                    <SoundTag key={sound} soundName={sound} onDelete={(e) => { e.stopPropagation(); onDeleteSound(barIndex, beatIndex, sound); }} />
-                ))}
-            </div>
-        );
-    }
-    return <span className="text-white text-lg font-bold">{beatIndex + 1}</span>;
-  };
+const ButtonWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--border-radius-small, 4px);
+  overflow: hidden;
+  border: 2px solid ${({ $isActive, $isCurrentStep }) => 
+    ($isCurrentStep ? 'var(--color-highlight-strong, #00FFFF)' : 
+    ($isActive ? 'var(--color-accent, #00AACC)' : 'var(--color-border, #444)'))};
+  box-shadow: ${({ $isCurrentStep }) => $isCurrentStep ? '0 0 8px 2px var(--color-highlight-strong, #00FFFF)' : 'none'};
+  background-color: var(--color-background-lighter, #333);
+  transition: all 0.1s ease-in-out;
+  cursor: pointer;
+  &:hover {
+    border-color: var(--color-accent-light, #7FFFD4);
+  }
+`;
 
-  const canHaveTransition = beatIndex < UI_PADS_PER_BAR - 1;
-  const transitionCurveType = viewMode === MODES.SEQ ? beatData.transition?.soundCurve : beatData.transition?.poseCurve;
+const BeatNumber = styled.span`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--color-text-muted, #999);
+  font-size: 1.5em;
+  font-weight: bold;
+  visibility: ${({ $hasPose }) => $hasPose ? 'hidden' : 'visible'};
+  pointer-events: none;
+`;
+
+const ThumbnailContainer = styled.div`
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    opacity: ${({ $hasPose }) => ($hasPose ? 1 : 0)};
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.2s ease-in-out;
+`;
+
+const BeatButton = ({ beatData, onClick, isActive, isCurrentStep }) => {
+  const hasPose = beatData?.pose?.jointInfo && Object.keys(beatData.pose.jointInfo).length > 0;
 
   return (
-    // --- DEFINITIVE FIX: Removed fixed height. This container now fills its parent grid cell. ---
-    <div className="relative w-full h-full flex items-center">
-        <button
-            className={buttonClasses + " aspect-square"}
-            onClick={handleMainClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            title={`Beat ${beatIndex + 1}`}
-        >
-            {renderContent()}
-            
-            {isHovered && canAddSound && (
-                <div onClick={handleAddClick} className="absolute bottom-1 left-1 w-6 h-6 bg-green-500/80 rounded-full flex items-center justify-center cursor-pointer hover:bg-green-500 hover:scale-110 transition-all z-30" title={`Add ${currentSoundInBank}`}>
-                    <FontAwesomeIcon icon={faPlus} size="xs" />
-                </div>
-            )}
-            
-            {isRecording && isCurrentStep && <div className="absolute w-3 h-3 bg-red-500 rounded-full animate-ping z-30" />}
-            
-            {viewMode === MODES.POS && hasMovementData && (
-                <div onClick={handleClearPoseClick} className="absolute top-1 right-1 z-30 p-1 rounded-full bg-red-600/70 hover:bg-red-500 text-white cursor-pointer opacity-50 hover:opacity-100 transition-opacity" title="Clear Pose Data">
-                    <FontAwesomeIcon icon={faTrashAlt} className="h-2 w-2" />
-                </div>
-            )}
-        </button>
-        
-        {canHaveTransition && (
-            <TransitionIndicator 
-                beatIndex={beatIndex} 
-                curveType={transitionCurveType}
-                targetMode={viewMode}
-            />
-        )}
-    </div>
+    <ButtonWrapper onClick={onClick} $isActive={isActive} $isCurrentStep={isCurrentStep}>
+        <BeatNumber $hasPose={hasPose}>{beatData.beatIndex + 1}</BeatNumber>
+        <ThumbnailContainer $hasPose={hasPose}>
+            {hasPose && <ReactP5Wrapper sketch={thumbnailSketch} pose={beatData.pose} />}
+        </ThumbnailContainer>
+    </ButtonWrapper>
   );
 };
 
 BeatButton.propTypes = {
   beatData: PropTypes.object.isRequired,
-  barIndex: PropTypes.number.isRequired,
-  beatIndex: PropTypes.number.isRequired,
+  onClick: PropTypes.func.isRequired,
   isActive: PropTypes.bool.isRequired,
   isCurrentStep: PropTypes.bool.isRequired,
-  isRecording: PropTypes.bool.isRequired,
-  viewMode: PropTypes.oneOf(Object.values(MODES)).isRequired,
-  onClick: PropTypes.func.isRequired,
-  onAddSound: PropTypes.func.isRequired,
-  onDeleteSound: PropTypes.func.isRequired,
-  onClearPoseData: PropTypes.func.isRequired,
-  currentSoundInBank: PropTypes.string,
 };
 
-export default BeatButton;
+export default React.memo(BeatButton);
