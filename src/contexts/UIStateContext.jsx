@@ -1,53 +1,45 @@
 import React, { createContext, useState, useContext, useCallback } from 'react';
 
-// Assuming you have a constants file with this defined
-export const MODES = { SEQ: 'SEQ', POS: 'POS' };
+// Define the modes for type safety
+export const MODES = {
+  SEQ: 'SEQ',
+  POS: 'POS',
+};
 
 const UIStateContext = createContext(null);
 
 export const UIStateProvider = ({ children }) => {
-    // --- MODE SWITCHING & NUDGE STATE ---
+    // --- MODE & UI TOGGLE STATE ---
     const [currentMode, setCurrentMode] = useState(MODES.SEQ);
     const [isNudgeModeActive, setNudgeModeActive] = useState(false);
-
-    // Existing state...
-    const [selectedBeat, setSelectedBeat] = useState(0);
-    const [selectedBar, setSelectedBar] = useState(0);
-    const [visualizerMode, setVisualizerMode] = useState('2D');
     const [isLiveCamActive, setLiveCamActive] = useState(false);
-    const [isMirrored, setIsMirrored] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
-    const [editingBeatIndex, setEditingBeatIndex] = useState(null);
-    const [selectedJoint, setSelectedJoint] = useState(null);
+    const [isMirrored, setIsMirrored] = useState(false);
+    
+    // --- FIX: Add the state for the 2D overlay toggle ---
+    const [is2dOverlayEnabled, set2dOverlayEnabled] = useState(true); // Default to ON
 
+    // --- SELECTION STATE ---
+    const [selectedBar, setSelectedBar] = useState(0);
+    const [selectedBeat, setSelectedBeat] = useState(0);
+    const [selectedJoint, setSelectedJoint] = useState(null);
+    const [editingBeatIndex, setEditingBeatIndex] = useState(null);
+    
     const toggleLiveCam = useCallback(() => setLiveCamActive(p => !p), []);
     const toggleMirror = useCallback(() => setIsMirrored(p => !p), []);
-    const toggleEditMode = useCallback(() => {
-        setIsEditMode(prev => {
-            if (prev) setEditingBeatIndex(null); // Clear editing index when exiting edit mode
-            return !prev;
-        });
-    }, []);
-    
-    // Deactivate nudge mode when switching main modes
-    const handleSetCurrentMode = (mode) => {
-        setNudgeModeActive(false);
-        setCurrentMode(mode);
-    };
+    const toggleEditMode = useCallback(() => setIsEditMode(p => !p), []);
 
     const value = {
-        currentMode,
-        setCurrentMode: handleSetCurrentMode,
-        isNudgeModeActive,
-        setNudgeModeActive,
-        selectedBeat, setSelectedBeat,
-        selectedBar, setSelectedBar,
-        visualizerMode, setVisualizerMode,
+        currentMode, setCurrentMode,
+        isNudgeModeActive, setNudgeModeActive,
         isLiveCamActive, toggleLiveCam,
-        isMirrored, toggleMirror,
         isEditMode, toggleEditMode,
-        editingBeatIndex, setEditingBeatIndex,
+        isMirrored, toggleMirror,
+        is2dOverlayEnabled, set2dOverlayEnabled, // Expose the new state
+        selectedBar, setSelectedBar,
+        selectedBeat, setSelectedBeat,
         selectedJoint, setSelectedJoint,
+        editingBeatIndex, setEditingBeatIndex,
     };
 
     return (

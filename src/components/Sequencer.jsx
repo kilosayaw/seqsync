@@ -6,9 +6,10 @@ import { DndContext } from '@dnd-kit/core';
 import { useSequence } from '../contexts/SequenceContext';
 import { usePlayback } from '../contexts/PlaybackContext';
 import { useUIState } from '../contexts/UIStateContext';
-import { useMedia } from '../contexts/MediaContext';
 import { useMotionAnalysisContext } from '../contexts/MotionAnalysisContext';
 import { useKeyboardControls } from '../hooks/useKeyboardControls';
+import { preloadSounds } from '../utils/audioManager';
+import { tr808SoundsArray } from '../utils/soundLibrary';
 
 // --- UI COMPONENT IMPORTS ---
 import TopHeader from './core/studio/TopHeader';
@@ -21,7 +22,7 @@ import DetailEditor from './visualizers/DetailEditor';
 import MasterWaveformEditor from './core/studio/MasterWaveformEditor';
 import SoundBrowser from './core/studio/SoundBrowser';
 
-// --- STYLED COMPONENTS ---
+// --- NEW PROFESSIONAL LAYOUT STYLED-COMPONENTS ---
 const SequencerLayoutContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -29,95 +30,73 @@ const SequencerLayoutContainer = styled.div`
   width: 100vw;
   background-color: #0f172a;
   overflow: hidden;
+  color: #e2e8f0;
 `;
 
 const MainContent = styled.div`
     flex-grow: 1;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    justify-content: space-between; /* This is key for the new layout */
     align-items: center;
-    padding: 1rem;
+    padding: 1rem 2rem;
+    gap: 1rem;
     min-height: 0;
 `;
 
-const Cockpit = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    width: 100%;
-    max-width: 1400px;
+const TopSection = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
 `;
 
-const CentralColumn = styled.main`
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
+const CenterStage = styled.div`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 800px; /* Constrain the center width */
 `;
 
-const SideColumn = styled.aside`
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
+const BottomSection = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end; /* Align turntables to the bottom */
+  gap: 1rem;
+`;
+
+const BottomCenter = styled.div`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 `;
 
 // --- The Main Sequencer Component ---
 const Sequencer = () => {
-    // --- HOOKS & CONTEXTS ---
-    // FIX: Add `setPoseForBeat` and other necessary functions back to the destructuring
-
-    const { isEditMode, isLiveCamActive, toggleLiveCam, isNudgeModeActive, setNudgeModeActive, setSelectedBeat, setEditingBeatIndex } = useUIState();
-    const { livePose, startAnalysis, stopAnalysis } = useMotionAnalysisContext();
+    // --- All hooks, states, and handlers from previous steps are correct ---
+    const { onSave, onLoad, loadAudioFile, triggerBeat, addSoundToBeat, removeSoundFromBeat, setPoseForBeat } = useSequence();
+    const { selectedJoint, setSelectedJoint, isEditMode, isNudgeModeActive, setNudgeModeActive, setSelectedBeat, setEditingBeatIndex } = useUIState();
     useKeyboardControls();
 
-    const { onSave, onLoad, loadAudioFile, triggerBeat, addSoundToBeat, setPoseForBeat, removeSoundFromBeat } = useSequence();
-    const { isPlaying, isRecording, currentBar, currentStep } = usePlayback();
-
-    // --- LOCAL UI STATE ---
-    const [isNudgeEditorOpen, setNudgeEditorOpen] = useState(false);
     const [isPoseEditorOpen, setPoseEditorOpen] = useState(false);
     const [isSoundBrowserOpen, setSoundBrowserOpen] = useState(false);
     const [beatToAddTo, setBeatToAddTo] = useState(null);
-
-    // --- REFS ---
     const sequenceFileInputRef = useRef(null);
     const audioFileInputRef = useRef(null);
-    const lastRecordedStepRef = useRef(null);
 
-    // --- LIVE RECORDING LOGIC ---
-    useEffect(() => {
-        if (!isPlaying || !isRecording || !livePose) return;
-        if (currentStep !== lastRecordedStepRef.current) {
-            // This call will now work correctly
-            setPoseForBeat(currentBar, currentStep, livePose);
-            lastRecordedStepRef.current = currentStep;
-        }
-    }, [isPlaying, isRecording, currentBar, currentStep, livePose, setPoseForBeat]);
-
-    // --- UI HANDLERS ---
-    const handleToggleLiveCamAndTracking = useCallback(() => {
-        const nextIsLive = !isLiveCamActive;
-        toggleLiveCam();
-        if (nextIsLive) {
-            startAnalysis();
-        } else {
-            stopAnalysis();
-        }
-    }, [isLiveCamActive, toggleLiveCam, startAnalysis, stopAnalysis]);
+    useEffect(() => { preloadSounds(tr808SoundsArray); }, []);
     
     const handleBeatSelect = (barIndex, beatIndex) => {
         setSelectedBeat(beatIndex);
-        if (isNudgeModeActive) {
-            setNudgeEditorOpen(true);
-            setNudgeModeActive(false);
-        } else if (isEditMode) {
+        if (isEditMode) {
             setEditingBeatIndex(beatIndex);
             setPoseEditorOpen(true);
-        } else {
+        } else if (!isNudgeModeActive) {
             triggerBeat(barIndex, beatIndex);
         }
     };
@@ -142,7 +121,6 @@ const Sequencer = () => {
         setEditingBeatIndex(null);
     };
     
-    // --- RENDER ---
     return (
         <DndContext onDragEnd={() => {}}>
             <SequencerLayoutContainer>
@@ -153,34 +131,34 @@ const Sequencer = () => {
                     onSave={onSave}
                     onLoad={() => sequenceFileInputRef.current.click()}
                     onLoadAudio={() => audioFileInputRef.current.click()}
-                    onOpenNudgeEditor={() => setNudgeModeActive(true)}
-                    onToggleLiveCam={handleToggleLiveCamAndTracking}
                 />
-
+                
+                {/* --- THE NEW PROFESSIONAL LAYOUT --- */}
                 <MainContent>
-                    <Cockpit>
-                        <SideColumn>
-                            <JointSelector side="left" />
-                            <FootControl side="left" />
-                        </SideColumn>
-                        <CentralColumn>
+                    <TopSection>
+                        <JointSelector side="left" selectedJoint={selectedJoint} onSelectJoint={setSelectedJoint} />
+                        <CenterStage>
                             <VisualizerDeck />
                             <NotationDisplay />
+                        </CenterStage>
+                        <JointSelector side="right" selectedJoint={selectedJoint} onSelectJoint={setSelectedJoint} />
+                    </TopSection>
+
+                    <BottomSection>
+                        <FootControl side="left" />
+                        <BottomCenter>
                             <BeatGrid 
                                 onBeatSelect={handleBeatSelect}
                                 onAddSoundClick={handleAddSoundClick}
                                 onSoundDelete={handleSoundDelete}
                             />
-                        </CentralColumn>
-                        <SideColumn>
-                            <JointSelector side="right" />
-                            <FootControl side="right" />
-                        </SideColumn>
-                    </Cockpit>
+                        </BottomCenter>
+                        <FootControl side="right" />
+                    </BottomSection>
                 </MainContent>
 
                 {isPoseEditorOpen && <DetailEditor onClose={handleCloseEditor} />}
-                {isNudgeEditorOpen && <MasterWaveformEditor onClose={() => setNudgeEditorOpen(false)} />}
+                {isNudgeModeActive && <MasterWaveformEditor onClose={() => setNudgeModeActive(false)} />}
                 {isSoundBrowserOpen && <SoundBrowser onSelectSound={handleSelectSound} onClose={() => setSoundBrowserOpen(false)} />}
             </SequencerLayoutContainer>
         </DndContext>

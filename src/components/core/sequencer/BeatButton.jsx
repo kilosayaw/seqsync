@@ -1,62 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { ReactP5Wrapper } from 'react-p5-wrapper';
 import { Plus, X } from 'react-feather';
-
-// --- CONTEXT & UTILS ---
 import { useUIState, MODES } from '../../../contexts/UIStateContext';
 import { getSoundNameFromPath } from '../../../utils/soundLibrary';
-
-// --- COMPONENTS ---
 import BeatWaveform from './BeatWaveform';
 
-// The p5 sketch for rendering pose thumbnails.
-function thumbnailSketch(p5) {
-    let pose = null;
-    p5.setup = () => { p5.createCanvas(100, 100); p5.noLoop(); };
-    p5.updateWithProps = (props) => { if (props.pose) { pose = props.pose; p5.redraw(); } };
-    p5.draw = () => {
-        p5.clear();
-        p5.background(40, 40, 50, 150);
-        p5.translate(p5.width / 2, p5.height / 2);
-        p5.scale(0.4);
-        
-        p5.stroke(255, 255, 255, 25);
-        p5.strokeWeight(1.5);
-        p5.line(-50, 0, 50, 0);
-        p5.line(0, -50, 0, 50);
+const generateThumbnailDataURL = (pose) => {
+    if (typeof document === 'undefined' || !pose?.jointInfo || Object.keys(pose.jointInfo).length === 0) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 100; canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, 100, 100);
+    ctx.save(); ctx.translate(50, 50); ctx.scale(0.4, -0.4);
+    const { jointInfo } = pose;
+    const connections = [['N', 'LS'], ['N', 'RS'], ['LS', 'RS'], ['LS', 'LE'], ['LE', 'LW'], ['RS', 'RE'], ['RE', 'RW'], ['LS', 'LH'], ['RS', 'RH'], ['LH', 'RH'], ['LH', 'LK'], ['LK', 'LA'], ['RH', 'RK'], ['RK', 'RA']];
+    ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+    connections.forEach(([startKey, endKey]) => {
+        const p1 = jointInfo[startKey]?.vector;
+        const p2 = jointInfo[endKey]?.vector;
+        if (p1 && p2) { ctx.beginPath(); ctx.moveTo(p1.x * 100, p1.y * 100); ctx.lineTo(p2.x * 100, p2.y * 100); ctx.stroke(); }
+    });
+    ctx.fillStyle = '#facc15';
+    for (const key in jointInfo) {
+        if (jointInfo[key]?.vector) { ctx.beginPath(); ctx.arc(jointInfo[key].vector.x * 100, jointInfo[key].vector.y * 100, 5, 0, 2 * Math.PI); ctx.fill(); }
+    }
+    ctx.restore();
+    return canvas.toDataURL('image/png');
+};
 
-        if (!pose || !pose.jointInfo) return;
-        
-        const jointInfo = pose.jointInfo;
-        const connections = [
-            ['N', 'LS'], ['N', 'RS'], ['LS', 'RS'], ['LS', 'LE'], ['LE', 'LW'],
-            ['RS', 'RE'], ['RE', 'RW'], ['LS', 'LH'], ['RS', 'RH'], ['LH', 'RH'],
-            ['LH', 'LK'], ['LK', 'LA'], ['RH', 'RK'], ['RK', 'RA']
-        ];
-        
-        p5.stroke(255);
-        p5.strokeWeight(3);
-        connections.forEach(([startKey, endKey]) => {
-            const startJoint = jointInfo[startKey];
-            const endJoint = jointInfo[endKey];
-            if (startJoint?.vector && endJoint?.vector) {
-                p5.line(startJoint.vector.x * 100, -startJoint.vector.y * 100, endJoint.vector.x * 100, -endJoint.vector.y * 100);
-            }
-        });
-        
-        p5.stroke(255, 221, 0);
-        p5.strokeWeight(6);
-        for (const key in jointInfo) {
-            if (jointInfo[key]?.vector) {
-                p5.point(jointInfo[key].vector.x * 100, -jointInfo[key].vector.y * 100);
-            }
-        }
-    };
-}
 
-// --- FIX: RESTORED THE MISSING STYLED COMPONENT DEFINITIONS ---
+// --- STYLED COMPONENTS ---
 const ButtonWrapper = styled.div`
   position: relative;
   width: 100%;
@@ -64,31 +39,25 @@ const ButtonWrapper = styled.div`
   border-radius: var(--border-radius-small, 4px);
   overflow: hidden;
   border: 3px solid ${({ $isActive, $isCurrentStep, $isSelectedForEdit }) => 
-    ($isSelectedForEdit ? 'var(--color-accent-yellow, #FFD700)' :
-    ($isCurrentStep ? 'var(--color-highlight-strong, #00FFFF)' : 
-    ($isActive ? 'var(--color-accent, #00AACC)' : 'var(--color-border, #444)')))};
+    ($isSelectedForEdit ? '#facc15' : $isCurrentStep ? '#22d3ee' : $isActive ? '#38bdf8' : '#334155')};
   box-shadow: ${({ $isCurrentStep, $isSelectedForEdit }) => 
-    ($isSelectedForEdit ? '0 0 10px 2px var(--color-accent-yellow, #FFD700)' :
-    ($isCurrentStep ? '0 0 8px 2px var(--color-highlight-strong, #00FFFF)' : 'none'))};
-  background-color: #0f172a; /* Darker background to match theme */
+    ($isSelectedForEdit ? '0 0 10px 2px #facc15' : $isCurrentStep ? '0 0 8px 2px #22d3ee' : 'none')};
+  background-color: #0f172a;
   transition: all 0.1s ease-in-out;
   cursor: pointer;
   &:hover {
-    border-color: var(--color-accent-light, #7FFFD4);
+    border-color: #5eead4;
   }
 `;
-
 const BeatNumber = styled.span`
   position: absolute;
   top: 4px;
   left: 4px;
-  color: var(--color-text-muted, #999);
+  color: #64748b;
   font-size: 0.8em;
   font-weight: bold;
-  opacity: 0.6;
   pointer-events: none;
 `;
-
 const ContentContainer = styled.div`
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -96,7 +65,6 @@ const ContentContainer = styled.div`
     justify-content: center;
     align-items: center;
 `;
-
 const SoundListContainer = styled.div`
   position: absolute;
   top: 2px; left: 2px; right: 2px;
@@ -107,7 +75,6 @@ const SoundListContainer = styled.div`
   max-height: calc(100% - 28px);
   overflow: hidden;
 `;
-
 const SoundLabel = styled.div`
   background-color: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(2px);
@@ -125,7 +92,6 @@ const SoundLabel = styled.div`
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
 `;
-
 const DeleteSoundButton = styled.button`
   background: none; border: none;
   color: #ef4444;
@@ -139,7 +105,6 @@ const DeleteSoundButton = styled.button`
     background-color: rgba(255, 255, 255, 0.1);
   }
 `;
-
 const AddSoundButton = styled.button`
   position: absolute;
   bottom: 4px;
@@ -160,82 +125,73 @@ const AddSoundButton = styled.button`
     transform: scale(1.1);
   }
 `;
-
 const PoseContainer = styled.div`
   width: 100%;
   height: 100%;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
 `;
 
-
 // --- The Main Mode-Aware BeatButton Component ---
-const BeatButton = ({ 
-    beatData, 
-    onClick, 
-    onAddSoundClick,
-    onSoundDelete,
-    isActive, 
-    isCurrentStep, 
-    isSelectedForEdit = false 
-}) => {
-  const { currentMode } = useUIState();
+const BeatButton = ({ beatData, onClick, onAddSoundClick, onSoundDelete, isCurrentStep, isSelectedForEdit }) => {
+    const { currentMode } = useUIState();
+    const [thumbnailUrl, setThumbnailUrl] = useState(null);
+    const hasPose = beatData?.pose?.jointInfo && Object.keys(beatData.pose.jointInfo).length > 0;
+    const hasSounds = beatData?.sounds?.length > 0;
+    const hasWaveform = beatData?.waveform?.length > 0;
+    const isActive = hasPose || hasSounds;
 
-  const hasPose = beatData?.pose?.jointInfo && Object.keys(beatData.pose.jointInfo).length > 0;
-  const hasWaveform = beatData?.waveform?.length > 0;
-  const hasSounds = beatData?.sounds?.length > 0;
+    useEffect(() => {
+        if (hasPose) setThumbnailUrl(generateThumbnailDataURL(beatData.pose));
+        else setThumbnailUrl(null);
+    }, [beatData.pose, hasPose]);
 
-  const renderSeqContent = () => (
-    <>
-      {hasWaveform && <BeatWaveform waveformPoints={beatData.waveform} color={'rgba(0, 170, 204, 0.5)'} />}
-      {hasSounds && (
-        <SoundListContainer>
-          {beatData.sounds.map(soundUrl => (
-            <SoundLabel key={soundUrl}>
-              <span>{getSoundNameFromPath(soundUrl)}</span>
-              <DeleteSoundButton onClick={(e) => { e.stopPropagation(); onSoundDelete(soundUrl); }}>
-                <X size={12} />
-              </DeleteSoundButton>
-            </SoundLabel>
-          ))}
-        </SoundListContainer>
-      )}
-      <AddSoundButton onClick={(e) => { e.stopPropagation(); onAddSoundClick(); }}>
-        <Plus size={14} />
-      </AddSoundButton>
-    </>
-  );
+    const renderSeqContent = () => (
+        <>
+          {hasSounds && (
+            <SoundListContainer>
+              {beatData.sounds.map(soundUrl => (
+                <SoundLabel key={soundUrl}>
+                  <span>{getSoundNameFromPath(soundUrl)}</span>
+                  <DeleteSoundButton onClick={(e) => { e.stopPropagation(); onSoundDelete(soundUrl); }}>
+                    <X size={12} />
+                  </DeleteSoundButton>
+                </SoundLabel>
+              ))}
+            </SoundListContainer>
+          )}
+          <AddSoundButton onClick={(e) => { e.stopPropagation(); onAddSoundClick(); }}>
+            <Plus size={14} />
+          </AddSoundButton>
+        </>
+    );
 
-  const renderPosContent = () => {
-    if (hasPose) {
-      return (
-        <PoseContainer>
-            <ReactP5Wrapper sketch={thumbnailSketch} pose={beatData.pose} />
-        </PoseContainer>
-      );
-    }
-    if (hasWaveform) {
-      return <BeatWaveform waveformPoints={beatData.waveform} color={isCurrentStep || isSelectedForEdit ? 'var(--color-accent-yellow)' : 'var(--color-accent)'}/>;
-    }
-    return null;
-  };
+    const renderPosContent = () => {
+        return thumbnailUrl ? <PoseContainer style={{ backgroundImage: `url(${thumbnailUrl})` }} /> : null;
+    };
 
-  return (
-    <ButtonWrapper onClick={onClick} $isActive={isActive} $isCurrentStep={isCurrentStep} $isSelectedForEdit={isSelectedForEdit}>
-        <BeatNumber>{beatData.beatIndex + 1}</BeatNumber>
-        <ContentContainer>
-            {currentMode === 'SEQ' ? renderSeqContent() : renderPosContent()}
-        </ContentContainer>
-    </ButtonWrapper>
-  );
+    const renderContent = () => {
+        const bgWave = hasWaveform ? <BeatWaveform waveformPoints={beatData.waveform} color={currentMode === 'SEQ' ? 'rgba(0, 170, 204, 0.5)' : 'rgba(100, 116, 139, 0.3)'} /> : null;
+        const fgContent = currentMode === MODES.SEQ ? renderSeqContent() : renderPosContent();
+        return (<>{bgWave}{fgContent}</>);
+    };
+
+    return (
+        <ButtonWrapper onClick={onClick} $isActive={isActive} $isCurrentStep={isCurrentStep} $isSelectedForEdit={isSelectedForEdit}>
+            <BeatNumber>{beatData.beatIndex + 1}</BeatNumber>
+            <ContentContainer>{renderContent()}</ContentContainer>
+        </ButtonWrapper>
+    );
 };
 
 BeatButton.propTypes = {
-  beatData: PropTypes.object.isRequired,
-  onClick: PropTypes.func.isRequired,
-  onAddSoundClick: PropTypes.func.isRequired,
-  onSoundDelete: PropTypes.func.isRequired,
-  isActive: PropTypes.bool.isRequired,
-  isCurrentStep: PropTypes.bool.isRequired,
-  isSelectedForEdit: PropTypes.bool,
+    beatData: PropTypes.object.isRequired,
+    onClick: PropTypes.func.isRequired,
+    onAddSoundClick: PropTypes.func.isRequired,
+    onSoundDelete: PropTypes.func.isRequired,
+    isCurrentStep: PropTypes.bool.isRequired,
+    isSelectedForEdit: PropTypes.bool,
 };
 
 export default React.memo(BeatButton);

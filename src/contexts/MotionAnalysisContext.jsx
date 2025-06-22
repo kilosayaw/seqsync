@@ -2,12 +2,11 @@ import React, { createContext, useContext, useState, useRef, useCallback, useEff
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import '@tensorflow/tfjs-backend-webgl';
 import { useMedia } from './MediaContext';
-// --- FIX: Import the missing usePlayback hook ---
 import { usePlayback } from './PlaybackContext';
+import { analyzePoseDynamics } from '../utils/biomechanics';
 
 const MotionAnalysisContext = createContext(null);
 
-// This helper function translates the raw TensorFlow pose into our app's format.
 const transformTfPoseToSeqPose = (tfPose, videoElement) => {
     if (!tfPose || !tfPose.keypoints) return null;
     const { videoWidth, videoHeight } = videoElement;
@@ -35,8 +34,8 @@ const transformTfPoseToSeqPose = (tfPose, videoElement) => {
     });
 
     const grounding = { L: null, R: null, L_weight: 50, R_weight: 50 };
-    if (jointInfo['LA']?.score > 0.5) grounding.L = 'LF123T12345';
-    if (jointInfo['RA']?.score > 0.5) grounding.R = 'RF123T12345';
+    if (jointInfo['LA']?.score > 0.5) grounding.L = 'L_FULL_PLANT';
+    if (jointInfo['RA']?.score > 0.5) grounding.R = 'R_FULL_PLANT';
     
     return { jointInfo, grounding };
 };
@@ -45,13 +44,14 @@ const transformTfPoseToSeqPose = (tfPose, videoElement) => {
 export const MotionAnalysisProvider = ({ children }) => {
     const [detector, setDetector] = useState(null);
     const [livePose, setLivePose] = useState(null);
+    const [liveAnalysis, setLiveAnalysis] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isInitializing, setIsInitializing] = useState(true);
     const [error, setError] = useState(null);
 
-    const rafIdRef = useRef(null);
+    const animationFrameId = useRef(null);
+    const previousPoseRef = useRef(null);
     const { videoRef } = useMedia();
-    // --- FIX: This hook call is now valid ---
     const { updateLivePose } = usePlayback();
 
     useEffect(() => {
@@ -76,34 +76,41 @@ export const MotionAnalysisProvider = ({ children }) => {
         if (detector && videoRef.current && videoRef.current.readyState >= 3) {
             const poses = await detector.estimatePoses(videoRef.current, { flipHorizontal: false });
             if (poses && poses.length > 0) {
-                const seqPose = transformTfPoseToSeqPose(poses[0], videoRef.current);
-                if (seqPose) {
-                    setLivePose(seqPose);
-                    updateLivePose(seqPose); // Update the playback context for recording
+                const currentPose = transformTfPoseToSeqPose(poses[0], videoRef.current);
+                if (currentPose) {
+                    const analysisResult = analyzePoseDynamics(currentPose, previousPoseRef.current);
+                    const fullPoseData = { ...currentPose, analysis: analysisResult };
+                    
+                    setLivePose(fullPoseData);
+                    setLiveAnalysis(analysisResult);
+                    updateLivePose(fullPoseData);
+                    
+                    previousPoseRef.current = currentPose;
                 }
             }
         }
-        rafIdRef.current = requestAnimationFrame(estimationLoop);
+        animationFrameId.current = requestAnimationFrame(estimationLoop);
     }, [detector, videoRef, updateLivePose]);
 
     const startAnalysis = useCallback(() => {
         if (isAnalyzing || !detector) return;
         setIsAnalyzing(true);
-        rafIdRef.current = requestAnimationFrame(estimationLoop);
+        animationFrameId.current = requestAnimationFrame(estimationLoop);
     }, [isAnalyzing, detector, estimationLoop]);
 
     const stopAnalysis = useCallback(() => {
         if (!isAnalyzing) return;
-        if (rafIdRef.current) {
-            cancelAnimationFrame(rafIdRef.current);
-        }
+        if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         setIsAnalyzing(false);
         setLivePose(null);
+        setLiveAnalysis(null);
+        previousPoseRef.current = null;
     }, [isAnalyzing]);
 
     const value = {
         livePose,
-        isAnalyzing,
+        liveAnalysis,
+        isAnalyzing, // FIX: Added this back to the value object
         isInitializing,
         error,
         startAnalysis,
@@ -119,8 +126,6 @@ export const MotionAnalysisProvider = ({ children }) => {
 
 export const useMotionAnalysisContext = () => {
     const context = useContext(MotionAnalysisContext);
-    if (!context) {
-        throw new Error('useMotionAnalysisContext must be used within a MotionAnalysisProvider');
-    }
+    if (!context) throw new Error('useMotionAnalysisContext must be used within a MotionAnalysisProvider');
     return context;
 };

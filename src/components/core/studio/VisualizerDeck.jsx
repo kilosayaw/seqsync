@@ -1,135 +1,58 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import { useMotionAnalysis } from '../../../hooks/useMotionAnalysis';
-import { usePlayback } from '../../../contexts/PlaybackContext';
 import { useUIState } from '../../../contexts/UIStateContext';
-import { useMedia } from '../../../contexts/MediaContext';
+import { useMotionAnalysisContext } from '../../../contexts/MotionAnalysisContext';
 import P5SkeletalVisualizer from '../pose_editor/P5SkeletalVisualizer';
-import { useRecording } from '../../../hooks/useRecording';
+import LiveCameraFeed from '../../visualizers/LiveCameraFeed';
 
 const DeckContainer = styled.div`
   position: relative;
   width: 100%;
-  max-width: 640px; /* Enforce a max width for consistency */
-  margin: auto;
-  aspect-ratio: 16 / 9;
-  background-color: #111;
-  border-radius: var(--border-radius-medium);
+  max-width: 640px; 
+  aspect-ratio: 4 / 3;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
-  color: #555;
-`;
-
-const DisplayContainer = styled.div`
-  /* ... */
-  width: 100%; /* It will now fill the ContentStack container */
-  /* ... */
-`;
-
-const VideoElement = styled.video`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: ${({ $isMirrored }) => ($isMirrored ? 'scaleX(1)' : 'scaleX(-1)')};
-`;
-
-const VisualizerOverlay = styled.div`
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
+  color: #64748b;
 `;
 
 const VisualizerDeck = () => {
-  const videoRef = useRef(null);
-  const { updateLivePose, setVideoElementForCapture } = usePlayback(); // <<< FIX: Get the function from the hook
-  const { isLiveCamActive, isMirrored, visualizerMode, selectedJoint } = useUIState(); 
-  const { mediaUrl } = useMedia();
-  const { livePoseData, startLiveTracking, stopLiveTracking } = useMotionAnalysis({
-    onPoseUpdate: updateLivePose,
-  });
+    const { 
+        isLiveCamActive, 
+        is2dOverlayEnabled, // Get the state for the 2D toggle
+        isMirrored,
+        selectedJoint 
+    } = useUIState();
+    
+    const { livePose, isInitializing } = useMotionAnalysisContext();
 
-  // This effect now correctly passes the video element to the context
-  useEffect(() => {
-    if (setVideoElementForCapture) {
-        setVideoElementForCapture(videoRef.current);
-    }
-  }, [setVideoElementForCapture]);
+    return (
+        <DeckContainer>
+            {/* 1. Render the raw camera feed if Live mode is active */}
+            {isLiveCamActive && <LiveCameraFeed isMirrored={isMirrored} />}
+            
+            {/* --- FIX: This logic now correctly shows the overlay --- */}
+            {/* It renders if the camera is live, the 2D toggle is on, AND there is a pose to draw */}
+            {isLiveCamActive && is2dOverlayEnabled && livePose && (
+                <P5SkeletalVisualizer
+                    poseData={livePose}
+                    analysisData={livePose.analysis}
+                    isMirrored={isMirrored}
+                    highlightJoint={selectedJoint}
+                />
+            )}
 
-  useRecording();
-
-  // Effect to handle switching between live cam and uploaded video
-    // This effect handles switching the video source between live cam and uploaded media
-  useEffect(() => {
-    const videoElement = videoRef.current;
-    if (!videoElement) return;
-
-    // --- Live Camera Logic ---
-    if (isLiveCamActive) {
-      let stream;
-      const setupLiveCam = async () => {
-        try {
-          // Request access to the user's camera
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          videoElement.srcObject = stream;
-          // Wait for the video metadata to load before playing
-          videoElement.onloadeddata = () => {
-            videoElement.play();
-            // Start the motion analysis loop
-            startLiveTracking(videoElement);
-          };
-        } catch (err) {
-          console.error("Failed to initialize camera:", err);
-        }
-      };
-      setupLiveCam();
-
-      // This is the cleanup function that runs when the effect ends
-      // (e.g., when the user toggles the live cam off)
-      return () => {
-        stopLiveTracking();
-        if (stream) {
-          // Stop all camera tracks to turn off the camera light
-          stream.getTracks().forEach(track => track.stop());
-        }
-      };
-    } else {
-      // --- Uploaded Media Logic ---
-      // If live cam is not active, stop tracking and set the video source to the uploaded media URL.
-      stopLiveTracking();
-      videoElement.srcObject = null; // Clear the camera stream
-      videoElement.src = mediaUrl;
-    }
-  }, [isLiveCamActive, mediaUrl, startLiveTracking, stopLiveTracking]);
-
-  return (
-    <DeckContainer>
-      { (isLiveCamActive || mediaUrl) ? (
-        <>
-          <VideoElement 
-            ref={videoRef} 
-            autoPlay 
-            playsInline 
-            muted={isLiveCamActive} 
-            $isMirrored={isLiveCamActive && isMirrored} 
-          />
-          <VisualizerOverlay>
-                {isLiveCamActive && livePoseData && (
-                    <P5SkeletalVisualizer 
-                        poseData={livePoseData} 
-                        mode={visualizerMode}
-                        highlightJoint={selectedJoint}
-                    />
-                )}
-            </VisualizerOverlay>
-        </>
-      ) : ( <span>Visualizer Deck</span> )}
-    </DeckContainer>
-  );
+            {!isLiveCamActive && (
+                 <span>Visualizer Deck</span>
+            )}
+            
+            {isLiveCamActive && isInitializing && <span>Initializing AI Model...</span>}
+        </DeckContainer>
+    );
 };
 
 export default VisualizerDeck;
