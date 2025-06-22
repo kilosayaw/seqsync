@@ -1,60 +1,59 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { useUIState } from '../../../contexts/UIStateContext';
+import { useUIState } from '../../../contexts/UIStateContext'; // Correct path
 
-// The container now uses flexbox to distribute space
-const SelectorContainer = styled.div`
+const SelectorPanel = styled.div`
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* Evenly space the buttons */
-  width: 100px;
-  /* <<< FIX: The container's height matches the visualizer >>> */
-  height: 360px; /* Matches the 16:9 aspect ratio of 640px width */
-  padding: 1rem;
-  background-color: #18181b;
-  border-radius: 8px;
+  gap: 5px;
+  padding: 10px;
+  background-color: var(--color-background-lighter);
+  border-radius: var(--border-radius-medium);
 `;
 
 const JointButton = styled.button`
-    width: 100%;
-    /* <<< FIX: Padding and font size adjusted for a smaller button >>> */
-    padding: 0.5rem 0;
-    font-size: 0.9rem;
-    font-family: 'Orbitron', sans-serif;
-    color: ${({ $isActive }) => $isActive ? '#000' : 'var(--color-text-muted)'};
-    background-color: ${({ $isActive }) => $isActive ? 'var(--color-accent)' : '#333'};
-    border: 1px solid #444;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  padding: 8px 12px;
+  background-color: ${({ $isActive }) => $isActive ? 'var(--color-accent-yellow, #FFD700)' : 'var(--color-background-dark, #2a2a2a)'};
+  color: ${({ $isActive }) => $isActive ? '#000' : 'var(--color-text-muted, #aaa)'};
+  border: 1px solid var(--color-border, #444);
+  border-radius: var(--border-radius-small);
+  text-align: center;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
 
-    &:hover {
-        border-color: var(--color-accent);
-        color: var(--color-text);
-    }
+  &:hover {
+    border-color: var(--color-accent-light, #7FFFD4);
+    color: ${({ $isActive }) => $isActive ? '#000' : '#fff'};
+  }
 `;
 
-const JointSelector = ({ side }) => {
-    const { selectedJoint, setSelectedJoint } = useUIState();
+const JOINTS = {
+  left: ['LS', 'LE', 'LW', 'LH', 'LK', 'LA', 'LF'],
+  right: ['RS', 'RE', 'RW', 'RH', 'RK', 'RA', 'RF'],
+};
 
-    const joints = side === 'left' 
-        ? ['LS', 'LE', 'LW', 'LH', 'LK', 'LA', 'LF']
-        : ['RS', 'RE', 'RW', 'RH', 'RK', 'RA', 'RF'];
-    
-    return (
-        <SelectorContainer>
-            {joints.map(jointAbbrev => (
-                <JointButton 
-                    key={jointAbbrev}
-                    onClick={() => setSelectedJoint(jointAbbrev)}
-                    $isActive={selectedJoint === jointAbbrev}
-                >
-                    {jointAbbrev}
-                </JointButton>
-            ))}
-        </SelectorContainer>
-    );
+const JointSelector = ({ side }) => {
+  // Get state and setter from the context
+  const { selectedJoint, setSelectedJoint } = useUIState();
+  const jointsForSide = JOINTS[side] || [];
+
+  return (
+    <SelectorPanel>
+      {jointsForSide.map((jointId) => (
+        <JointButton
+          key={jointId}
+          // Set the selected joint on click
+          onClick={() => setSelectedJoint(jointId)}
+          // Check if this button's joint is the currently selected one
+          $isActive={selectedJoint === jointId}
+        >
+          {jointId}
+        </JointButton>
+      ))}
+    </SelectorPanel>
+  );
 };
 
 JointSelector.propTypes = {
