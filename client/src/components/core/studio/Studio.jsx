@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react'; // <-- IMPORT useRef
 import styled from 'styled-components';
 import { DndContext } from '@dnd-kit/core';
 
+// Corrected import paths based on your final structure
 import TopHeader from './TopHeader';
-import BeatGrid from '../main/BeatGrid';
-import VisualizerDeck from './VisualizerDeck';
-import FootControl from '../grounding/FootControl';
 import JointSelector from './JointSelector';
-import NotationDisplay from '../notation/NotationDisplay';
+import VisualizerDeck from './VisualizerDeck';
+import BeatGrid from '../main/BeatGrid'; 
+import FootControl from '../grounding/FootControl'; 
+import NotationDisplay from '../main/NotationDisplay'; 
+import DetailEditor from '../../visualizers/DetailEditor'; 
+import MasterWaveformEditor from './MasterWaveformEditor';
 
 import { useMedia } from '../../../contexts/MediaContext';
 import { useSequence } from '../../../contexts/SequenceContext';
 import { useUIState } from '../../../contexts/UIStateContext';
+import { usePlayback } from '../../../contexts/PlaybackContext';
 
 const StudioLayout = styled.div`
   display: flex;
@@ -26,16 +30,15 @@ const MainContent = styled.div`
     flex-grow: 1;
     display: flex;
     justify-content: center;
-    align-items: center; /* Center the main cockpit vertically */
+    align-items: center;
     padding: 1rem;
     min-height: 0;
 `;
 
-// This is the main container for the entire interactive area
 const Cockpit = styled.div`
     display: flex;
-    align-items: flex-start; /* Align all direct children to the top */
-    gap: 10px; /* <<< FIX: Set the 10px margin between columns >>> */
+    align-items: flex-start;
+    gap: 10px;
     width: 100%;
     max-width: 1200px;
 `;
@@ -45,7 +48,7 @@ const CentralColumn = styled.main`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px; /* <<< FIX: Set the 10px margin between central elements >>> */
+    gap: 10px;
     min-width: 0;
 `;
 
@@ -53,32 +56,70 @@ const SideColumn = styled.aside`
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    /* <<< FIX: The height of the buttons + wheels will now define the panel height >>> */
+    align-items: center;
+    gap: 10px;
 `;
 
 const Studio = () => {
-    const { onSave, onLoad, songData } = useSequence();
-    const { handleFileChange } = useMedia();
-    const { selectedBar, selectedBeat } = useUIState();
+    const { onSave, onLoad, songData, loadAudioFile } = useSequence();
+    const { handleFileChange } = useMedia(); // This might be redundant now, but safe to keep
+    const { selectedBar, selectedBeat, isEditMode, setEditingBeatIndex, setSelectedBeat } = useUIState();
+    const { playAudioSlice } = usePlayback();
+
+    const [isNudgeEditorOpen, setNudgeEditorOpen] = useState(false);
     const [isPoseEditorOpen, setPoseEditorOpen] = useState(false);
     
-    const currentBeatData = songData[selectedBar]?.[selectedBeat];
-    const leftFootGround = currentBeatData?.pose?.grounding?.L;
-    const rightFootGround = currentBeatData?.pose?.grounding?.R;
+    // Refs are now correctly imported and used
+    const sequenceFileInputRef = useRef(null);
+    const audioFileInputRef = useRef(null);
     
-    const handleOpenPoseEditor = () => setPoseEditorOpen(true);
-    const handleClosePoseEditor = () => setPoseEditorOpen(false);
-    const handleBeatSelect = () => {};
-    const handleDragEnd = () => {};
+    const handleBeatSelect = (barIndex, beatIndex) => {
+        if (isEditMode) {
+            setEditingBeatIndex(beatIndex);
+            setSelectedBeat(beatIndex);
+            setPoseEditorOpen(true); // Open the Pose Editor when a beat is clicked in Edit Mode
+        } else {
+            playAudioSlice(barIndex, beatIndex);
+            setSelectedBeat(beatIndex);
+        }
+    };
+
+    const handleSequenceFileSelect = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            onLoad(file);
+        }
+    };
+
+    const handleAudioFileSelect = (event) => {
+        loadAudioFile(event);
+    };
+
+    const handleCloseEditor = () => {
+        setPoseEditorOpen(false);
+        setEditingBeatIndex(null); 
+    };
+
     return (
-        <DndContext onDragEnd={handleDragEnd}>
+        <DndContext onDragEnd={() => {}}>
             <StudioLayout>
-                <TopHeader onSave={onSave} onLoad={onLoad} onFileSelected={handleFileChange} onOpenPoseEditor={handleOpenPoseEditor} />
+                {/* Hidden file inputs */}
+                <input type="file" ref={sequenceFileInputRef} onChange={handleSequenceFileSelect} style={{ display: 'none' }} accept=".json,.seqsync" />
+                <input type="file" ref={audioFileInputRef} onChange={handleAudioFileSelect} style={{ display: 'none' }} accept="audio/*" />
+
+                <TopHeader 
+                    onSave={onSave} 
+                    onLoad={() => sequenceFileInputRef.current.click()}
+                    onLoadAudio={() => audioFileInputRef.current.click()}
+                    onOpenNudgeEditor={() => setNudgeEditorOpen(true)}
+                />
+                
+                {/* --- MainContent was missing from the return block --- */}
                 <MainContent>
                     <Cockpit>
                         <SideColumn>
                             <JointSelector side="left" />
-                            <FootControl side="left" groundingState={leftFootGround} />
+                            <FootControl side="left" />
                         </SideColumn>
 
                         <CentralColumn>
@@ -89,12 +130,13 @@ const Studio = () => {
 
                         <SideColumn>
                             <JointSelector side="right" />
-                            <FootControl side="right" groundingState={rightFootGround} />
+                            <FootControl side="right" />
                         </SideColumn>
                     </Cockpit>
                 </MainContent>
-                
-                {isPoseEditorOpen && <PoseEditorModal isOpen={isPoseEditorOpen} onClose={handleClosePoseEditor} />}
+
+                {isPoseEditorOpen && <DetailEditor onClose={handleCloseEditor} />}
+                {isNudgeEditorOpen && <MasterWaveformEditor onClose={() => setNudgeEditorOpen(false)} />}
             </StudioLayout>
         </DndContext>
     );

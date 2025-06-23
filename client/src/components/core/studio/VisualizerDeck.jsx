@@ -5,6 +5,7 @@ import { usePlayback } from '../../../contexts/PlaybackContext';
 import { useUIState } from '../../../contexts/UIStateContext';
 import { useMedia } from '../../../contexts/MediaContext';
 import P5SkeletalVisualizer from '../pose_editor/P5SkeletalVisualizer';
+import { useRecording } from '../../../hooks/useRecording';
 
 const DeckContainer = styled.div`
   position: relative;
@@ -59,6 +60,8 @@ const VisualizerDeck = () => {
     }
   }, [setVideoElementForCapture]);
 
+  useRecording();
+
   // Effect to handle switching between live cam and uploaded video
     // This effect handles switching the video source between live cam and uploaded media
   useEffect(() => {
@@ -101,7 +104,7 @@ const VisualizerDeck = () => {
       videoElement.srcObject = null; // Clear the camera stream
       videoElement.src = mediaUrl;
     }
-  }, [isLiveCamActive, mediaUrl, startLiveTracking, stopLiveTracking]); // Dependencies for this effect
+  }, [isLiveCamActive, mediaUrl, startLiveTracking, stopLiveTracking]);
 
   return (
     <DeckContainer>
