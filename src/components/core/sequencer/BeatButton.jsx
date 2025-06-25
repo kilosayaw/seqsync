@@ -1,231 +1,102 @@
+// /client/src/components/core/sequencer/BeatButton.jsx
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'styled-components';
-import { ReactP5Wrapper } from 'react-p5-wrapper';
 import { Plus, X } from 'react-feather';
 
-// --- CONTEXT & UTILS ---
-import { useUIState, MODES } from '../../../contexts/UIStateContext';
-import { getSoundNameFromPath } from '../../../utils/soundLibrary';
+import { useUIState, MODES } from '../../../contexts/UIStateContext.jsx';
+import { getSoundNameFromPath } from '../../../utils/soundLibrary.js';
+import { generatePoseThumbnail } from '../../../utils/thumbnailUtils.js';
 
-// --- COMPONENTS ---
-import BeatWaveform from './BeatWaveform';
+import BeatWaveform from './BeatWaveform.jsx';
+import './BeatButton.css';
 
-// The p5 sketch for rendering pose thumbnails.
-function thumbnailSketch(p5) {
-    let pose = null;
-    p5.setup = () => { p5.createCanvas(100, 100); p5.noLoop(); };
-    p5.updateWithProps = (props) => { if (props.pose) { pose = props.pose; p5.redraw(); } };
-    p5.draw = () => {
-        p5.clear();
-        p5.background(40, 40, 50, 150);
-        p5.translate(p5.width / 2, p5.height / 2);
-        p5.scale(0.4);
-        
-        p5.stroke(255, 255, 255, 25);
-        p5.strokeWeight(1.5);
-        p5.line(-50, 0, 50, 0);
-        p5.line(0, -50, 0, 50);
-
-        if (!pose || !pose.jointInfo) return;
-        
-        const jointInfo = pose.jointInfo;
-        const connections = [
-            ['N', 'LS'], ['N', 'RS'], ['LS', 'RS'], ['LS', 'LE'], ['LE', 'LW'],
-            ['RS', 'RE'], ['RE', 'RW'], ['LS', 'LH'], ['RS', 'RH'], ['LH', 'RH'],
-            ['LH', 'LK'], ['LK', 'LA'], ['RH', 'RK'], ['RK', 'RA']
-        ];
-        
-        p5.stroke(255);
-        p5.strokeWeight(3);
-        connections.forEach(([startKey, endKey]) => {
-            const startJoint = jointInfo[startKey];
-            const endJoint = jointInfo[endKey];
-            if (startJoint?.vector && endJoint?.vector) {
-                p5.line(startJoint.vector.x * 100, -startJoint.vector.y * 100, endJoint.vector.x * 100, -endJoint.vector.y * 100);
-            }
-        });
-        
-        p5.stroke(255, 221, 0);
-        p5.strokeWeight(6);
-        for (const key in jointInfo) {
-            if (jointInfo[key]?.vector) {
-                p5.point(jointInfo[key].vector.x * 100, -jointInfo[key].vector.y * 100);
-            }
-        }
-    };
-}
-
-// --- FIX: RESTORED THE MISSING STYLED COMPONENT DEFINITIONS ---
-const ButtonWrapper = styled.div`
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: var(--border-radius-small, 4px);
-  overflow: hidden;
-  border: 3px solid ${({ $isActive, $isCurrentStep, $isSelectedForEdit }) => 
-    ($isSelectedForEdit ? 'var(--color-accent-yellow, #FFD700)' :
-    ($isCurrentStep ? 'var(--color-highlight-strong, #00FFFF)' : 
-    ($isActive ? 'var(--color-accent, #00AACC)' : 'var(--color-border, #444)')))};
-  box-shadow: ${({ $isCurrentStep, $isSelectedForEdit }) => 
-    ($isSelectedForEdit ? '0 0 10px 2px var(--color-accent-yellow, #FFD700)' :
-    ($isCurrentStep ? '0 0 8px 2px var(--color-highlight-strong, #00FFFF)' : 'none'))};
-  background-color: #0f172a; /* Darker background to match theme */
-  transition: all 0.1s ease-in-out;
-  cursor: pointer;
-  &:hover {
-    border-color: var(--color-accent-light, #7FFFD4);
-  }
-`;
-
-const BeatNumber = styled.span`
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  color: var(--color-text-muted, #999);
-  font-size: 0.8em;
-  font-weight: bold;
-  opacity: 0.6;
-  pointer-events: none;
-`;
-
-const ContentContainer = styled.div`
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-`;
-
-const SoundListContainer = styled.div`
-  position: absolute;
-  top: 2px; left: 2px; right: 2px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  max-height: calc(100% - 28px);
-  overflow: hidden;
-`;
-
-const SoundLabel = styled.div`
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(2px);
-  color: #e2e8f0;
-  font-size: 0.6rem;
-  padding: 1px 3px 1px 6px;
-  border-radius: 3px;
-  width: 95%;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const DeleteSoundButton = styled.button`
-  background: none; border: none;
-  color: #ef4444;
-  cursor: pointer;
-  padding: 0 2px;
-  margin-left: 4px;
-  display: flex;
-  border-radius: 50%;
-  &:hover { 
-    color: #f87171;
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-`;
-
-const AddSoundButton = styled.button`
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  background-color: rgba(45, 212, 191, 0.2);
-  border: 1px solid rgba(45, 212, 191, 0.5);
-  color: #5eead4;
-  border-radius: 50%;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  &:hover {
-    background-color: rgba(45, 212, 191, 0.4);
-    transform: scale(1.1);
-  }
-`;
-
-const PoseContainer = styled.div`
-  width: 100%;
-  height: 100%;
-`;
-
-
-// --- The Main Mode-Aware BeatButton Component ---
 const BeatButton = ({ 
     beatData, 
     onClick, 
-    onAddSoundClick,
-    onSoundDelete,
+    onAddSoundClick, 
+    onSoundDelete, 
     isActive, 
     isCurrentStep, 
-    isSelectedForEdit = false 
+    isSelectedForEdit 
 }) => {
-  const { currentMode } = useUIState();
+    const { currentMode } = useUIState();
 
-  const hasPose = beatData?.pose?.jointInfo && Object.keys(beatData.pose.jointInfo).length > 0;
-  const hasWaveform = beatData?.waveform?.length > 0;
-  const hasSounds = beatData?.sounds?.length > 0;
+    // Correctly check if the beat has valid waveform data to display
+    const hasWaveform = beatData?.waveform && beatData.waveform.length > 0;
+    const videoSnapshot = beatData?.thumbnail;
+    const hasPose = beatData?.pose?.jointInfo && Object.keys(beatData.pose.jointInfo).length > 0;
+    const hasSounds = beatData?.sounds && beatData.sounds.length > 0;
 
-  const renderSeqContent = () => (
-    <>
-      {hasWaveform && <BeatWaveform waveformPoints={beatData.waveform} color={'rgba(0, 170, 204, 0.5)'} />}
-      {hasSounds && (
-        <SoundListContainer>
-          {beatData.sounds.map(soundUrl => (
-            <SoundLabel key={soundUrl}>
-              <span>{getSoundNameFromPath(soundUrl)}</span>
-              <DeleteSoundButton onClick={(e) => { e.stopPropagation(); onSoundDelete(soundUrl); }}>
-                <X size={12} />
-              </DeleteSoundButton>
-            </SoundLabel>
-          ))}
-        </SoundListContainer>
-      )}
-      <AddSoundButton onClick={(e) => { e.stopPropagation(); onAddSoundClick(); }}>
-        <Plus size={14} />
-      </AddSoundButton>
-    </>
-  );
+    const poseThumbnail = hasPose ? generatePoseThumbnail(beatData.pose.jointInfo) : null;
 
-  const renderPosContent = () => {
-    if (hasPose) {
-      return (
-        <PoseContainer>
-            <ReactP5Wrapper sketch={thumbnailSketch} pose={beatData.pose} />
-        </PoseContainer>
-      );
-    }
-    if (hasWaveform) {
-      return <BeatWaveform waveformPoints={beatData.waveform} color={isCurrentStep || isSelectedForEdit ? 'var(--color-accent-yellow)' : 'var(--color-accent)'}/>;
-    }
-    return null;
-  };
+    const wrapperClasses = `
+        beat-button-wrapper 
+        ${currentMode === MODES.SEQ ? 'seq-mode' : 'pos-mode'}
+        ${isCurrentStep ? 'current-step' : ''}
+        ${isSelectedForEdit ? 'selected-edit' : ''}
+        ${isActive || hasSounds || hasPose ? 'active' : ''}
+    `;
 
-  return (
-    <ButtonWrapper onClick={onClick} $isActive={isActive} $isCurrentStep={isCurrentStep} $isSelectedForEdit={isSelectedForEdit}>
-        <BeatNumber>{beatData.beatIndex + 1}</BeatNumber>
-        <ContentContainer>
-            {currentMode === 'SEQ' ? renderSeqContent() : renderPosContent()}
-        </ContentContainer>
-    </ButtonWrapper>
-  );
+    return (
+        <div className={wrapperClasses} onClick={onClick}>
+            <span className="beat-number">{beatData.beatIndex + 1}</span>
+
+            {/* --- NEW: Video Snapshot Layer (at the very back) --- */}
+            {videoSnapshot && (
+                <div 
+                    className="beat-layer video-snapshot-layer"
+                    style={{ backgroundImage: `url(${videoSnapshot})` }}
+                />
+            )}
+            
+            {hasWaveform && (
+                <div className="beat-layer waveform-layer">
+                    <BeatWaveform waveformPoints={beatData.waveform} />
+                </div>
+            )}
+            
+            {/* Layer 2: Pose Thumbnail */}
+            {poseThumbnail && (
+                <div 
+                    className="beat-layer pose-layer"
+                    style={{ backgroundImage: `url(${poseThumbnail})` }}
+                />
+            )}
+
+            {/* Layer 3: SEQ Mode UI (sounds, add button) */}
+            <div className="beat-layer seq-ui-layer">
+                {hasSounds && (
+                    <div className="sound-list">
+                        {beatData.sounds.map(soundUrl => (
+                            <div className="sound-label" key={soundUrl}>
+                                <span>{getSoundNameFromPath(soundUrl)}</span>
+                                <button 
+                                    className="delete-sound-btn" 
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        onSoundDelete(soundUrl); 
+                                    }}
+                                    aria-label={`Remove sound ${getSoundNameFromPath(soundUrl)}`}
+                                >
+                                    <X size={12} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                <button 
+                    className="add-sound-btn" 
+                    onClick={(e) => { 
+                        e.stopPropagation(); 
+                        onAddSoundClick(); 
+                    }}
+                    aria-label="Add sound to this beat"
+                >
+                    <Plus size={14} />
+                </button>
+            </div>
+        </div>
+    );
 };
 
 BeatButton.propTypes = {

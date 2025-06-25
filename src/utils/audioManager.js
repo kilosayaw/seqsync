@@ -1,4 +1,4 @@
-// client/src/utils/audioManager.js
+// src/utils/audioManager.js
 let audioContext = null;
 let isAudioContextUnlocked = false;
 const audioBufferCache = new Map();
@@ -10,7 +10,6 @@ const logAudio = (level, message, ...args) => {
     }
 };
 
-// This function can be called safely at any time.
 export const getAudioContext = () => {
     if (!audioContext && typeof window !== 'undefined') {
         try {
@@ -24,7 +23,6 @@ export const getAudioContext = () => {
     return audioContext;
 };
 
-// This function MUST be called after a user interaction (e.g., a click).
 export const unlockAudioContext = () => {
     const context = getAudioContext();
     if (context && context.state === 'suspended') {
@@ -40,7 +38,7 @@ export const unlockAudioContext = () => {
 const loadSound = async (soundObject) => {
     const { url, name } = soundObject;
     if (!url) return Promise.reject(new Error(`URL missing for ${name}.`));
-    if (audioBufferCache.has(url)) return Promise.resolve();
+    if (audioBufferCache.has(url)) return Promise.resolve(audioBufferCache.get(url));
 
     const context = getAudioContext();
     if (!context) return Promise.reject(new Error("AudioContext not available."));
@@ -51,6 +49,7 @@ const loadSound = async (soundObject) => {
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await context.decodeAudioData(arrayBuffer);
         audioBufferCache.set(url, audioBuffer);
+        return audioBuffer;
     } catch (error) {
         logAudio('error', `Failed to load '${name}':`, error.message);
         throw error;
@@ -59,8 +58,9 @@ const loadSound = async (soundObject) => {
 
 export const preloadSounds = async (sounds) => {
     if (!Array.isArray(sounds) || sounds.length === 0) return;
-    const loadPromises = sounds.map(sound => loadSound(sound).catch(() => {}));
-    await Promise.all(loadPromises);
+    const loadPromises = sounds.map(sound => loadSound(sound).catch(e => e));
+    await Promise.allSettled(loadPromises);
+    logAudio('info', `${sounds.length} sounds preloading process initiated.`);
 };
 
 export const playSound = (url) => {
@@ -71,7 +71,10 @@ export const playSound = (url) => {
     }
     const audioBuffer = audioBufferCache.get(url);
     if (!audioBuffer) {
-        logAudio('warn', `Sound not preloaded: ${url}.`);
+        logAudio('warn', `Sound not preloaded: ${url}. Attempting to load and play.`);
+        loadSound({url, name: url}).then(buffer => {
+            if (buffer) playSound(url);
+        });
         return;
     }
 
@@ -83,4 +86,27 @@ export const playSound = (url) => {
     } catch (error) {
         logAudio('error', `Error playing sound '${url}':`, error);
     }
+};
+
+/**
+ * Plays a specific time-slice of an AudioBuffer.
+ * This is now part of the unified audioManager.
+ * @param {AudioBuffer} audioBuffer - The full audio buffer to slice from.
+ * @param {number} bpm - The current beats per minute to calculate slice duration.
+ * @param {number} gridOffset - The start time offset of the grid in seconds.
+ * @param {number} bar - The bar index of the beat to play.
+ * @param {number} beat - The beat index (0-15) of the beat to play.
+ */
+export const playAudioSlice = (audioBuffer, bpm, gridOffset, bar, beat) => {
+    const context = getAudioContext();
+    if (!audioBuffer || bpm <= 0 || !context || !isAudioContextUnlocked) return;
+
+    const secondsPerBeat = 60.0 / bpm;
+    const startTime = (gridOffset || 0) + ((bar * 16 + beat) * secondsPerBeat);
+
+    const source = context.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(context.destination);
+
+    source.start(0, startTime, secondsPerBeat);
 };

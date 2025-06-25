@@ -1,16 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import PropTypes from 'prop-types';
-import { X } from 'react-feather'; // <-- FIX: Import the missing icon
+import { X } from 'react-feather';
+import { useUIState } from '../../contexts/UIStateContext.jsx';
+import { useSequence } from '../../contexts/SequenceContext.jsx';
 
-// --- Context Hooks ---
-import { useUIState } from '../../contexts/UIStateContext';
-import { useSequence } from '../../contexts/SequenceContext';
-
-// --- Component Imports ---
-import CoordinateGridEditor from './CoordinateGridEditor';
-import FootControl from '../core/grounding/FootControl';
-import P5SkeletalVisualizer from '../core/pose_editor/P5SkeletalVisualizer';
+import CoordinateGridEditor from '../common/CoordinateGridEditor.jsx'; 
+import P5SkeletalVisualizer from '../core/pose_editor/P5SkeletalVisualizer.jsx';
+import JointSelector from '../core/studio/JointSelector.jsx'; 
 
 // --- STYLED COMPONENTS ---
 const ModalBackdrop = styled.div`
@@ -37,8 +33,21 @@ const CloseButton = styled.button`
   &:hover { background-color: #334155; color: white; }
 `;
 const ModalBody = styled.div`
-  padding: 1.5rem; display: grid; grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem; overflow-y: auto;
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* Make the main area wider */
+  gap: 1.5rem;
+  overflow-y: auto;
+`;
+const MainColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+const SideColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 `;
 const ControlSection = styled.div`
   background-color: #273142; border-radius: 6px; padding: 1rem;
@@ -67,60 +76,87 @@ const createEmptyPose = () => ({
 
 // --- The Main Component ---
 const DetailEditor = ({ onClose }) => {
-    const { editingBeatIndex, selectedBar, selectedJoint } = useUIState();
+    // --- FIX: Get all necessary state from contexts ---
+    const { editingBeatIndex, selectedBar, selectedJoint, setSelectedJoint } = useUIState();
     const { getBeatData, setPoseForBeat } = useSequence();
 
-    const beatData = getBeatData(selectedBar, editingBeatIndex) || { pose: createEmptyPose() };
-    const currentPose = beatData.pose || createEmptyPose();
-    const jointVector = currentPose.jointInfo?.[selectedJoint]?.vector;
+    const [editablePose, setEditablePose] = useState(null);
+
+    useEffect(() => {
+        if (editingBeatIndex !== null) {
+            const beatData = getBeatData(selectedBar, editingBeatIndex);
+            setEditablePose(beatData?.pose || createEmptyPose());
+        }
+    }, [selectedBar, editingBeatIndex, getBeatData]);
 
     const handleVectorChange = (newVector) => {
-        if (!selectedJoint || !currentPose) return;
-        const newPose = JSON.parse(JSON.stringify(currentPose));
-        if (!newPose.jointInfo) newPose.jointInfo = {};
-        if (!newPose.jointInfo[selectedJoint]) newPose.jointInfo[selectedJoint] = {};
-        newPose.jointInfo[selectedJoint].vector = newVector;
-        setPoseForBeat(selectedBar, editingBeatIndex, newPose);
+        if (!selectedJoint || !editablePose) return;
+        setEditablePose(prevPose => {
+            const newPose = JSON.parse(JSON.stringify(prevPose));
+            if (!newPose.jointInfo) newPose.jointInfo = {};
+            if (!newPose.jointInfo[selectedJoint]) newPose.jointInfo[selectedJoint] = {};
+            newPose.jointInfo[selectedJoint].vector = newVector;
+            return newPose;
+        });
     };
+
+    const handleSaveChanges = () => {
+        // Use the function from the context to save the changes
+        setPoseForBeat(selectedBar, editingBeatIndex, editablePose);
+        onClose();
+    };
+
+    if (!editablePose) return null;
+
+    const jointVector = editablePose.jointInfo?.[selectedJoint]?.vector;
 
     return (
         <ModalBackdrop onClick={onClose}>
             <ModalContainer onClick={(e) => e.stopPropagation()}>
                 <ModalHeader>
-                    <ModalTitle>Edit: {selectedJoint || 'Pose'} (Bar {selectedBar + 1}, Beat {editingBeatIndex + 1})</ModalTitle>
-                    {/* FIX: The <X> component is now correctly imported and rendered */}
+                    <ModalTitle>Edit Pose (Bar {selectedBar + 1}, Beat {editingBeatIndex + 1})</ModalTitle>
                     <CloseButton onClick={onClose}><X size={24} /></CloseButton>
                 </ModalHeader>
                 <ModalBody>
-                    {/* All the existing modal content... */}
-                    <ControlSection>
-                        <SectionTitle>Displacement (X,Y) & Depth (Z)</SectionTitle>
-                        <InputGroup>
-                            <CoordinateGridEditor 
-                                key={selectedJoint}
-                                initialVector={jointVector}
-                                onVectorChange={handleVectorChange}
-                            />
-                            <Placeholder style={{ flex: 1, marginLeft: '1rem' }}>
-                                XYZ: [{jointVector?.x || 0}, {jointVector?.y || 0}, {jointVector?.z || 0}]
-                            </Placeholder>
-                        </InputGroup>
-                    </ControlSection>
-                    <ControlSection>
-                        <SectionTitle>2D Pose Preview</SectionTitle>
-                        <div style={{ width: '100%', height: '180px', backgroundColor: '#0f172a', borderRadius: '4px' }}>
-                            <P5SkeletalVisualizer poseData={currentPose} mode="2D" highlightJoint={selectedJoint} />
+                    <MainColumn>
+                        <div style={{ width: '100%', aspectRatio: '4 / 3', backgroundColor: '#0f172a', borderRadius: '4px' }}>
+                            <P5SkeletalVisualizer poseData={editablePose} mode="2D" highlightJoint={selectedJoint} />
                         </div>
-                    </ControlSection>
-                    {/* ... etc. */}
+                    </MainColumn>
+
+                    <SideColumn>
+                        <ControlSection>
+                            <SectionTitle>Select Joint</SectionTitle>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                                <JointSelector side="left" />
+                                <JointSelector side="right" />
+                            </div>
+                        </ControlSection>
+
+                        <ControlSection>
+                             <SectionTitle>Displacement: {selectedJoint || 'None'}</SectionTitle>
+                             <InputGroup>
+                                <CoordinateGridEditor 
+                                    key={selectedJoint} // Key ensures it re-mounts with new initial data
+                                    initialVector={jointVector}
+                                    onVectorChange={handleVectorChange}
+                                />
+                                <div className="font-mono text-xs text-slate-400 pl-4">
+                                    X: {jointVector?.x || 0}<br/>
+                                    Y: {jointVector?.y || 0}<br/>
+                                    Z: {jointVector?.z || 0}
+                                </div>
+                             </InputGroup>
+                        </ControlSection>
+
+                        <button onClick={handleSaveChanges} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded">
+                            Save Details
+                        </button>
+                    </SideColumn>
                 </ModalBody>
             </ModalContainer>
         </ModalBackdrop>
     );
-};
-
-DetailEditor.propTypes = {
-    onClose: PropTypes.func.isRequired,
 };
 
 export default DetailEditor;

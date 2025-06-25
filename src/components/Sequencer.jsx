@@ -1,188 +1,211 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
+// /client/src/components/Sequencer.jsx
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { DndContext } from '@dnd-kit/core';
+import { toast } from 'react-toastify';
 
-// --- CONTEXTS & HOOKS ---
-import { useSequence } from '../contexts/SequenceContext';
-import { usePlayback } from '../contexts/PlaybackContext';
-import { useUIState } from '../contexts/UIStateContext';
-import { useMedia } from '../contexts/MediaContext';
-import { useMotionAnalysisContext } from '../contexts/MotionAnalysisContext';
-import { useKeyboardControls } from '../hooks/useKeyboardControls';
+// HOOKS
+import { useSequence } from '../contexts/SequenceContext.jsx';
+import { useUIState, MODES } from '../contexts/UIStateContext.jsx';
+import { useSequencerSettings } from '../contexts/SequencerSettingsContext.jsx';
+import { useMedia } from '../contexts/MediaContext.jsx';
+import { useMotionAnalysis } from '../hooks/useMotionAnalysis.js';
+import { useKeyboardControls } from '../hooks/useKeyboardControls.js';
+import { usePlayback } from '../contexts/PlaybackContext.jsx';
+import { useDebugger } from '../contexts/DebugContext.jsx';
 
-// --- UI COMPONENT IMPORTS ---
-import TopHeader from './core/studio/TopHeader';
-import JointSelector from './core/studio/JointSelector';
-import VisualizerDeck from './core/studio/VisualizerDeck';
-import BeatGrid from './core/main/BeatGrid';
-import FootControl from './core/grounding/FootControl';
-import NotationDisplay from './core/main/NotationDisplay';
-import DetailEditor from './visualizers/DetailEditor';
-import MasterWaveformEditor from './core/studio/MasterWaveformEditor';
-import SoundBrowser from './core/studio/SoundBrowser';
+// UI COMPONENT IMPORTS
+import TopHeader from './core/studio/TopHeader.jsx';
+import JointSelector from './core/studio/JointSelector.jsx';
+import VisualizerDeck from './core/studio/VisualizerDeck.jsx';
+import BeatGrid from './core/main/BeatGrid.jsx';
+import FootControl from './core/grounding/FootControl.jsx';
+import NotationDisplay from './core/main/NotationDisplay.jsx';
+import DetailEditor from './visualizers/DetailEditor.jsx';
+import SoundBrowser from './core/studio/SoundBrowser.jsx';
+import MasterWaveformEditor from './core/studio/MasterWaveformEditor.jsx';
+import DebugPanel from './common/DebugPanel.jsx'; // --- THIS IS THE FIX ---
+import { preloadSounds, unlockAudioContext } from '../utils/audioManager.js';
+import { tr808SoundsArray } from '../utils/soundLibrary.js';
 
-// --- STYLED COMPONENTS ---
-const SequencerLayoutContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  width: 100vw;
-  background-color: #0f172a;
-  overflow: hidden;
-`;
-
-const MainContent = styled.div`
-    flex-grow: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    min-height: 0;
-`;
-
-const Cockpit = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    width: 100%;
-    max-width: 1400px;
-`;
-
-const CentralColumn = styled.main`
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-`;
-
-const SideColumn = styled.aside`
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-`;
-
-// --- The Main Sequencer Component ---
 const Sequencer = () => {
-    // --- HOOKS & CONTEXTS ---
-    // FIX: Add `setPoseForBeat` and other necessary functions back to the destructuring
+    const { 
+        songData, getBeatData, setPoseForBeat, updateSongData,
+        resetSequence, onSave, onLoad, loadAudioFile, addSoundToBeat, removeSoundFromBeat, triggerBeat,
+        undo, redo, canUndo, canRedo 
+    } = useSequence();
+    
+    const { 
+        currentMode, setCurrentMode, selectedBar, setSelectedBar,
+        isLiveCamActive, toggleLiveCam, isFeedMirrored, toggleFeedMirror,
+        isOverlayMirrored, toggleOverlayMirror, isEditMode, toggleEditMode,
+        editingBeatIndex, setEditingBeatIndex, isNudgeModeActive, setNudgeModeActive,
+        setSelectedBeat
+    } = useUIState();
 
-    const { isEditMode, isLiveCamActive, toggleLiveCam, isNudgeModeActive, setNudgeModeActive, setSelectedBeat, setEditingBeatIndex } = useUIState();
-    const { livePose, startAnalysis, stopAnalysis } = useMotionAnalysisContext();
-    useKeyboardControls();
+    const { 
+        isPlaying, togglePlay, isRecording, toggleRecord,
+        isMetronomeEnabled, toggleMetronome, tapTempo, currentStep, currentBar
+    } = usePlayback();
 
-    const { onSave, onLoad, loadAudioFile, triggerBeat, addSoundToBeat, setPoseForBeat, removeSoundFromBeat } = useSequence();
-    const { isPlaying, isRecording, currentBar, currentStep } = usePlayback();
+    const { bpm, setBpm } = useSequencerSettings();
+    const { videoRef } = useMedia();
+    const { addLog } = useDebugger();
 
-    // --- LOCAL UI STATE ---
-    const [isNudgeEditorOpen, setNudgeEditorOpen] = useState(false);
     const [isPoseEditorOpen, setPoseEditorOpen] = useState(false);
     const [isSoundBrowserOpen, setSoundBrowserOpen] = useState(false);
     const [beatToAddTo, setBeatToAddTo] = useState(null);
 
-    // --- REFS ---
     const sequenceFileInputRef = useRef(null);
     const audioFileInputRef = useRef(null);
-    const lastRecordedStepRef = useRef(null);
-
-    // --- LIVE RECORDING LOGIC ---
-    useEffect(() => {
-        if (!isPlaying || !isRecording || !livePose) return;
-        if (currentStep !== lastRecordedStepRef.current) {
-            // This call will now work correctly
-            setPoseForBeat(currentBar, currentStep, livePose);
-            lastRecordedStepRef.current = currentStep;
-        }
-    }, [isPlaying, isRecording, currentBar, currentStep, livePose, setPoseForBeat]);
-
-    // --- UI HANDLERS ---
-    const handleToggleLiveCamAndTracking = useCallback(() => {
-        const nextIsLive = !isLiveCamActive;
-        toggleLiveCam();
-        if (nextIsLive) {
-            startAnalysis();
-        } else {
-            stopAnalysis();
-        }
-    }, [isLiveCamActive, toggleLiveCam, startAnalysis, stopAnalysis]);
     
+    const onAnalysisComplete = useCallback((results) => {
+        addLog('Full video analysis complete. Applying poses to grid.', 'MotionAnalysis');
+        updateSongData(currentData => {
+            const newBars = JSON.parse(JSON.stringify(currentData.bars));
+            results.forEach(res => {
+                const { bar, beat, poseData, thumbnail } = res;
+                if (newBars[bar]?.[beat]) {
+                    newBars[bar][beat].pose = poseData;
+                    if(thumbnail) newBars[bar][beat].thumbnail = thumbnail;
+                }
+            });
+            return { ...currentData, bars: newBars };
+        }, true);
+    }, [updateSongData, addLog]);
+    
+    // --- THIS IS THE OTHER FIX ---
+    const { startFullAnalysis, isAnalyzing, livePoseData, onPoseUpdate } = useMotionAnalysis({ 
+        onPoseUpdate: (pose) => {
+            if (isRecording && isPlaying) {
+                setPoseForBeat(currentBar, currentStep, pose);
+            }
+        },
+        onAnalysisComplete,
+        isOverlayMirrored
+    });
+
+    const handleAnalyzeVideo = () => {
+        if (videoRef.current && (videoRef.current.src || videoRef.current.srcObject)) {
+            addLog('Starting full video analysis.', 'UI');
+            const totalBars = Object.keys(songData.bars).length;
+            startFullAnalysis(videoRef.current, bpm, totalBars);
+        } else {
+            toast.error("Please load a video or enable the live camera first.");
+        }
+    };
+
+    const handleNewProject = () => {
+        if (window.confirm("This will clear the current project and cannot be undone. Are you sure?")) {
+            addLog('New project started.', 'System');
+            resetSequence();
+        }
+    };
+
+    useKeyboardControls();
+    
+    const activeBeatData = getBeatData(selectedBar, editingBeatIndex);
+
+    const handleFootControlChange = useCallback((side, newValues) => {
+        const beatIndexToUpdate = editingBeatIndex ?? 0;
+        const barToUpdate = selectedBar;
+        setPoseForBeat(barToUpdate, beatIndexToUpdate, { grounding: newValues });
+    }, [editingBeatIndex, selectedBar, setPoseForBeat]);
+
+    const handleGroundingChange = (side, notation) => handleFootControlChange(side, { [side]: notation });
+    const handleFootRotationChange = (side, rotation) => handleFootControlChange(side, { [`${side}_rotation`]: rotation });
+    const handleAnkleRotationChange = (side, rotation) => handleFootControlChange(side, { [`${side}_ankle_rotation`]: rotation });
+
     const handleBeatSelect = (barIndex, beatIndex) => {
+        unlockAudioContext();
         setSelectedBeat(beatIndex);
-        if (isNudgeModeActive) {
-            setNudgeEditorOpen(true);
-            setNudgeModeActive(false);
-        } else if (isEditMode) {
+        if (isEditMode) {
+            addLog(`Entering edit mode for B:${barIndex+1} S:${beatIndex+1}`, 'UI');
             setEditingBeatIndex(beatIndex);
             setPoseEditorOpen(true);
         } else {
-            triggerBeat(barIndex, beatIndex);
+            addLog(`Triggering beat B:${barIndex+1} S:${beatIndex+1}`, 'UI');
+            triggerBeat(barIndex, beatIndex, videoRef.current);
         }
-    };
-
-    const handleAddSoundClick = (barIndex, beatIndex) => {
-        setBeatToAddTo({ bar: barIndex, beat: beatIndex });
-        setSoundBrowserOpen(true);
-    };
-
-    const handleSelectSound = (soundUrl) => {
-        if (beatToAddTo) {
-            addSoundToBeat(beatToAddTo.bar, beatToAddTo.beat, soundUrl);
-        }
-    };
-
-    const handleSoundDelete = (barIndex, beatIndex, soundUrl) => {
-        removeSoundFromBeat(barIndex, beatIndex, soundUrl);
-    };
-
-    const handleCloseEditor = () => {
-        setPoseEditorOpen(false);
-        setEditingBeatIndex(null);
     };
     
-    // --- RENDER ---
+    const handleCloseEditor = () => {
+        setEditingBeatIndex(null);
+        setPoseEditorOpen(false);
+    };
+
+    useEffect(() => { preloadSounds(tr808SoundsArray); }, []);
+
     return (
         <DndContext onDragEnd={() => {}}>
-            <SequencerLayoutContainer>
+            <div className="flex flex-col h-screen w-screen bg-slate-900 overflow-hidden select-none">
                 <input type="file" ref={sequenceFileInputRef} onChange={(e) => onLoad(e.target.files[0])} style={{ display: 'none' }} accept=".json,.seqsync.json" />
-                <input type="file" ref={audioFileInputRef} onChange={loadAudioFile} style={{ display: 'none' }} accept="audio/*" />
-
-                <TopHeader
-                    onSave={onSave}
-                    onLoad={() => sequenceFileInputRef.current.click()}
-                    onLoadAudio={() => audioFileInputRef.current.click()}
-                    onOpenNudgeEditor={() => setNudgeModeActive(true)}
-                    onToggleLiveCam={handleToggleLiveCamAndTracking}
+                <input type="file" ref={audioFileInputRef} onChange={loadAudioFile} style={{ display: 'none' }} accept="audio/*,video/*" />
+                
+                <TopHeader 
+                    onNew={handleNewProject}
+                    onSave={onSave} 
+                    onLoad={() => sequenceFileInputRef.current.click()} 
+                    onLoadAudio={() => audioFileInputRef.current.click()} 
+                    onAnalyzeVideo={handleAnalyzeVideo}
+                    isAnalyzing={isAnalyzing}
+                    selectedBar={selectedBar}
+                    totalBars={Object.keys(songData.bars).length || 1}
+                    onBarChange={setSelectedBar}
+                    bpm={bpm}
+                    onBpmChange={setBpm}
+                    onTapTempo={tapTempo}
+                    currentMode={currentMode}
+                    onModeChange={setCurrentMode}
+                    isLiveCamActive={isLiveCamActive}
+                    onToggleLiveCam={toggleLiveCam}
+                    isFeedMirrored={isFeedMirrored}
+                    onToggleFeedMirror={toggleFeedMirror}
+                    isOverlayMirrored={isOverlayMirrored}
+                    onToggleOverlayMirror={toggleOverlayMirror}
+                    isRecording={isRecording}
+                    onToggleRecord={toggleRecord}
+                    isPlaying={isPlaying}
+                    onTogglePlay={togglePlay}
+                    isMetronomeEnabled={isMetronomeEnabled}
+                    onToggleMetronome={toggleMetronome}
+                    onUndo={undo}
+                    onRedo={redo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                    isEditMode={isEditMode}
+                    onToggleEditMode={toggleEditMode}
+                    isNudgeModeActive={isNudgeModeActive}
+                    onToggleNudgeMode={() => setNudgeModeActive(prev => !prev)}
                 />
-
-                <MainContent>
-                    <Cockpit>
-                        <SideColumn>
+                
+                <main className="flex-grow flex justify-center items-center p-4 min-h-0">
+                   <div className="flex items-start gap-4 w-full max-w-[1400px]">
+                        <aside className="flex-shrink-0 flex flex-col items-center gap-4">
                             <JointSelector side="left" />
-                            <FootControl side="left" />
-                        </SideColumn>
-                        <CentralColumn>
-                            <VisualizerDeck />
+                            <FootControl side="L" groundPoints={activeBeatData?.pose?.grounding?.L} rotation={activeBeatData?.pose?.grounding?.L_rotation || 0} ankleRotation={activeBeatData?.pose?.grounding?.L_ankle_rotation || 0} onGroundingChange={handleGroundingChange} onRotate={handleFootRotationChange} onAnkleRotationChange={handleAnkleRotationChange}/>
+                        </aside>
+                        <section className="flex-grow flex flex-col items-center gap-4 min-w-0">
+                            <VisualizerDeck 
+                                poseData={isLiveCamActive ? livePoseData : activeBeatData?.pose} 
+                            />
                             <NotationDisplay />
                             <BeatGrid 
-                                onBeatSelect={handleBeatSelect}
-                                onAddSoundClick={handleAddSoundClick}
-                                onSoundDelete={handleSoundDelete}
+                                onBeatSelect={handleBeatSelect} 
+                                onAddSoundClick={(bar, beat) => { setBeatToAddTo({bar, beat}); setSoundBrowserOpen(true); }} 
+                                onSoundDelete={(bar, beat, url) => removeSoundFromBeat(bar, beat, url)} 
                             />
-                        </CentralColumn>
-                        <SideColumn>
+                        </section>
+                        <aside className="flex-shrink-0 flex flex-col items-center gap-4">
                             <JointSelector side="right" />
-                            <FootControl side="right" />
-                        </SideColumn>
-                    </Cockpit>
-                </MainContent>
-
-                {isPoseEditorOpen && <DetailEditor onClose={handleCloseEditor} />}
-                {isNudgeEditorOpen && <MasterWaveformEditor onClose={() => setNudgeEditorOpen(false)} />}
-                {isSoundBrowserOpen && <SoundBrowser onSelectSound={handleSelectSound} onClose={() => setSoundBrowserOpen(false)} />}
-            </SequencerLayoutContainer>
+                            <FootControl side="R" groundPoints={activeBeatData?.pose?.grounding?.R} rotation={activeBeatData?.pose?.grounding?.R_rotation || 0} ankleRotation={activeBeatData?.pose?.grounding?.R_ankle_rotation || 0} onGroundingChange={handleGroundingChange} onRotate={handleFootRotationChange} onAnkleRotationChange={handleAnkleRotationChange}/>
+                        </aside>
+                   </div>
+                </main>
+                {isEditMode && editingBeatIndex !== null && <DetailEditor onClose={handleCloseEditor} />}
+                {isSoundBrowserOpen && <SoundBrowser onSelectSound={(url) => { if(beatToAddTo) addSoundToBeat(beatToAddTo.bar, beatToAddTo.beat, url); }} onClose={() => setSoundBrowserOpen(false)} />}
+                {isNudgeModeActive && <MasterWaveformEditor onClose={() => setNudgeModeActive(false)} />}
+                {process.env.NODE_ENV === 'development' && <DebugPanel />}
+            </div>
         </DndContext>
     );
 };

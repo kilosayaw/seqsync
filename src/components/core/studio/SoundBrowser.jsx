@@ -2,9 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import { X } from 'react-feather';
+
+// --- UTILS & LIBRARIES ---
 import { tr808SoundsArray, getSoundNameFromPath } from '../../../utils/soundLibrary';
 import { playSound, unlockAudioContext } from '../../../utils/audioManager';
 
+// --- STYLED COMPONENTS ---
 const ModalBackdrop = styled.div`
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background-color: rgba(15, 23, 42, 0.85);
@@ -63,21 +66,23 @@ const SoundButton = styled.button`
   }
 `;
 
+// --- THE FUNCTIONAL COMPONENT ---
 const SoundBrowser = ({ onSelectSound, onClose }) => {
     const handleSoundClick = (soundUrl) => {
-        unlockAudioContext(); // Ensure context is active on user click
-        playSound(soundUrl); // Preview the sound
-        onSelectSound(soundUrl); // Add it to the beat
+        unlockAudioContext(); // Ensure audio is ready on the first user click
+        playSound(soundUrl);    // Preview the sound when clicked
+        onSelectSound(soundUrl); // Pass the selected sound URL back to the parent
     };
 
     return (
         <ModalBackdrop onClick={onClose}>
             <ModalContainer onClick={e => e.stopPropagation()}>
                 <ModalHeader>
-                    <ModalTitle>Add Sound to Beat</ModalTitle>
+                    <ModalTitle>TR-808 Sound Bank</ModalTitle>
                     <CloseButton onClick={onClose}><X size={24} /></CloseButton>
                 </ModalHeader>
                 <SoundList>
+                    {/* Map over the imported sound array and create a button for each */}
                     {tr808SoundsArray.map(sound => (
                         <SoundButton key={sound.key} onClick={() => handleSoundClick(sound.url)}>
                             {getSoundNameFromPath(sound.name)}

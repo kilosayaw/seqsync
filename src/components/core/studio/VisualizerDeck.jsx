@@ -1,135 +1,81 @@
-import React, { useRef, useEffect } from 'react';
+// /client/src/components/core/studio/VisualizerDeck.jsx
+import React from 'react';
+import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { useMotionAnalysis } from '../../../hooks/useMotionAnalysis';
-import { usePlayback } from '../../../contexts/PlaybackContext';
-import { useUIState } from '../../../contexts/UIStateContext';
-import { useMedia } from '../../../contexts/MediaContext';
-import P5SkeletalVisualizer from '../pose_editor/P5SkeletalVisualizer';
-import { useRecording } from '../../../hooks/useRecording';
+
+import { useUIState } from '../../../contexts/UIStateContext.jsx';
+import { useMedia } from '../../../contexts/MediaContext.jsx';
+import { usePlayback } from '../../../contexts/PlaybackContext.jsx';
+import { useSequence } from '../../../contexts/SequenceContext.jsx';
+
+import VideoMediaPlayer from '../media/VideoMediaPlayer.jsx';
+import P5SkeletalVisualizer from '../pose_editor/P5SkeletalVisualizer.jsx';
 
 const DeckContainer = styled.div`
   position: relative;
   width: 100%;
-  max-width: 640px; /* Enforce a max width for consistency */
+  max-width: 640px;
   margin: auto;
   aspect-ratio: 16 / 9;
-  background-color: #111;
-  border-radius: var(--border-radius-medium);
+  background-color: #1a293b;
+  border-radius: 8px;
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
-  color: #555;
-`;
-
-const DisplayContainer = styled.div`
-  /* ... */
-  width: 100%; /* It will now fill the ContentStack container */
-  /* ... */
-`;
-
-const VideoElement = styled.video`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: ${({ $isMirrored }) => ($isMirrored ? 'scaleX(1)' : 'scaleX(-1)')};
 `;
 
 const VisualizerOverlay = styled.div`
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 0; left: 0; width: 100%; height: 100%;
     pointer-events: none;
 `;
 
-const VisualizerDeck = () => {
-  const videoRef = useRef(null);
-  const { updateLivePose, setVideoElementForCapture } = usePlayback(); // <<< FIX: Get the function from the hook
-  const { isLiveCamActive, isMirrored, visualizerMode, selectedJoint } = useUIState(); 
-  const { mediaUrl } = useMedia();
-  const { livePoseData, startLiveTracking, stopLiveTracking } = useMotionAnalysis({
-    onPoseUpdate: updateLivePose,
-  });
+const PlaceholderText = styled.span`
+    font-size: 1rem;
+    color: #475569;
+`;
 
-  // This effect now correctly passes the video element to the context
-  useEffect(() => {
-    if (setVideoElementForCapture) {
-        setVideoElementForCapture(videoRef.current);
-    }
-  }, [setVideoElementForCapture]);
+// This component is now "dumb". It just receives data and displays it.
+const VisualizerDeck = ({ poseData }) => {
+    const { videoRef, mediaStream } = useMedia();
+    const { songData } = useSequence();
+    const { isPlaying } = usePlayback();
+    const { visualizerMode, selectedJoint, isFeedMirrored } = useUIState();
 
-  useRecording();
+    const mediaUrl = songData.videoUrl;
+    const hasMedia = mediaUrl || mediaStream;
 
-  // Effect to handle switching between live cam and uploaded video
-    // This effect handles switching the video source between live cam and uploaded media
-  useEffect(() => {
-    const videoElement = videoRef.current;
-    if (!videoElement) return;
+    return (
+        <DeckContainer>
+            {hasMedia ? (
+                <VideoMediaPlayer
+                    ref={videoRef}
+                    src={mediaUrl}
+                    stream={mediaStream}
+                    isPlaying={isPlaying}
+                    // onReady is handled by the parent Sequencer component now
+                />
+            ) : (
+                <PlaceholderText>No Video Loaded</PlaceholderText>
+            )}
 
-    // --- Live Camera Logic ---
-    if (isLiveCamActive) {
-      let stream;
-      const setupLiveCam = async () => {
-        try {
-          // Request access to the user's camera
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          videoElement.srcObject = stream;
-          // Wait for the video metadata to load before playing
-          videoElement.onloadeddata = () => {
-            videoElement.play();
-            // Start the motion analysis loop
-            startLiveTracking(videoElement);
-          };
-        } catch (err) {
-          console.error("Failed to initialize camera:", err);
-        }
-      };
-      setupLiveCam();
-
-      // This is the cleanup function that runs when the effect ends
-      // (e.g., when the user toggles the live cam off)
-      return () => {
-        stopLiveTracking();
-        if (stream) {
-          // Stop all camera tracks to turn off the camera light
-          stream.getTracks().forEach(track => track.stop());
-        }
-      };
-    } else {
-      // --- Uploaded Media Logic ---
-      // If live cam is not active, stop tracking and set the video source to the uploaded media URL.
-      stopLiveTracking();
-      videoElement.srcObject = null; // Clear the camera stream
-      videoElement.src = mediaUrl;
-    }
-  }, [isLiveCamActive, mediaUrl, startLiveTracking, stopLiveTracking]);
-
-  return (
-    <DeckContainer>
-      { (isLiveCamActive || mediaUrl) ? (
-        <>
-          <VideoElement 
-            ref={videoRef} 
-            autoPlay 
-            playsInline 
-            muted={isLiveCamActive} 
-            $isMirrored={isLiveCamActive && isMirrored} 
-          />
-          <VisualizerOverlay>
-                {isLiveCamActive && livePoseData && (
+            {/* The overlay is flipped visually with CSS */}
+            <VisualizerOverlay style={{ transform: isFeedMirrored ? 'scaleX(-1)' : 'scaleX(1)' }}>
+                {poseData && (
                     <P5SkeletalVisualizer 
-                        poseData={livePoseData} 
+                        poseData={poseData} 
                         mode={visualizerMode}
                         highlightJoint={selectedJoint}
                     />
                 )}
             </VisualizerOverlay>
-        </>
-      ) : ( <span>Visualizer Deck</span> )}
-    </DeckContainer>
-  );
+        </DeckContainer>
+    );
+};
+
+VisualizerDeck.propTypes = {
+    poseData: PropTypes.object,
 };
 
 export default VisualizerDeck;
