@@ -1,14 +1,12 @@
+/* @refresh skip */
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
-import { useSequence } from './SequenceContext';
 import { useSequencerSettings } from './SequencerSettingsContext';
-import { playSound, preloadSounds, unlockAudioContext } from '../utils/audioManager';
-import { playAudioSlice as playAudioSliceUtil } from '../utils/audioUtils';
+import { getAudioContext, unlockAudioContext, playSound, preloadSounds } from '../utils/audioManager';
 
 const PlaybackContext = createContext(null);
-export const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-export const PlaybackProvider = ({ children }) => {
-    // --- STATE & REFS ---
+// --- FIX: Accept triggerBeat and setPoseForBeat as props to break the circular dependency ---
+export const PlaybackProvider = ({ children, triggerBeat, setPoseForBeat }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
@@ -22,22 +20,24 @@ export const PlaybackProvider = ({ children }) => {
     const tapTimestamps = useRef([]);
     const tapTimeoutRef = useRef(null);
     
-    // --- HOOKS ---
-    const { songData, setPoseForBeat, triggerBeat } = useSequence();
+    // --- FIX: We only need useSequencerSettings now, no useSequence ---
     const { bpm, setBpm } = useSequencerSettings();
+    
+    // This hook no longer has any external context dependencies that create a loop.
+    // It is now a self-contained playback engine.
 
-    // --- FUNCTION DEFINITIONS ---
     const getLivePose = useCallback(() => livePoseRef.current, []);
-    const updateLivePose = (pose) => {
-        livePoseRef.current = pose;
-    };
+    const updateLivePose = (pose) => { livePoseRef.current = pose; };
 
     const togglePlay = useCallback(() => {
         unlockAudioContext();
+        const context = getAudioContext();
+        if (!context) return;
+
         setIsPlaying(prev => {
             const nextIsPlaying = !prev;
             if (nextIsPlaying) {
-                startTimeRef.current = audioContext.currentTime;
+                startTimeRef.current = context.currentTime;
                 totalBeatsElapsedRef.current = -1;
             } else {
                 setIsRecording(false);
@@ -56,6 +56,7 @@ export const PlaybackProvider = ({ children }) => {
     }, [isPlaying, togglePlay]);
 
     const tapTempo = useCallback(() => {
+        // ... (tapTempo logic remains the same)
         unlockAudioContext();
         const now = Date.now();
         const timestamps = tapTimestamps.current;
@@ -63,13 +64,11 @@ export const PlaybackProvider = ({ children }) => {
         if (timestamps.length > 4) timestamps.shift();
         if (timestamps.length > 1) {
             const intervals = [];
-            for (let i = 1; i < timestamps.length; i++) {
-                intervals.push(timestamps[i] - timestamps[i-1]);
-            }
+            for (let i = 1; i < timestamps.length; i++) { intervals.push(timestamps[i] - timestamps[i-1]); }
             const averageInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
             if (averageInterval > 0) {
                 const calculatedBpm = 60000 / averageInterval;
-                setBpm(Math.max(40, Math.min(240, calculatedBpm)));
+                setBpm(Math.round(Math.max(40, Math.min(240, calculatedBpm))));
             }
         }
         if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
@@ -78,17 +77,18 @@ export const PlaybackProvider = ({ children }) => {
 
     const toggleMetronome = () => setIsMetronomeEnabled(p => !p);
 
-    // --- EFFECTS ---
     useEffect(() => {
         preloadSounds([{ name: 'metronome', url: '/assets/sounds/metronome.wav' }]);
     }, []);
 
-    // --- FULL IMPLEMENTATION of Main Playback & Recording Loop ---
     useEffect(() => {
         if (!isPlaying) {
-            cancelAnimationFrame(animationFrameId.current);
+            if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
             return;
         }
+        
+        const audioContext = getAudioContext();
+        if (!audioContext) return;
 
         const tick = () => {
             const currentElapsedTime = audioContext.currentTime - startTimeRef.current;
@@ -96,23 +96,27 @@ export const PlaybackProvider = ({ children }) => {
             
             if (secondsPerBeat > 0) {
                 const beatsNow = Math.floor(currentElapsedTime / secondsPerBeat);
+
                 if (beatsNow > totalBeatsElapsedRef.current) {
                     totalBeatsElapsedRef.current = beatsNow;
                     
-                    const totalBars = Object.keys(songData.bars).length || 1;
+                    const totalBars = 4; // This should be dynamic later
                     const newCurrentStep = beatsNow % 16;
                     const newCurrentBar = Math.floor(beatsNow / 16) % totalBars;
                     
+                    // --- FIX: Ensure state updates are happening correctly ---
                     setCurrentBar(newCurrentBar);
                     setCurrentStep(newCurrentStep);
 
-                    triggerBeat(newCurrentBar, newCurrentStep);
+                    if (triggerBeat) {
+                        triggerBeat(newCurrentBar, newCurrentStep);
+                    }
 
-                    if (isMetronomeEnabled) {
+                    if (isMetronomeEnabled && newCurrentStep % 4 === 0) {
                         playSound('/assets/sounds/metronome.wav');
                     }
                     
-                    if (isRecording) {
+                    if (isRecording && setPoseForBeat) {
                         const poseToRecord = getLivePose();
                         if (poseToRecord) {
                             setPoseForBeat(newCurrentBar, newCurrentStep, poseToRecord);
@@ -124,10 +128,11 @@ export const PlaybackProvider = ({ children }) => {
         };
 
         animationFrameId.current = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(animationFrameId.current);
-    }, [isPlaying, isRecording, bpm, isMetronomeEnabled, songData, setPoseForBeat, getLivePose, triggerBeat]);
+        return () => {
+             if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+        };
+    }, [isPlaying, isRecording, bpm, isMetronomeEnabled, triggerBeat, setPoseForBeat, getLivePose]);
     
-    // --- CONTEXT VALUE ---
     const value = {
         isPlaying, isRecording, currentStep, currentBar,
         isMetronomeEnabled,

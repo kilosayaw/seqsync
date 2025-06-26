@@ -1,12 +1,12 @@
+// /client/src/components/core/pose_editor/P5SkeletalVisualizer.jsx
 import React from 'react';
 import { ReactP5Wrapper } from 'react-p5-wrapper';
 import PropTypes from 'prop-types';
 
 function sketch(p5) {
-    // These variables will be updated by props
     let poseData = null;
     let highlightJoint = null;
-    let mode = '2D'; // Default to 2D
+    let mode = '2D'; // This remains the default within the sketch
 
     const connections = [
         ['LS', 'RS'], ['LS', 'LE'], ['LE', 'LW'], ['RS', 'RE'], ['RE', 'RW'],
@@ -21,7 +21,6 @@ function sketch(p5) {
     };
 
     p5.setup = () => {
-        // Create a single canvas that can handle both 2D and 3D
         p5.createCanvas(640, 360, p5.WEBGL);
         p5.angleMode(p5.DEGREES);
     };
@@ -29,24 +28,15 @@ function sketch(p5) {
     p5.draw = () => {
         p5.clear();
         if (!poseData || !poseData.jointInfo) return;
-
-        if (mode === '3D') {
-            p5.orbitControl();
-            // Implement 3D drawing logic here later
-        }
-
+        if (mode === '3D') p5.orbitControl();
         const jointInfo = poseData.jointInfo;
         const width = p5.width;
         const height = p5.height;
-        
-        // --- This logic works for both 2D and 3D (orthographic) views ---
         const getCoords = (vector) => ({
             x: vector.x * (width / 2.5),
-            y: -vector.y * (height / 2.5), // Invert Y for screen coordinates
-            z: (vector.z || 0) * 100 // Scale Z for depth
+            y: -vector.y * (height / 2.5),
+            z: (vector.z || 0) * 100
         });
-
-        // Draw bones
         p5.stroke(255, 255, 255, 150);
         p5.strokeWeight(2);
         connections.forEach(([startKey, endKey]) => {
@@ -58,24 +48,16 @@ function sketch(p5) {
                 p5.line(start.x, start.y, start.z, end.x, end.y, end.z);
             }
         });
-
-        // Draw joints
         for (const key in jointInfo) {
             const joint = jointInfo[key];
             if (joint?.vector) {
                 const pos = getCoords(joint.vector);
                 const isActive = key === highlightJoint;
-                
-                const zDisplacement = joint.gridMovement?.z || 0;
-                let radius = isActive ? 15 : 10;
-                if (zDisplacement === 1) radius *= 1.5;
-                if (zDisplacement === -1) radius *= 0.5;
-
-                const orientation = joint.orientation || 'NEU';
+                const radius = isActive ? 15 : 10;
                 let jointColor = isActive ? p5.color(255, 255, 0) : p5.color(0, 255, 255);
+                const orientation = joint.orientation || 'NEU';
                 if (orientation === 'IN') jointColor = p5.color(255, 100, 100);
                 if (orientation === 'OUT') jointColor = p5.color(100, 150, 255);
-
                 p5.push();
                 p5.translate(pos.x, pos.y, pos.z);
                 p5.noStroke();
@@ -87,7 +69,9 @@ function sketch(p5) {
     };
 }
 
-const P5SkeletalVisualizer = ({ poseData, highlightJoint, mode }) => {
+// --- THIS IS THE FIX ---
+// We set the default value for the 'mode' prop directly in the function signature.
+const P5SkeletalVisualizer = ({ poseData, highlightJoint, mode = '2D' }) => {
     return <ReactP5Wrapper 
         sketch={sketch} 
         poseData={poseData} 
@@ -99,7 +83,12 @@ const P5SkeletalVisualizer = ({ poseData, highlightJoint, mode }) => {
 P5SkeletalVisualizer.propTypes = {
     poseData: PropTypes.object,
     highlightJoint: PropTypes.string,
-    mode: PropTypes.oneOf(['2D', '3D']).isRequired,
+    mode: PropTypes.oneOf(['2D', '3D']),
 };
+
+// --- THIS BLOCK IS REMOVED ---
+// P5SkeletalVisualizer.defaultProps = {
+//     mode: '2D',
+// };
 
 export default React.memo(P5SkeletalVisualizer);

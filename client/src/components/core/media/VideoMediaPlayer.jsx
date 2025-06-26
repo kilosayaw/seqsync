@@ -1,76 +1,52 @@
 import React, { forwardRef, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 
-const VideoMediaPlayer = forwardRef(({ mediaUrl, mediaStream, isPlaying, onReady }, ref) => {
-  const videoRef = useRef(null);
+const VideoMediaPlayer = forwardRef(({ src, stream, isPlaying }, ref) => {
+    const internalRef = useRef(null);
+    React.useImperativeHandle(ref, () => internalRef.current);
 
-  React.useImperativeHandle(ref, () => videoRef.current);
+    useEffect(() => {
+        const videoElement = internalRef.current;
+        if (!videoElement) return;
 
-  useEffect(() => {
-    const videoElement = videoRef.current;
-    if (!videoElement) return;
+        if (stream) {
+            // Live stream is active
+            if (videoElement.src) videoElement.pause(); // Pause the underlying video file if it exists
+            videoElement.srcObject = stream;
+            videoElement.muted = true;
+            videoElement.play().catch(e => console.error("Live cam autoplay failed:", e));
+        } else if (src) {
+            // File is active
+            videoElement.srcObject = null;
+            videoElement.src = src;
+            videoElement.muted = false;
+        } else {
+            // No media at all
+            videoElement.srcObject = null;
+            videoElement.src = '';
+        }
+    }, [src, stream]);
 
-    // --- Event Handler Definitions ---
-    const handleCanPlay = () => {
-      if (onReady && videoElement.videoWidth > 0) onReady(videoElement);
-    };
+    // This effect now ONLY controls playback for file-based media
+    useEffect(() => {
+        const videoElement = internalRef.current;
+        if (videoElement && src && !stream) { // Only control if src exists AND stream is not active
+            if (isPlaying && videoElement.paused) {
+                videoElement.play().catch(e => console.error("Error playing video file:", e));
+            } else if (!isPlaying && !videoElement.paused) {
+                videoElement.pause();
+            }
+        }
+    }, [isPlaying, src, stream]);
 
-    const handleLoadedMetadata = () => {
-      // For live streams, we must call play() here to ensure autoplay works.
-      if (mediaStream) {
-        videoElement.play().catch(e => console.error("Autoplay interrupted or failed:", e));
-      }
-    };
-    
-    videoElement.addEventListener('canplay', handleCanPlay);
-    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
-
-    // --- DEFINITIVE FIX: Refactored Source Management ---
-    // Only perform actions if a valid source exists.
-    if (mediaStream) {
-      if (videoElement.srcObject !== mediaStream) {
-        videoElement.srcObject = mediaStream;
-      }
-      videoElement.src = ''; // Clear file source if stream is active
-      videoElement.muted = true;
-      videoElement.controls = false;
-    } else if (mediaUrl) {
-      if (videoElement.src !== mediaUrl) {
-        videoElement.src = mediaUrl;
-      }
-      videoElement.srcObject = null; // Clear stream source if file is active
-      videoElement.muted = false;
-      videoElement.controls = true; // Show controls for video files
-    } else {
-      // If no source, clear both and do nothing else.
-      videoElement.srcObject = null;
-      videoElement.src = '';
-    }
-
-    // --- Playback Control for Files (only if a URL is set) ---
-    if (mediaUrl) {
-      if (isPlaying && videoElement.paused) {
-        videoElement.play().catch(e => console.error("Error playing video file:", e));
-      } else if (!isPlaying && !videoElement.paused) {
-        videoElement.pause();
-      }
-    }
-
-    return () => {
-      videoElement.removeEventListener('canplay', handleCanPlay);
-      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
-    };
-  }, [mediaUrl, mediaStream, isPlaying, onReady]);
-
-  return (
-    <video
-      key={mediaStream?.id || mediaUrl}
-      ref={videoRef}
-      className="w-full h-full object-contain"
-      loop={false}
-      playsInline
-    />
-  );
+    return (
+        <video
+            ref={internalRef}
+            className="w-full h-full object-contain"
+            playsInline
+            controls={!!src && !stream} // Show controls only for loaded video when live cam is off
+        />
+    );
 });
 
 VideoMediaPlayer.displayName = 'VideoMediaPlayer';

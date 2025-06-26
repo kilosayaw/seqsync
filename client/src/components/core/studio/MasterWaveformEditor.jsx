@@ -1,9 +1,10 @@
+// /client/src/components/core/studio/MasterWaveformEditor.jsx
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import PropTypes from 'prop-types';
 import { X } from 'react-feather';
-import { useSequence } from '../../../contexts/SequenceContext';
-import { usePlayback } from '../../../contexts/PlaybackContext';
+import { useSequence } from '../../../contexts/SequenceContext.jsx';
+import { toast } from 'react-toastify';
 
 // --- STYLED COMPONENTS ---
 const EditorModal = styled.div`
@@ -32,54 +33,54 @@ const Canvas = styled.canvas`
   width: 100%; height: 100%;
 `;
 const Playhead = styled.div`
-  position: absolute; top: 0; left: 80px; /* Fixed position for alignment target */
+  position: absolute; top: 0; left: 15%; /* Position the marker 15% from the left */
   height: 100%; width: 2px;
-  background-color: var(--color-accent-yellow, #FFD700);
-  box-shadow: 0 0 8px var(--color-accent-yellow);
+  background-color: #fef08a; /* Yellow */
+  box-shadow: 0 0 8px #fef08a;
   pointer-events: none;
 `;
 const WaveformWrapper = styled.div`
-    position: absolute; top: 0; height: 100%; width: 100%;
+    position: absolute; top: 0; height: 100%;
+    /* Let the canvas determine the width */
+    left: var(--offset-px, 0);
     cursor: ew-resize;
 `;
 const DoneButton = styled.button`
     padding: 10px 20px; border-radius: 6px; border: none; 
-    background-color: var(--color-accent); color: white; 
+    background-color: #0ea5e9; color: white; 
     cursor: pointer; align-self: flex-end; font-weight: bold;
-    &:hover { background-color: var(--color-accent-light); }
+    &:hover { background-color: #38bdf8; }
 `;
 
-// --- THE COMPONENT ---
+
 const MasterWaveformEditor = ({ onClose }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
-    const { songData, setGridStartTime } = useSequence();
-    const { bpm } = usePlayback();
+    const { songData, setGridOffset } = useSequence();
     const [offsetPx, setOffsetPx] = useState(0);
 
     // Set initial offset from context when the modal opens
     useEffect(() => {
         if (songData.gridOffset && songData.audioBuffer && containerRef.current) {
             const containerWidth = containerRef.current.clientWidth;
-            const px = (songData.gridOffset / songData.audioBuffer.duration) * containerWidth;
-            setOffsetPx(px);
+            // Calculate pixel offset based on the ratio of gridOffset to total duration
+            const pxPerSecond = containerWidth / songData.audioBuffer.duration;
+            setOffsetPx(-songData.gridOffset * pxPerSecond); // Negative because we drag the waveform
         }
     }, [songData.gridOffset, songData.audioBuffer]);
 
-    // Draw the waveform
+    // Draw the full waveform
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
         if (!songData.audioBuffer || !canvas || !container) return;
-
+        const data = songData.audioBuffer.getChannelData(0);
         const dpr = window.devicePixelRatio || 1;
         const rect = container.getBoundingClientRect();
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr);
-
-        const data = songData.audioBuffer.getChannelData(0);
         const step = Math.ceil(data.length / rect.width);
         const amp = rect.height / 2;
         ctx.clearRect(0, 0, rect.width, rect.height);
@@ -97,7 +98,7 @@ const MasterWaveformEditor = ({ onClose }) => {
             ctx.lineTo(i, (1 + max) * amp);
         }
         ctx.stroke();
-    }, [songData.audioBuffer, containerRef.current]);
+    }, [songData.audioBuffer]);
 
     // Handle dragging interaction
     const handleMouseDown = useCallback((e) => {
@@ -109,8 +110,8 @@ const MasterWaveformEditor = ({ onClose }) => {
             setOffsetPx(startOffset + dx);
         };
         const handleMouseUp = () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
         };
         
         window.addEventListener('mousemove', handleMouseMove);
@@ -119,11 +120,21 @@ const MasterWaveformEditor = ({ onClose }) => {
 
     const handleDone = () => {
         if (!containerRef.current || !songData.audioBuffer) return;
-        const PLAYHEAD_POSITION_PX = 80;
+        const PLAYHEAD_PERCENTAGE = 0.15; // Must match the Playhead's 'left' property
         const containerWidth = containerRef.current.clientWidth;
         const duration = songData.audioBuffer.duration;
-        const newOffsetInSeconds = ((PLAYHEAD_POSITION_PX - offsetPx) / containerWidth) * duration;
-        setGridStartTime(Math.max(0, newOffsetInSeconds)); // Ensure offset is not negative
+        const pxPerSecond = containerWidth / duration;
+
+        // Calculate the position of the start of the waveform relative to the container
+        const waveformStartPx = offsetPx;
+        // Calculate the target position for the waveform start
+        const targetPx = containerWidth * PLAYHEAD_PERCENTAGE;
+        // The difference is how much we need to shift
+        const shiftPx = targetPx - waveformStartPx;
+        // Convert that pixel shift to a time shift
+        const newOffsetInSeconds = shiftPx / pxPerSecond;
+        
+        setGridOffset(newOffsetInSeconds);
         onClose();
     };
     
@@ -135,7 +146,7 @@ const MasterWaveformEditor = ({ onClose }) => {
                        <ModalTitle>Error</ModalTitle>
                        <X onClick={onClose} cursor="pointer"/>
                     </ModalHeader>
-                    <p>No audio file loaded. Please load an audio file first to use the Nudge tool.</p>
+                    <p className="text-slate-300">No audio file loaded. Please load an audio file first to use the Nudge tool.</p>
                 </EditorContainer>
             </EditorModal>
         )
@@ -149,7 +160,7 @@ const MasterWaveformEditor = ({ onClose }) => {
                     <p className="text-sm text-slate-400">Drag the waveform to align a transient with the yellow playhead.</p>
                 </ModalHeader>
                 <CanvasContainer ref={containerRef}>
-                    <WaveformWrapper style={{ left: `${offsetPx}px` }} onMouseDown={handleMouseDown}>
+                    <WaveformWrapper style={{ '--offset-px': `${offsetPx}px` }} onMouseDown={handleMouseDown}>
                        <Canvas ref={canvasRef} />
                     </WaveformWrapper>
                     <Playhead />

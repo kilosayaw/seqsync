@@ -1,107 +1,89 @@
+// /client/src/utils/notationUtils.js
 import {
   JOINT_VERBOSE_MAP,
   ORIENTATION_VERBOSE_MAP,
   GROUNDING_POINT_VERBOSE_MAP,
-  SYMBOLIC_DIRECTION_MAP,
-  PATH_TYPE_MAP,
-  INTENT_MAP,
-} from './notationMaps';
-import { POSE_DEFAULT_VECTOR } from './constants';
+} from './notationMaps.js';
+import { getRotationalAccessFromGrounding } from './biomechanics.js';
 
-// --- Helper Functions ---
-const formatTime = (timecode) => timecode ? `${String(timecode.mm).padStart(2, '0')}:${String(timecode.ss).padStart(2, '0')}:${String(timecode.cs).padStart(3, '0')}` : '00:00:000';
-const formatBarBeat = (bar, beat) => `${String(bar + 1).padStart(2, '0')}:${String(beat + 1).padStart(2, '0')}`;
+// --- HELPER FUNCTIONS ---
+
+const formatBarBeat = (bar, beat) => `(B${String(bar + 1).padStart(2,'0')}:S${String(beat + 1).padStart(2,'0')})`;
 
 const getPlainGroundingDesc = (grounding = {}) => {
     const parts = [];
-    if (grounding.L) parts.push(`Grounded on ${GROUNDING_POINT_VERBOSE_MAP[grounding.L]?.plain || grounding.L}.`);
-    if (grounding.R) parts.push(`Grounded on ${GROUNDING_POINT_VERBOSE_MAP[grounding.R]?.plain || grounding.R}.`);
-    if (typeof grounding.L_weight === 'number') parts.push(`Weight: ${grounding.L_weight}% L / ${100 - grounding.L_weight}% R.`);
-    return parts.join(' ');
+    if (grounding.L) parts.push(GROUNDING_POINT_VERBOSE_MAP[grounding.L]?.plain || grounding.L);
+    if (grounding.R) parts.push(GROUNDING_POINT_VERBOSE_MAP[grounding.R]?.plain || grounding.R);
+
+    if (parts.length > 0) {
+        const weight = grounding.L_weight !== undefined ? grounding.L_weight : 50;
+        let weightDesc = ` with a ${weight}/${100 - weight} L/R weight distribution.`;
+        return `Grounded ${parts.join(' and ')}${weightDesc}`;
+    }
+    return "In air / Both feet lifted.";
 };
 
 const getAnalysisGroundingDesc = (grounding = {}) => {
     const parts = [];
-    if (grounding.L) parts.push(`L. BoS: ${GROUNDING_POINT_VERBOSE_MAP[grounding.L]?.medical || grounding.L}.`);
-    if (grounding.R) parts.push(`R. BoS: ${GROUNDING_POINT_VERBOSE_MAP[grounding.R]?.medical || grounding.R}.`);
-    if (typeof grounding.L_weight === 'number') parts.push(`Load Dist: ${grounding.L_weight}% Left Pes / ${100 - grounding.L_weight}% Right Pes.`);
-    return parts.join(' ');
+    if (grounding.L) {
+        const leftAccess = getRotationalAccessFromGrounding(grounding.L);
+        parts.push(`L-Foot: ${leftAccess.type}`);
+    }
+    if (grounding.R) {
+        const rightAccess = getRotationalAccessFromGrounding(grounding.R);
+        parts.push(`R-Foot: ${rightAccess.type}`);
+    }
+    if (parts.length > 0) {
+        return parts.join(' | ');
+    }
+    return "No Grounding Contact (Aerial).";
 };
 
-const getJointShorthand = (abbrev, data) => {
-    if (!data || Object.keys(data).length === 0) return null;
-
+const getJointShorthand = (abbrev, jointData) => {
+    if (!jointData) return null;
     const parts = [abbrev];
-    if (data.orientation && data.orientation !== 'NEU') parts.push(data.orientation);
-
-    if (data.gridMovement) {
-        const { x, y, z } = data.gridMovement;
-        if (x !== 0 || y !== 0 || z !== 0) {
-            const matchingSymbolEntry = Object.entries(SYMBOLIC_DIRECTION_MAP).find(([, v]) => 
-                v.vector.x === x && v.vector.y === y && v.vector.z === z
-            );
-            if (matchingSymbolEntry) {
-                parts.push(matchingSymbolEntry[0]);
-            } else {
-                parts.push(`(${x},${y},${z})`);
-            }
-        }
-    }
+    if (jointData.orientation && jointData.orientation !== 'NEU') parts.push(jointData.orientation);
     
-    if (data.rotation) parts.push(`${data.rotation > 0 ? '+' : ''}${Math.round(data.rotation)}R`);
-    if (data.pathType) parts.push(PATH_TYPE_MAP[data.pathType]?.shorthand || '');
-    if (data.lockDuration) parts.push(`[L${data.lockDuration}]`);
+    const { x, y, z } = jointData.vector || {};
+    if (x || y || z) {
+        parts.push(`(${(x || 0).toFixed(2)},${(y || 0).toFixed(2)},${(z || 0).toFixed(2)})`);
+    }
     
     return parts.length > 1 ? parts.join(' ') : null;
 };
 
-export const generateNotationForBeat = (bar, beat, beatData, timecode) => {
+
+// --- MAIN EXPORTED FUNCTION ---
+
+export const generateNotationForBeat = (bar, beat, beatData) => {
+    // 1. Handle cases with no data
     if (!beatData || !beatData.pose) {
         return {
-            shorthand: "No Data",
-            plainEnglish: "No data recorded for this beat.",
-            analysis: "No data recorded for this beat."
+            shorthand: `Bar ${bar + 1} | Beat ${beat + 1}`,
+            plainEnglish: "No pose data for this beat.",
+            analysis: "No kinematic data available."
         };
     }
 
-    const { jointInfo = {}, grounding = {}, sounds = [], analysis = {}, notation: manualNotation } = beatData.pose;
+    const { jointInfo = {}, grounding = {} } = beatData.pose;
     
-    const timePart = `${formatTime(timecode)} | ${formatBarBeat(bar, beat)}`;
-    
-    const jointShorthandParts = Object.entries(jointInfo).map(([abbrev, data]) => 
-        getJointShorthand(abbrev, data)
-    ).filter(Boolean);
+    // 2. Generate Shorthand Notation
+    const timePart = formatBarBeat(bar, beat);
+    const jointShorthandParts = Object.entries(jointInfo)
+        .map(([abbrev, data]) => getJointShorthand(abbrev, data))
+        .filter(Boolean); // Remove null entries for joints with no data
 
-    const finalShorthand = manualNotation || (jointShorthandParts.length > 0 
+    const finalShorthand = jointShorthandParts.length > 0 
         ? `${timePart} | ${jointShorthandParts.join('; ')}`
-        : timePart);
+        : timePart;
 
-    const plainEnglishParts = [];
-    if (sounds.length > 0) plainEnglishParts.push(`Sounds: ${sounds.map(s => s.split('/').pop().split('.')[0]).join(', ')}.`);
-    const groundingDescPlain = getPlainGroundingDesc(grounding);
-    if (groundingDescPlain) plainEnglishParts.push(groundingDescPlain);
-    
-    Object.entries(jointInfo).forEach(([abbrev, data]) => {
-        if (!data || Object.keys(data).length === 0) return;
-        const jointName = JOINT_VERBOSE_MAP[abbrev]?.plain || abbrev;
-        const descriptions = [];
-        if (data.orientation && data.orientation !== 'NEU') descriptions.push(ORIENTATION_VERBOSE_MAP[data.orientation]?.plain);
-        if (data.rotation) descriptions.push(`rotated by ${Math.round(data.rotation)}°`);
-        if (data.pathType) descriptions.push(PATH_TYPE_MAP[data.pathType]?.plain);
-        if (data.lockDuration) descriptions.push(`and locked for ${data.lockDuration} beats`);
-        if (data.intent) descriptions.push(INTENT_MAP[data.intent]?.plain);
-        
-        if (descriptions.length > 0) plainEnglishParts.push(`${jointName} ${descriptions.join(', ')}.`);
-    });
-    const finalPlainEnglish = plainEnglishParts.length ? plainEnglishParts.join(' ') : 'Neutral Stance.';
+    // 3. Generate Plain English Description
+    const finalPlainEnglish = getPlainGroundingDesc(grounding);
 
-    const analysisParts = [];
-    const groundingDescAnalysis = getAnalysisGroundingDesc(grounding);
-    if (groundingDescAnalysis) analysisParts.push(groundingDescAnalysis);
-    if (analysis?.torsionalLoad) analysisParts.push(`Torsional Load: ${analysis.torsionalLoad.toFixed(1)}°`);
-    if (analysis?.upbeatEmphasis) analysisParts.push(`Upbeat Emphasis: ${analysis.upbeatEmphasis.toFixed(2)}`);
-    const finalAnalysis = analysisParts.length > 0 ? analysisParts.join(' | ') : 'No specific kinematic data defined.';
+    // 4. Generate Biomechanical Analysis
+    const finalAnalysis = getAnalysisGroundingDesc(grounding);
 
+    // 5. Return the complete object
     return {
         shorthand: finalShorthand,
         plainEnglish: finalPlainEnglish,

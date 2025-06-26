@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import PropTypes from 'prop-types';
 import { X } from 'react-feather';
+import { useUIState } from '../../contexts/UIStateContext.jsx';
+import { useSequence } from '../../contexts/SequenceContext.jsx';
 
-// --- CONTEXT HOOKS ---
-import { useUIState } from '../../contexts/UIStateContext';
-import { useSequence } from '../../contexts/SequenceContext';
-
-// --- COMPONENT IMPORTS ---
-import CoordinateGridEditor from './CoordinateGridEditor';
-import P5SkeletalVisualizer from '../core/pose_editor/P5SkeletalVisualizer';
-import JointSelector from '../core/studio/JointSelector'; 
+import CoordinateGridEditor from '../common/CoordinateGridEditor.jsx'; 
+import P5SkeletalVisualizer from '../core/pose_editor/P5SkeletalVisualizer.jsx';
+import JointSelector from '../core/studio/JointSelector.jsx'; 
 
 // --- STYLED COMPONENTS ---
 const ModalBackdrop = styled.div`
@@ -80,16 +76,17 @@ const createEmptyPose = () => ({
 
 // --- The Main Component ---
 const DetailEditor = ({ onClose }) => {
+    // --- FIX: Get all necessary state from contexts ---
     const { editingBeatIndex, selectedBar, selectedJoint, setSelectedJoint } = useUIState();
     const { getBeatData, setPoseForBeat } = useSequence();
 
-    // --- LOCAL STATE for editing to prevent re-rendering the whole app ---
     const [editablePose, setEditablePose] = useState(null);
 
-    // Load the beat's pose into local state when the modal opens
     useEffect(() => {
-        const beatData = getBeatData(selectedBar, editingBeatIndex);
-        setEditablePose(beatData?.pose || createEmptyPose());
+        if (editingBeatIndex !== null) {
+            const beatData = getBeatData(selectedBar, editingBeatIndex);
+            setEditablePose(beatData?.pose || createEmptyPose());
+        }
     }, [selectedBar, editingBeatIndex, getBeatData]);
 
     const handleVectorChange = (newVector) => {
@@ -104,11 +101,12 @@ const DetailEditor = ({ onClose }) => {
     };
 
     const handleSaveChanges = () => {
+        // Use the function from the context to save the changes
         setPoseForBeat(selectedBar, editingBeatIndex, editablePose);
-        onClose(); // Close modal after saving
+        onClose();
     };
 
-    if (!editablePose) return null; // Don't render if pose is not yet loaded
+    if (!editablePose) return null;
 
     const jointVector = editablePose.jointInfo?.[selectedJoint]?.vector;
 
@@ -124,11 +122,9 @@ const DetailEditor = ({ onClose }) => {
                         <div style={{ width: '100%', aspectRatio: '4 / 3', backgroundColor: '#0f172a', borderRadius: '4px' }}>
                             <P5SkeletalVisualizer poseData={editablePose} mode="2D" highlightJoint={selectedJoint} />
                         </div>
-                        {/* Other main controls can go here */}
                     </MainColumn>
 
                     <SideColumn>
-                        {/* --- ADDED JOINT SELECTORS INSIDE MODAL --- */}
                         <ControlSection>
                             <SectionTitle>Select Joint</SectionTitle>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
@@ -141,7 +137,7 @@ const DetailEditor = ({ onClose }) => {
                              <SectionTitle>Displacement: {selectedJoint || 'None'}</SectionTitle>
                              <InputGroup>
                                 <CoordinateGridEditor 
-                                    key={selectedJoint}
+                                    key={selectedJoint} // Key ensures it re-mounts with new initial data
                                     initialVector={jointVector}
                                     onVectorChange={handleVectorChange}
                                 />
@@ -153,8 +149,7 @@ const DetailEditor = ({ onClose }) => {
                              </InputGroup>
                         </ControlSection>
 
-                        {/* Save Button */}
-                        <button onClick={handleSaveChanges} style={{ /* ... styles for save button ... */ }}>
+                        <button onClick={handleSaveChanges} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded">
                             Save Details
                         </button>
                     </SideColumn>

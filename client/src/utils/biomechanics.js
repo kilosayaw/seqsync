@@ -1,6 +1,6 @@
 import { POSE_DEFAULT_VECTOR } from './constants';
 
-// --- ROBUST 3D VECTOR MATH HELPERS ---
+// --- ROBUST 3D VECTOR MATH HELPERS (Unchanged) ---
 const getVector = (jointInfo, key) => jointInfo?.[key]?.vector || POSE_DEFAULT_VECTOR;
 const v_sub = (v1, v2) => ({ x: v1.x - v2.x, y: v1.y - v2.y, z: v1.z - v2.z });
 const v_mag = (v) => Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
@@ -166,27 +166,109 @@ export const calculateZDisplacement = (currentJointInfo, previousJointInfo, isFa
     return displacement;
 };
 
+// --- NEWLY ADDED FUNCTION FOR GROUNDING ANALYSIS ---
+/**
+ * Calculates the rotational potential based on the foot's grounding state.
+ * This is based on the "Go Zone" vs "Go-To Zone" principle from the RMTS video.
+ * @param {string} groundingNotation - The grounding notation from the sequence, e.g., 'L13', 'R23'.
+ * @returns {object} An object describing the rotational access and biomechanical potential.
+ */
+export function getRotationalAccessFromGrounding(groundingNotation) {
+    if (!groundingNotation) {
+        return { 
+            type: 'Aerial', 
+            access: 'Unlimited', 
+            description: 'No ground contact, full rotational freedom.' 
+        };
+    }
+
+    // Check for "Go-To Zone" (Inner Blades: L13, R13) - high rotational access for pivoting
+    if (groundingNotation.includes('13')) {
+        return { 
+            type: 'Go-To (Control)', 
+            access: 'High', 
+            description: 'Grounded on inner blade. Primed for pivoting, direction changes, and high knee/hip rotation.' 
+        };
+    }
+
+    // Check for "Go Zone" (Outer Blades: L23, R23) - linear power, less rotation
+    if (groundingNotation.includes('23')) {
+        return { 
+            type: 'Go (Power)', 
+            access: 'Low', 
+            description: 'Grounded on outer blade. Primed for linear force generation; limited hip rotation available.' 
+        };
+    }
+
+    // Check for Full Plant - a stable base for power
+    if (groundingNotation.includes('123')) {
+        return { 
+            type: 'Full Plant (Stable)', 
+            access: 'Moderate', 
+            description: 'Fully grounded base. Stable platform for generating controlled power.' 
+        };
+    }
+    
+    // Check for just the Ball of the Foot (e.g., LF12, RF12)
+    if (groundingNotation.includes('12')) {
+         return {
+            type: 'Ball of Foot',
+            access: 'High (Spring)',
+            description: 'On the ball of the foot, ready for explosive, spring-like movements.'
+         };
+    }
+
+    // Default for other specific points (e.g., just the heel L3)
+    return { 
+        type: 'Partial Contact', 
+        access: 'Variable', 
+        description: 'Partial grounding provides specific, limited rotational options.' 
+    };
+}
+
 
 /**
  * [UPGRADED] The main analysis orchestrator.
- * Now includes Z-axis displacement calculation.
+ * Now includes grounding analysis.
  * @returns {object} A comprehensive object of calculated biomechanical metrics.
  */
 export const analyzePoseDynamics = (currentBeatData = {}, prevBeatData = {}, timeDelta = 1) => {
-    const { jointInfo: currentJointInfo, isFaceVisible } = currentBeatData;
-    const prevJointInfo = prevBeatData?.jointInfo;
+    // --- FIX: Ensure currentBeatData.pose exists before destructuring ---
+    const currentPose = currentBeatData?.pose || {};
+    const prevPose = prevBeatData?.pose || {};
+
+    const { jointInfo: currentJointInfo, grounding } = currentPose;
+    const { jointInfo: prevJointInfo } = prevPose;
 
     if (!currentJointInfo) {
         return {
             torsionalLoad: 0,
             upbeatEmphasis: 0,
             zDisplacements: {},
+            groundingAnalysis: getRotationalAccessFromGrounding(null), // Default analysis
         };
     }
     
     const torsionalLoad = calculateTorsionalLoad(currentJointInfo);
     const upbeatEmphasis = calculateUpbeatEmphasis(prevJointInfo, currentJointInfo, timeDelta);
-    const zDisplacements = calculateZDisplacement(currentJointInfo, prevJointInfo, isFaceVisible);
+    const zDisplacements = calculateZDisplacement(currentJointInfo, prevJointInfo, currentPose.isFaceVisible);
+    
+    // --- NEW: Perform grounding analysis ---
+    // We analyze the grounding for both feet and can decide how to combine or display them later.
+    // For now, let's prioritize the left foot if both are grounded for a simple output.
+    const primaryGrounding = grounding?.L || grounding?.R || null;
+    const groundingAnalysis = getRotationalAccessFromGrounding(primaryGrounding);
 
-    return { torsionalLoad, upbeatEmphasis, zDisplacements };
+    return { 
+        torsionalLoad, 
+        upbeatEmphasis, 
+        zDisplacements,
+        groundingAnalysis // Add the new analysis to the returned object
+    };
 };
+
+/**
+ * [UPGRADED] The main analysis orchestrator.
+ * Now includes Z-axis displacement calculation.
+ * @returns {object} A comprehensive object of calculated biomechanical metrics.
+ */
