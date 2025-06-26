@@ -1,37 +1,19 @@
 /* @refresh skip */
 import React, { createContext, useState, useContext, useCallback } from 'react';
-import MusicTempo from 'music-tempo';
-import { useSequencerSettings } from './SequencerSettingsContext';
-import { audioContext } from './PlaybackContext';
-import { downloadFile } from '../utils/fileUtils';
-import { playSound } from '../utils/audioManager';
-import { playAudioSlice as playAudioSliceUtil } from '../utils/audioUtils';
+import createEmptyPose from '../utils/pose';
 
 const SequenceContext = createContext(null);
 
-const createEmptyPose = () => ({
-    jointInfo: {},
-    grounding: { L: null, R: null, L_weight: 50, R_weight: 50, },
-});
-
 const createEmptyBar = () => Array(16).fill(null).map(() => ({
     pose: createEmptyPose(),
-    sounds: [],
-    audioSlice: null,
     thumbnail: null,
-    videoThumbnail: null,
-    waveform: null,
+    sound: null,
 }));
 
-const createInitialData = (bars = 4) => { // Default to 4 if no specific count
-    const data = { 
-        audioBuffer: null, 
-        audioFileName: null, 
-        bars: {}, 
-        gridOffset: 0
-    };
+const createInitialData = (bars = 2) => {
+    const data = {};
     for (let i = 0; i < bars; i++) {
-        data.bars[i] = createEmptyBar();
+        data[i] = createEmptyBar();
     }
     return data;
 };
@@ -40,132 +22,71 @@ export const SequenceProvider = ({ children }) => {
     const [songData, setSongData] = useState(() => createInitialData());
     const [history, setHistory] = useState([createInitialData()]);
     const [historyIndex, setHistoryIndex] = useState(0);
-    
-    const { bpm, setBpm } = useSequencerSettings();
+    const [clipboard, setClipboard] = useState(null);
 
-    const updateSongData = useCallback((newData, addToHistory = true) => {
-        setSongData(currentData => {
-            const nextData = typeof newData === 'function' ? newData(currentData) : newData;
-            if (addToHistory) {
-                const newHistory = history.slice(0, historyIndex + 1);
-                newHistory.push(nextData);
-                setHistory(newHistory);
-                setHistoryIndex(newHistory.length - 1);
-            }
-            return nextData;
-        });
-    }, [history, historyIndex]);
-
-    const generateAndStoreWaveforms = useCallback((buffer, currentBpm, offset = 0) => {
-        if (!buffer || currentBpm <= 0) return;
-        const channelData = buffer.getChannelData(0);
-        const totalSamples = channelData.length;
-        const beatsInTrack = buffer.duration * (currentBpm / 60);
-        const totalBars = Math.ceil(beatsInTrack / 16);
-        const samplesPerBeat = totalSamples / beatsInTrack;
-        const newBars = {};
-
-        for (let bar = 0; bar < totalBars; bar++) {
-            if (!newBars[bar]) newBars[bar] = createEmptyBar();
-            for (let beat = 0; beat < 16; beat++) {
-                const beatIndexGlobal = (bar * 16) + beat;
-                const startSample = Math.floor(offset * buffer.sampleRate + beatIndexGlobal * samplesPerBeat);
-                const endSample = Math.floor(startSample + samplesPerBeat);
-                if (startSample >= totalSamples) continue;
-
-                const segment = channelData.slice(startSample, endSample);
-                const waveformPoints = [];
-                const step = Math.max(1, Math.floor(segment.length / 100));
-                for (let i = 0; i < segment.length; i += step) {
-                    const chunk = segment.slice(i, i + step);
-                    let maxVal = 0;
-                    chunk.forEach(val => { if (Math.abs(val) > maxVal) maxVal = Math.abs(val); });
-                    waveformPoints.push(maxVal);
-                }
-                newBars[bar][beat].waveform = waveformPoints;
-            }
+    const updateSongData = (newData, addToHistory = true) => {
+        if (addToHistory) {
+            const newHistory = history.slice(0, historyIndex + 1);
+            newHistory.push(newData);
+            setHistory(newHistory);
+            setHistoryIndex(newHistory.length - 1);
         }
-        updateSongData(prev => ({ ...prev, bars: newBars }), false);
-    }, [updateSongData]);
-
-    const loadAudioFile = async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        try {
-            if (audioContext.state === 'suspended') await audioContext.resume();
-            const arrayBuffer = await file.arrayBuffer();
-            const decodedAudioData = await audioContext.decodeAudioData(arrayBuffer);
-            const musicTempo = new MusicTempo(decodedAudioData.getChannelData(0));
-            const detectedBpm = Math.round(musicTempo.tempo);
-            
-            setBpm(detectedBpm);
-            generateAndStoreWaveforms(decodedAudioData, detectedBpm, 0);
-
-            updateSongData(prev => ({ 
-                ...prev, 
-                audioBuffer: decodedAudioData, 
-                audioFileName: file.name,
-                gridOffset: 0
-            }), true);
-        } catch (error) { console.error("Error processing audio file:", error); }
+        setSongData(newData);
     };
-    
-    const getBeatData = useCallback((barIndex, beatIndex) => {
-        return songData.bars?.[barIndex]?.[beatIndex] || { pose: createEmptyPose(), sounds: [] };
-    }, [songData]);
-
-    const triggerBeat = useCallback((bar, beat) => {
-        const beatData = getBeatData(bar, beat);
-        if (!beatData) return;
-
-        // 1. Play layered sounds
-        if (beatData.sounds?.length > 0) {
-            beatData.sounds.forEach(soundUrl => playSound(soundUrl));
-        }
-
-        // 2. Play the main audio slice from the loaded track
-        if (songData.audioBuffer) {
-             playAudioSliceUtil(songData.audioBuffer, bpm, songData.gridOffset, bar, beat);
-        }
-    }, [getBeatData, songData.audioBuffer, bpm, songData.gridOffset]);
-    
-    const addSoundToBeat = useCallback((barIndex, beatIndex, soundUrl) => {
-        updateSongData(prevData => {
-            const newBars = JSON.parse(JSON.stringify(prevData.bars));
-            const beat = newBars[barIndex]?.[beatIndex];
-
-            if (beat) {
-                if (!beat.sounds) beat.sounds = [];
-                if (beat.sounds.length < 4 && !beat.sounds.includes(soundUrl)) {
-                    beat.sounds.push(soundUrl);
-                }
-            }
-            
-            return { ...prevData, bars: newBars };
-        }, true);
-    }, [updateSongData]);
-
-    const removeSoundFromBeat = useCallback((barIndex, beatIndex, soundUrlToRemove) => {
-        updateSongData(prevData => {
-            const newBars = JSON.parse(JSON.stringify(prevData.bars));
-            const beat = newBars[barIndex]?.[beatIndex];
-            
-            if (beat?.sounds) {
-                beat.sounds = beat.sounds.filter(s => s !== soundUrlToRemove);
-            }
-            return { ...prevData, bars: newBars };
-        }, true);
-    }, [updateSongData]);
 
     const setPoseForBeat = useCallback((barIndex, beatIndex, pose) => {
-        updateSongData(prevData => {
-            const newBars = JSON.parse(JSON.stringify(prevData.bars));
-            if (!newBars[barIndex]) newBars[barIndex] = createEmptyBar();
-            newBars[barIndex][beatIndex].pose = pose || createEmptyPose();
-            return { ...prevData, bars: newBars };
-        }, false);
-    }, [updateSongData]);
+        const newData = JSON.parse(JSON.stringify(songData));
+        if (!newData[barIndex]) newData[barIndex] = createEmptyBar();
+        newData[barIndex][beatIndex].pose = pose;
+        updateSongData(newData);
+    }, [songData]);
     
+    const setThumbnails = useCallback((thumbnails) => {
+        setSongData(currentData => {
+            const newData = JSON.parse(JSON.stringify(currentData));
+            const maxBar = Math.max(...Object.keys(thumbnails).map(Number), ...Object.keys(newData).map(Number));
+            for(let i = 0; i <= maxBar; i++) {
+                if(!newData[i]) newData[i] = createEmptyBar();
+            }
+            for (const bar in thumbnails) {
+                if (newData[bar]) {
+                    for (const beat in thumbnails[bar]) {
+                        if (newData[bar][beat]) {
+                            newData[bar][beat].thumbnail = thumbnails[bar][beat];
+                        }
+                    }
+                }
+            }
+            updateSongData(newData, false);
+            return newData;
+        });
+    }, []);
+
+    const getBeatData = useCallback((barIndex, beatIndex) => {
+        return songData[barIndex]?.[beatIndex] || { pose: createEmptyPose(), thumbnail: null, sound: null };
+    }, [songData]);
+
+    const resetSequence = (bars = 2) => {
+        const initialData = createInitialData(bars);
+        setSongData(initialData);
+        setHistory([initialData]);
+        setHistoryIndex(0);
+    };
+
+    const copyBeat = (barIndex, beatIndex) => {
+        if (songData[barIndex]?.[beatIndex]) {
+            setClipboard({ type: 'beat', data: songData[barIndex][beatIndex] });
+        }
+    };
+
+    const pasteBeat = (barIndex, beatIndex) => {
+        if (clipboard?.type === 'beat') {
+            const newData = { ...songData };
+            newData[barIndex][beatIndex] = clipboard.data;
+            updateSongData(newData);
+        }
+    };
+
     const undo = () => {
         if (historyIndex > 0) {
             const newIndex = historyIndex - 1;
@@ -181,53 +102,56 @@ export const SequenceProvider = ({ children }) => {
             setSongData(history[newIndex]);
         }
     };
-    
+
     const onSave = useCallback(() => {
-        if (!songData) {
-            console.error("No sequence data to save.");
-            return;
-        }
-        try {
-            const dataToSave = { ...songData, audioBuffer: null };
-            const dataStr = JSON.stringify(dataToSave, null, 2);
-            const fileName = `sequence-${Date.now()}.seqsync.json`;
-            downloadFile(dataStr, fileName, "application/json");
-        } catch (error) {
-            console.error("Failed to save sequence:", error);
-        }
+        console.log('[Sequence] Saving sequence data...', songData);
+        // In a real app, this would trigger a file download or API call.
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(songData));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "sequence.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
     }, [songData]);
 
-    const onLoad = useCallback((file) => {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const loadedData = JSON.parse(e.target.result);
-                if (loadedData && typeof loadedData.bars === 'object') {
-                    updateSongData(prevData => ({ ...prevData, ...loadedData }), true);
-                } else { throw new Error("Invalid sequence file format."); }
-            } catch (error) {
-                console.error("Failed to load sequence file:", error);
-            }
-        };
-        reader.readAsText(file);
-    }, [updateSongData]);
+    const onLoad = useCallback((loadedData) => {
+        console.log('[Sequence] Loading sequence data...');
+        // Here, you would parse the loaded file content and update the state
+        // For now, we'll just log it.
+        // updateSongData(loadedData);
+    }, []);
 
+    const onAddSound = (barIndex, beatIndex) => console.log(`Placeholder: Add sound to ${barIndex}:${beatIndex}`);
+    const onDeleteSound = (barIndex, beatIndex) => console.log(`Placeholder: Delete sound from ${barIndex}:${beatIndex}`);
+    const onClearPoseData = (barIndex, beatIndex) => {
+        console.log(`Placeholder: Clear pose from ${barIndex}:${beatIndex}`);
+        const newData = JSON.parse(JSON.stringify(songData));
+        if (newData[barIndex]?.[beatIndex]) {
+            newData[barIndex][beatIndex].pose = createEmptyPose();
+            updateSongData(newData);
+        }
+    };
 
     const value = {
         songData,
         getBeatData,
         setPoseForBeat,
-        addSoundToBeat,
-        removeSoundFromBeat,
-        triggerBeat,
-        loadAudioFile,
-        onSave,
-        onLoad,
+        setThumbnails,
+        resetSequence,
+        copyBeat,
+        pasteBeat,
         undo,
         redo,
+        onSave, 
+        onLoad,
+        history,
+        historyIndex,
         canUndo: historyIndex > 0,
         canRedo: historyIndex < history.length - 1,
+        onAddSound,
+        onDeleteSound,
+        onClearPoseData,
     };
 
     return (
@@ -236,7 +160,6 @@ export const SequenceProvider = ({ children }) => {
         </SequenceContext.Provider>
     );
 };
-
 
 export const useSequence = () => {
     const context = useContext(SequenceContext);

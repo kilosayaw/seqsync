@@ -40,7 +40,7 @@ export const unlockAudioContext = () => {
 const loadSound = async (soundObject) => {
     const { url, name } = soundObject;
     if (!url) return Promise.reject(new Error(`URL missing for ${name}.`));
-    if (audioBufferCache.has(url)) return Promise.resolve(audioBufferCache.get(url));
+    if (audioBufferCache.has(url)) return Promise.resolve();
 
     const context = getAudioContext();
     if (!context) return Promise.reject(new Error("AudioContext not available."));
@@ -51,7 +51,6 @@ const loadSound = async (soundObject) => {
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await context.decodeAudioData(arrayBuffer);
         audioBufferCache.set(url, audioBuffer);
-        return audioBuffer; // Return the buffer on success
     } catch (error) {
         logAudio('error', `Failed to load '${name}':`, error.message);
         throw error;
@@ -60,10 +59,8 @@ const loadSound = async (soundObject) => {
 
 export const preloadSounds = async (sounds) => {
     if (!Array.isArray(sounds) || sounds.length === 0) return;
-    // Use Promise.allSettled to ensure all load attempts complete, even if some fail
-    const loadPromises = sounds.map(sound => loadSound(sound).catch(e => e));
-    await Promise.allSettled(loadPromises);
-    logAudio('info', `${sounds.length} sounds preloading process initiated.`);
+    const loadPromises = sounds.map(sound => loadSound(sound).catch(() => {}));
+    await Promise.all(loadPromises);
 };
 
 export const playSound = (url) => {
