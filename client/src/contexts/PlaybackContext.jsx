@@ -1,144 +1,144 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import { useSequence } from './SequenceContext';
-import { useUIState } from './UIStateContext';
+import { useSequencerSettings } from './SequencerSettingsContext';
+import { playSound, preloadSounds, unlockAudioContext } from '../utils/audioManager';
+import { playAudioSlice as playAudioSliceUtil } from '../utils/audioUtils';
 
 const PlaybackContext = createContext(null);
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+export const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
 export const PlaybackProvider = ({ children }) => {
+    // --- STATE & REFS ---
+    
     const [isPlaying, setIsPlaying] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
-    const [bpm, setBpm] = useState(120);
     const [currentStep, setCurrentStep] = useState(0);
-    const [elapsedTime, setElapsedTime] = useState(0);
-    const [isMetronomeEnabled, setIsMetronomeEnabled] = useState(false);
+    const [currentBar, setCurrentBar] = useState(0);
+    const [isMetronomeEnabled, setIsMetronomeEnabled] = useState(true);
 
-    const { songData, setPoseForBeat, setBeatThumbnail } = useSequence();
-    const { selectedBar, setSelectedBar } = useUIState();
-
-    const metronomeBufferRef = useRef(null);
     const startTimeRef = useRef(0);
-    const visualTimerRef = useRef(null);
-    const livePoseRef = useRef(null);
     const totalBeatsElapsedRef = useRef(0);
+    const animationFrameId = useRef(null);
+    const livePoseRef = useRef(null);
     const tapTimestamps = useRef([]);
     const tapTimeoutRef = useRef(null);
-    const videoElementForCapture = useRef(null);
+    
+    // --- HOOKS ---
+    const { songData, setPoseForBeat, triggerBeat } = useSequence();
+    const { bpm, setBpm } = useSequencerSettings();
 
-    useEffect(() => {
-        const loadMetronomeSound = async () => {
-            try {
-                const response = await fetch('/assets/sounds/metronome.wav');
-                const arrayBuffer = await response.arrayBuffer();
-                metronomeBufferRef.current = await audioContext.decodeAudioData(arrayBuffer);
-                console.log('[Metronome] Sound loaded successfully.');
-            } catch (error) { console.error('[Metronome] Failed to load sound:', error); }
-        };
-        loadMetronomeSound();
+    // --- FUNCTION DEFINITIONS ---
+    const getLivePose = useCallback(() => livePoseRef.current, []);
+    const updateLivePose = (pose) => {
+        livePoseRef.current = pose;
+    };
+
+    const togglePlay = useCallback(() => {
+        unlockAudioContext();
+        setIsPlaying(prev => {
+            const nextIsPlaying = !prev;
+            if (nextIsPlaying) {
+                startTimeRef.current = audioContext.currentTime;
+                totalBeatsElapsedRef.current = -1;
+            } else {
+                setIsRecording(false);
+            }
+            return nextIsPlaying;
+        });
     }, []);
 
-    // The main, unified playback and recording loop
-    useEffect(() => {
-        if (!isPlaying) {
-            cancelAnimationFrame(visualTimerRef.current);
-            return;
-        }
-
-        const tick = () => {
-            const now = audioContext.currentTime;
-            const elapsed = now - startTimeRef.current;
-            setElapsedTime(elapsed);
-
-            const secondsPerBeat = 60.0 / bpm;
-            const beatsNow = Math.floor(elapsed / secondsPerBeat);
-            
-            if (beatsNow > totalBeatsElapsedRef.current) {
-                totalBeatsElapsedRef.current = beatsNow;
-                
-                const currentBar = Math.floor(beatsNow / 16);
-                const currentBeatInBar = beatsNow % 16;
-                
-                if (currentBar !== selectedBar) setSelectedBar(currentBar);
-                setCurrentStep(currentBeatInBar);
-
-                // <<< FIX: Play metronome sound reliably on every beat change >>>
-                if (isMetronomeEnabled && metronomeBufferRef.current) {
-                    const source = audioContext.createBufferSource();
-                    source.buffer = metronomeBufferRef.current;
-                    source.connect(audioContext.destination);
-                    source.start();
-                }
-
-                if (isRecording && livePoseRef.current) {
-                    const barToRecord = Math.floor((beatsNow - 1) / 16);
-                    const beatToRecord = (beatsNow - 1) % 16;
-                    
-                    if (beatsNow > 0) {
-                        setPoseForBeat(barToRecord, beatToRecord, livePoseRef.current);
-                        // Video thumbnail logic can be re-added here later
-                    }
-                }
+    const toggleRecord = useCallback(() => {
+        setIsRecording(prev => {
+            if (!prev && !isPlaying) {
+                togglePlay();
             }
-            visualTimerRef.current = requestAnimationFrame(tick);
-        };
-        visualTimerRef.current = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(visualTimerRef.current);
-    // <<< FIX: Add isRecording to the dependency array >>>
-    }, [isPlaying, bpm, isRecording, isMetronomeEnabled, selectedBar, setPoseForBeat, setSelectedBar]);
+            return !prev;
+        });
+    }, [isPlaying, togglePlay]);
 
-    const togglePlay = () => {
-        const newIsPlaying = !isPlaying;
-        setIsPlaying(newIsPlaying);
-
-        if (newIsPlaying) {
-            if (audioContext.state === 'suspended') audioContext.resume();
-            startTimeRef.current = audioContext.currentTime;
-            totalBeatsElapsedRef.current = -1;
-            setCurrentStep(0);
-            setSelectedBar(0);
-            setElapsedTime(0);
-        } else {
-            setIsRecording(false); // Always stop recording when playback stops
-        }
-    };
-    
-    const toggleRecord = () => {
-        const nextRecordingState = !isRecording;
-        console.log(`[Playback] Toggling Record. New state: ${nextRecordingState ? 'ON' : 'OFF'}`);
-        // If we are starting to record, also ensure we are playing
-        if (nextRecordingState && !isPlaying) {
-            setIsPlaying(true);
-        }
-        setIsRecording(nextRecordingState);
-    };
-
-    const updateLivePose = (pose) => { livePoseRef.current = pose; };
-    
     const tapTempo = useCallback(() => {
-        if (audioContext.state === 'suspended') audioContext.resume();
+        unlockAudioContext();
         const now = Date.now();
-        tapTimestamps.current.push(now);
-        if (tapTimestamps.current.length > 4) tapTimestamps.current.shift();
-        
-        if (tapTimestamps.current.length > 1) {
-            const intervals = tapTimestamps.current.slice(1).map((t, i) => t - tapTimestamps.current[i]);
+        const timestamps = tapTimestamps.current;
+        timestamps.push(now);
+        if (timestamps.length > 4) timestamps.shift();
+        if (timestamps.length > 1) {
+            const intervals = [];
+            for (let i = 1; i < timestamps.length; i++) {
+                intervals.push(timestamps[i] - timestamps[i-1]);
+            }
             const averageInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-            const calculatedBpm = Math.round(60000 / averageInterval);
-            if (calculatedBpm >= 40 && calculatedBpm <= 240) {
-                setBpm(calculatedBpm);
+            if (averageInterval > 0) {
+                const calculatedBpm = 60000 / averageInterval;
+                setBpm(Math.max(40, Math.min(240, calculatedBpm)));
             }
         }
         if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
         tapTimeoutRef.current = setTimeout(() => { tapTimestamps.current = []; }, 2000);
-    }, []);
+    }, [setBpm]);
 
     const toggleMetronome = () => setIsMetronomeEnabled(p => !p);
 
+    // --- EFFECTS ---
+    useEffect(() => {
+        preloadSounds([{ name: 'metronome', url: '/assets/sounds/metronome.wav' }]);
+    }, []);
+
+    // --- FULL IMPLEMENTATION of Main Playback & Recording Loop ---
+    useEffect(() => {
+        if (!isPlaying) {
+            cancelAnimationFrame(animationFrameId.current);
+            return;
+        }
+
+        const tick = () => {
+            const currentElapsedTime = audioContext.currentTime - startTimeRef.current;
+            const secondsPerBeat = 60.0 / bpm;
+            
+            if (secondsPerBeat > 0) {
+                const beatsNow = Math.floor(currentElapsedTime / secondsPerBeat);
+                if (beatsNow > totalBeatsElapsedRef.current) {
+                    totalBeatsElapsedRef.current = beatsNow;
+                    
+                    const totalBars = Object.keys(songData.bars).length || 1;
+                    const newCurrentStep = beatsNow % 16;
+                    const newCurrentBar = Math.floor(beatsNow / 16) % totalBars;
+                    
+                    setCurrentBar(newCurrentBar);
+                    setCurrentStep(newCurrentStep);
+
+                    // --- FIX: This single call now handles all sound playback ---
+                    triggerBeat(newCurrentBar, newCurrentStep);
+
+                    if (isMetronomeEnabled) {
+                        playSound('/assets/sounds/metronome.wav');
+                    }
+                    
+                    if (isRecording) {
+                        const poseToRecord = getLivePose();
+                        if (poseToRecord) {
+                            setPoseForBeat(newCurrentBar, newCurrentStep, poseToRecord);
+                        }
+                    }
+                }
+            }
+            animationFrameId.current = requestAnimationFrame(tick);
+        };
+
+        animationFrameId.current = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(animationFrameId.current);
+    }, [isPlaying, isRecording, bpm, isMetronomeEnabled, songData.bars, triggerBeat]);
+    
+    // --- CONTEXT VALUE ---
     const value = {
-        isPlaying, isRecording, bpm, setBpm, currentStep, elapsedTime,
-        togglePlay, toggleRecord, updateLivePose,
-        isMetronomeEnabled, toggleMetronome, tapTempo,
-        setVideoElementForCapture: (el) => { videoElementForCapture.current = el; }
+        isPlaying, isRecording, currentStep, currentBar,
+        isMetronomeEnabled,
+        togglePlay,
+        toggleRecord,
+        toggleMetronome,
+        updateLivePose,
+        getLivePose,
+        tapTempo,
     };
 
     return (
