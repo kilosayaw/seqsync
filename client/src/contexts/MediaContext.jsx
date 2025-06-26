@@ -1,41 +1,51 @@
-// /client/src/contexts/MediaContext.jsx
-import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
-import { useUIState } from './UIStateContext.jsx';
+import React, { createContext, useContext, useRef, useState, useCallback } from 'react';
+import { toast } from 'react-toastify';
 
-const MediaContext = createContext(null);
+const MediaContext = createContext();
+
+export const useMedia = () => useContext(MediaContext);
 
 export const MediaProvider = ({ children }) => {
     const [mediaStream, setMediaStream] = useState(null);
     const videoRef = useRef(null);
-    const { isLiveCamActive } = useUIState();
 
-    useEffect(() => {
-        let stream;
-        const activateCamera = async () => {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
-                setMediaStream(stream);
-            } catch (err) {
-                console.error("Error accessing camera:", err);
+    const startCamera = useCallback(async () => {
+        if (mediaStream) return; // Already running
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 640 }, height: { ideal: 360 } },
+                audio: false
+            });
+            setMediaStream(stream);
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
             }
-        };
-
-        if (isLiveCamActive) {
-            activateCamera();
+            toast.info('Live camera activated.');
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+            toast.error('Could not access camera. Please check permissions.');
+            // IMPORTANT: If we fail, we should ensure the calling component knows to reset the toggle state.
+            // This will be handled in the Sequencer's useEffect.
+            throw err; 
         }
+    }, [mediaStream]);
 
-        // Cleanup function: this runs when the component unmounts OR when isLiveCamActive changes from true to false.
-        return () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                setMediaStream(null);
+    const stopCamera = useCallback(() => {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            setMediaStream(null);
+            if (videoRef.current) {
+                videoRef.current.srcObject = null;
             }
-        };
-    }, [isLiveCamActive]);
+            toast.info('Live camera deactivated.');
+        }
+    }, [mediaStream]);
 
     const value = {
         videoRef,
         mediaStream,
+        startCamera,
+        stopCamera,
     };
 
     return (
@@ -43,10 +53,4 @@ export const MediaProvider = ({ children }) => {
             {children}
         </MediaContext.Provider>
     );
-};
-
-export const useMedia = () => {
-    const context = useContext(MediaContext);
-    if (!context) throw new Error('useMedia must be used within a MediaProvider');
-    return context;
 };

@@ -1,61 +1,52 @@
-import React, { forwardRef, useEffect, useRef } from 'react';
+import React, { forwardRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
-const VideoMediaPlayer = forwardRef(({ src, stream, isPlaying }, ref) => {
-    const internalRef = useRef(null);
-    React.useImperativeHandle(ref, () => internalRef.current);
-
+const VideoMediaPlayer = forwardRef(({ src, stream, isPlaying, isMirrored }, ref) => {
+    
+    // This useEffect hook is the core of the fix.
+    // It runs whenever the `ref` or the `stream` object changes.
     useEffect(() => {
-        const videoElement = internalRef.current;
-        if (!videoElement) return;
-
-        if (stream) {
-            // Live stream is active
-            if (videoElement.src) videoElement.pause(); // Pause the underlying video file if it exists
-            videoElement.srcObject = stream;
-            videoElement.muted = true;
-            videoElement.play().catch(e => console.error("Live cam autoplay failed:", e));
-        } else if (src) {
-            // File is active
-            videoElement.srcObject = null;
-            videoElement.src = src;
-            videoElement.muted = false;
-        } else {
-            // No media at all
-            videoElement.srcObject = null;
-            videoElement.src = '';
+        // We check if the ref is attached to an element and if a stream exists.
+        if (ref.current && stream) {
+            // This is the correct way to assign a media stream.
+            // We are directly setting the 'srcObject' property on the DOM node.
+            ref.current.srcObject = stream;
         }
-    }, [src, stream]);
+    }, [ref, stream]);
 
-    // This effect now ONLY controls playback for file-based media
-    useEffect(() => {
-        const videoElement = internalRef.current;
-        if (videoElement && src && !stream) { // Only control if src exists AND stream is not active
-            if (isPlaying && videoElement.paused) {
-                videoElement.play().catch(e => console.error("Error playing video file:", e));
-            } else if (!isPlaying && !videoElement.paused) {
-                videoElement.pause();
-            }
-        }
-    }, [isPlaying, src, stream]);
+    const videoStyle = {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        transform: isMirrored ? 'scaleX(-1)' : 'scaleX(1)',
+    };
 
+    // Note: We remove `srcObject` from the JSX props here.
+    // The `useEffect` now handles setting it.
+    // The `autoPlay` and `playsInline` props are crucial for live feeds.
     return (
         <video
-            ref={internalRef}
-            className="w-full h-full object-contain"
+            ref={ref}
+            style={videoStyle}
+            src={src || undefined} // This is for pre-recorded video files
             playsInline
-            controls={!!src && !stream} // Show controls only for loaded video when live cam is off
+            muted 
+            autoPlay={!!stream} // We only want to autoplay if it's a live stream
         />
     );
 });
 
-VideoMediaPlayer.displayName = 'VideoMediaPlayer';
+VideoMediaPlayer.displayName = 'VideoMediaPlayer'; // Helps with debugging
 
 VideoMediaPlayer.propTypes = {
-  mediaUrl: PropTypes.string,
-  mediaStream: PropTypes.object,
-  isPlaying: PropTypes.bool.isRequired,
-  onReady: PropTypes.func,
+    src: PropTypes.string,
+    stream: PropTypes.object, // The MediaStream object
+    isPlaying: PropTypes.bool,
+    isMirrored: PropTypes.bool,
+};
+
+VideoMediaPlayer.defaultProps = {
+    isMirrored: false,
 };
 
 export default VideoMediaPlayer;

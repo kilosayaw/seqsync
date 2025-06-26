@@ -1,4 +1,3 @@
-// /client/src/components/Sequencer.jsx
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { DndContext } from '@dnd-kit/core';
 import { toast } from 'react-toastify';
@@ -38,15 +37,10 @@ const Sequencer = () => {
     
     const { 
         currentMode, setCurrentMode, selectedBar, setSelectedBar,
-        isLiveCamActive, toggleLiveCam, 
-        isFeedMirrored, 
-        isOverlayMirrored, 
-        isEditMode, toggleEditMode,
+        isLiveCamActive, toggleLiveCam, isFeedMirrored, toggleFeedMirror, 
+        isOverlayMirrored, toggleOverlayMirror, isEditMode, toggleEditMode,
         editingBeatIndex, setEditingBeatIndex, isNudgeModeActive, setNudgeModeActive,
         setSelectedBeat,
-        // --- THIS IS THE FIX ---
-        toggleFeedMirror, 
-        toggleOverlayMirror
     } = useUIState();
 
     const { 
@@ -55,7 +49,8 @@ const Sequencer = () => {
     } = usePlayback();
 
     const { bpm, setBpm } = useSequencerSettings();
-    const { videoRef, mediaStream } = useMedia();
+    // --- Get the new camera actions from MediaContext ---
+    const { videoRef, startCamera, stopCamera } = useMedia();
     const { addLog } = useDebugger();
 
     // --- 2. Local UI State and Refs ---
@@ -87,12 +82,34 @@ const Sequencer = () => {
         }
     }, [isRecording, isPlaying, currentBar, currentStep, setPoseForBeat]);
     
-    // --- 4. Initialize the Motion Analysis Hook (now that callbacks are defined) ---
+    // --- 4. Initialize the Motion Analysis Hook ---
     const { livePoseData, startLiveTracking, stopLiveTracking, startFullAnalysis, isAnalyzing } = useMotionAnalysis({ 
         onPoseUpdate,
         onAnalysisComplete,
         isOverlayMirrored
     });
+
+    // --- 5. THE CRITICAL ORCHESTRATION LOGIC ---
+    useEffect(() => {
+        if (isLiveCamActive) {
+            startCamera().catch(() => {
+                // If starting the camera fails (e.g., user denies permission),
+                // we must toggle the state back to off.
+                toggleLiveCam();
+            });
+        } else {
+            stopCamera();
+        }
+    }, [isLiveCamActive, startCamera, stopCamera, toggleLiveCam]);
+
+    useEffect(() => {
+        // This effect links the motion tracking to the camera state
+        if (isLiveCamActive && videoRef.current) {
+            startLiveTracking(videoRef.current);
+        } else {
+            stopLiveTracking();
+        }
+    }, [isLiveCamActive, videoRef, startLiveTracking, stopLiveTracking]);
 
 
     const handleAnalyzeVideo = () => {
@@ -144,14 +161,6 @@ const Sequencer = () => {
 
     useEffect(() => { preloadSounds(tr808SoundsArray); }, []);
     
-    useEffect(() => {
-        if (isLiveCamActive && videoRef.current) {
-            startLiveTracking(videoRef.current);
-        } else {
-            stopLiveTracking();
-        }
-    }, [isLiveCamActive, videoRef, startLiveTracking, stopLiveTracking]);
-
     // --- 7. Render the JSX ---
     return (
         <DndContext onDragEnd={() => {}}>
@@ -177,9 +186,9 @@ const Sequencer = () => {
                     isLiveCamActive={isLiveCamActive}
                     onToggleLiveCam={toggleLiveCam}
                     isFeedMirrored={isFeedMirrored}
-                    onToggleFeedMirror={toggleFeedMirror} // This prop will now be defined
+                    onToggleFeedMirror={toggleFeedMirror}
                     isOverlayMirrored={isOverlayMirrored}
-                    onToggleOverlayMirror={toggleOverlayMirror} // This prop will now be defined
+                    onToggleOverlayMirror={toggleOverlayMirror}
                     isRecording={isRecording}
                     onToggleRecord={toggleRecord}
                     isPlaying={isPlaying}

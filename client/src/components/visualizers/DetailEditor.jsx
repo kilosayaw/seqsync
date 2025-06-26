@@ -5,7 +5,7 @@ import { useUIState } from '../../contexts/UIStateContext.jsx';
 import { useSequence } from '../../contexts/SequenceContext.jsx';
 
 import CoordinateGridEditor from '../common/CoordinateGridEditor.jsx'; 
-import P5SkeletalVisualizer from '../core/pose_editor/P5SkeletalVisualizer.jsx';
+import P5SkeletalVisualizer from './P5SkeletalVisualizer.jsx';
 import JointSelector from '../core/studio/JointSelector.jsx'; 
 
 // --- STYLED COMPONENTS ---

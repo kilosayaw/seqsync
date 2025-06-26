@@ -1,11 +1,11 @@
-// /client/src/components/core/sequencer/BeatButton.jsx
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Plus, X } from 'react-feather';
 
 import { useUIState, MODES } from '../../../contexts/UIStateContext.jsx';
 import { getSoundNameFromPath } from '../../../utils/soundLibrary.js';
-import { generatePoseThumbnail } from '../../../utils/thumbnailUtils.js';
+// We no longer need to generate the thumbnail here
+// import { generatePoseThumbnail } from '../../../utils/thumbnailUtils.js'; 
 
 import BeatWaveform from './BeatWaveform.jsx';
 import './BeatButton.css';
@@ -21,13 +21,13 @@ const BeatButton = ({
 }) => {
     const { currentMode } = useUIState();
 
-    // Correctly check if the beat has valid waveform data to display
+    // The component now just checks for the data it receives
     const hasWaveform = beatData?.waveform && beatData.waveform.length > 0;
-    const videoSnapshot = beatData?.thumbnail;
     const hasPose = beatData?.pose?.jointInfo && Object.keys(beatData.pose.jointInfo).length > 0;
     const hasSounds = beatData?.sounds && beatData.sounds.length > 0;
-
-    const poseThumbnail = hasPose ? generatePoseThumbnail(beatData.pose.jointInfo) : null;
+    
+    // The poseThumbnail is now directly from the beatData prop
+    const poseThumbnail = beatData?.thumbnail;
 
     const wrapperClasses = `
         beat-button-wrapper 
@@ -41,13 +41,8 @@ const BeatButton = ({
         <div className={wrapperClasses} onClick={onClick}>
             <span className="beat-number">{beatData.beatIndex + 1}</span>
 
-            {/* --- NEW: Video Snapshot Layer (at the very back) --- */}
-            {videoSnapshot && (
-                <div 
-                    className="beat-layer video-snapshot-layer"
-                    style={{ backgroundImage: `url(${videoSnapshot})` }}
-                />
-            )}
+            {/* This layer is for a future feature, can be removed if not needed */}
+            {/* It was intended for video frame snapshots, not pose thumbnails */}
             
             {hasWaveform && (
                 <div className="beat-layer waveform-layer">
@@ -55,7 +50,7 @@ const BeatButton = ({
                 </div>
             )}
             
-            {/* Layer 2: Pose Thumbnail */}
+            {/* The Pose Thumbnail Layer */}
             {poseThumbnail && (
                 <div 
                     className="beat-layer pose-layer"
@@ -63,7 +58,7 @@ const BeatButton = ({
                 />
             )}
 
-            {/* Layer 3: SEQ Mode UI (sounds, add button) */}
+            {/* SEQ Mode UI Layer */}
             <div className="beat-layer seq-ui-layer">
                 {hasSounds && (
                     <div className="sound-list">
@@ -104,7 +99,7 @@ BeatButton.propTypes = {
   onClick: PropTypes.func.isRequired,
   onAddSoundClick: PropTypes.func.isRequired,
   onSoundDelete: PropTypes.func.isRequired,
-  isActive: PropTypes.bool.isRequired,
+  isActive: PropTypes.bool, // isActive is not always passed, so it's not required
   isCurrentStep: PropTypes.bool.isRequired,
   isSelectedForEdit: PropTypes.bool,
 };

@@ -40,4 +40,3 @@ export const downloadFile = (content, fileName, contentType) => { // <<< EXPORTE
   URL.revokeObjectURL(a.href);
   // console.log(`File "${fileName}" download initiated locally (from util).`); // Optional logging
 };
-

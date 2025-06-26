@@ -1,12 +1,11 @@
-// /client/src/hooks/useMotionAnalysis.js
 import { useState, useRef, useCallback, useEffect } from 'react';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import * as tf from '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 import { toast } from 'react-toastify';
-import { transformTfPoseToSeqPose } from '../utils/thumbnailUtils.js';
+// We now need the thumbnail generator here
+import { transformTfPoseToSeqPose, generatePoseThumbnail } from '../utils/thumbnailUtils.js';
 
-// This hook now takes the mirror state as a direct argument
 export const useMotionAnalysis = ({ onPoseUpdate, isOverlayMirrored }) => {
     const [detector, setDetector] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
@@ -16,7 +15,6 @@ export const useMotionAnalysis = ({ onPoseUpdate, isOverlayMirrored }) => {
     const videoRef = useRef(null);
     const rafIdRef = useRef(null);
 
-    // Initialize the model once
     useEffect(() => {
         const init = async () => {
             if (detector) return;
@@ -36,7 +34,6 @@ export const useMotionAnalysis = ({ onPoseUpdate, isOverlayMirrored }) => {
         init();
     }, [detector]);
 
-    // The main animation loop for real-time tracking
     const estimationLoop = useCallback(async () => {
         if (!isTracking || !detector || !videoRef.current || videoRef.current.paused || videoRef.current.ended) {
             setIsTracking(false);
@@ -45,8 +42,20 @@ export const useMotionAnalysis = ({ onPoseUpdate, isOverlayMirrored }) => {
         const poses = await detector.estimatePoses(videoRef.current, { flipHorizontal: false });
         if (poses?.[0]) {
             const seqPose = transformTfPoseToSeqPose(poses[0], videoRef.current, isOverlayMirrored);
-            setLivePoseData(seqPose);
-            if (onPoseUpdate) onPoseUpdate(seqPose);
+            
+            // --- GENERATE THUMBNAIL AT THE SOURCE ---
+            // The thumbnail is a data URL string of the generated skeleton image
+            const thumbnail = generatePoseThumbnail(seqPose.jointInfo); // Pass jointInfo to the generator
+            
+            // The data packet now includes the pose AND its visual thumbnail
+            const poseWithThumbnail = { ...seqPose, thumbnail };
+
+            setLivePoseData(poseWithThumbnail);
+
+            if (onPoseUpdate) {
+                // Pass the complete packet to the callback in Sequencer.jsx
+                onPoseUpdate(poseWithThumbnail);
+            }
         }
         rafIdRef.current = requestAnimationFrame(estimationLoop);
     }, [isTracking, detector, isOverlayMirrored, onPoseUpdate]);
@@ -70,8 +79,6 @@ export const useMotionAnalysis = ({ onPoseUpdate, isOverlayMirrored }) => {
     const stopLiveTracking = useCallback(() => {
         setIsTracking(false);
     }, []);
-
-    // We will handle the full analysis logic separately to keep this hook focused.
     
     return { isInitializing, livePoseData, startLiveTracking, stopLiveTracking };
 };

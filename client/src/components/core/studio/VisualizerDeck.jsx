@@ -1,4 +1,3 @@
-// /client/src/components/core/studio/VisualizerDeck.jsx
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
@@ -7,7 +6,7 @@ import { useMedia } from '../../../contexts/MediaContext.jsx';
 import { usePlayback } from '../../../contexts/PlaybackContext.jsx';
 import { useSequence } from '../../../contexts/SequenceContext.jsx';
 import VideoMediaPlayer from '../media/VideoMediaPlayer.jsx';
-import SkeletalOverlay from '../pose_editor/SkeletalOverlay.jsx';
+import P5SkeletalVisualizer from '../../visualizers/P5SkeletalVisualizer.jsx';
 
 const DeckContainer = styled.div`
   position: relative;
@@ -38,6 +37,7 @@ const VisualizerDeck = ({ poseData }) => {
     const { videoRef, mediaStream } = useMedia();
     const { songData } = useSequence();
     const { isPlaying } = usePlayback();
+    // --- We get isFeedMirrored here to mirror the video, but isOverlayMirrored will be handled by the data ---
     const { visualizerMode, selectedJoint, isFeedMirrored } = useUIState();
 
     const mediaUrl = songData.videoUrl;
@@ -51,12 +51,22 @@ const VisualizerDeck = ({ poseData }) => {
                     src={mediaUrl}
                     stream={mediaStream}
                     isPlaying={isPlaying}
+                    // The video player itself should be mirrored based on the feed mirror toggle
+                    isMirrored={isFeedMirrored} 
                 />
             ) : (
                 <PlaceholderText>No Video Loaded</PlaceholderText>
             )}
-            <VisualizerOverlay style={{ transform: isFeedMirrored ? 'scaleX(-1)' : 'scaleX(1)' }}>
-                {poseData && <SkeletalOverlay poseData={poseData} mode={visualizerMode} highlightJoint={selectedJoint} />}
+            {/* --- FIX 2: Remove the transform style to prevent double-mirroring the overlay --- */}
+            <VisualizerOverlay>
+                {poseData && (
+                    // --- FIX 1 (cont.): Render the correct P5 component ---
+                    <P5SkeletalVisualizer 
+                        poseData={poseData} 
+                        mode={visualizerMode} 
+                        highlightJoint={selectedJoint} 
+                    />
+                )}
             </VisualizerOverlay>
         </DeckContainer>
     );
@@ -64,7 +74,7 @@ const VisualizerDeck = ({ poseData }) => {
 
 VisualizerDeck.propTypes = {
     poseData: PropTypes.object,
-    onPlayerReady: PropTypes.func,
 };
 
+// Note: Removed onPlayerReady from prop-types as it's not used.
 export default VisualizerDeck;
