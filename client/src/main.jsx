@@ -2,13 +2,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
-import router from './router'; 
+import router from './router'; // Your router.jsx
 import { AuthProvider } from './contexts/AuthContext';
-import { SequencerSettingsProvider } from './contexts/SequencerSettingsContext';
+import { SequencerSettingsProvider } from './contexts/SequencerSettingsContext'; // Assuming you create this
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import './icons.js'; 
-import './index.css'; 
+import './index.css'; // Your global styles
 import ErrorBoundary from './components/common/ErrorBoundary';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -27,7 +26,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             pauseOnFocusLoss
             draggable
             pauseOnHover
-            theme="dark" 
+            theme="dark" // Uses Toastify's dark theme, further customizable in index.css
           />
         </SequencerSettingsProvider>
       </AuthProvider>

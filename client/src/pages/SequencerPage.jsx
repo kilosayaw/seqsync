@@ -1,32 +1,13 @@
+// src/pages/SequencerPage.jsx
 import React from 'react';
-
-// --- CONTEXT PROVIDERS ---
-import { SequencerSettingsProvider } from '../contexts/SequencerSettingsContext';
-import { SequenceProvider } from '../contexts/SequenceContext';
-import { PlaybackProvider } from '../contexts/PlaybackContext';
-import { UIStateProvider } from '../contexts/UIStateContext';
-import { MotionAnalysisProvider } from '../contexts/MotionAnalysisContext';
-import { MediaProvider } from '../contexts/MediaContext';
-
-// --- MAIN COMPONENT IMPORT ---
-import Sequencer from '../components/Sequencer';
+import StepSequencerControls from '../components/core/sequencer/StepSequencerControls';
 
 const SequencerPage = () => {
   return (
-    // --- THE DEFINITIVE, CORRECT NESTING ORDER ---
-    <SequencerSettingsProvider>
-      <SequenceProvider>
-        <PlaybackProvider>
-          <UIStateProvider>
-            <MediaProvider>
-              <MotionAnalysisProvider>
-                <Sequencer />
-              </MotionAnalysisProvider>
-            </MediaProvider>
-          </UIStateProvider>
-        </PlaybackProvider>
-      </SequenceProvider>
-    </SequencerSettingsProvider>
+    <div className="w-full h-full flex flex-col items-center justify-start pt-0">
+      {/* The StepSequencerControls component itself has padding, so this container can be minimal */}
+      <StepSequencerControls />
+    </div>
   );
 };
 
