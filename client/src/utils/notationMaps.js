@@ -1,70 +1,8 @@
-// This file is the "dictionary" mapping SĒQsync abbreviations and codes
-// to their corresponding data, symbols, and human-readable descriptions.
+// src/utils/notationMaps.js
 
-/**
- * Programmatically generates a complete 27-point notation map for a given joint.
- * This is a scalable and maintainable approach.
- * @param {string} abbrev - The joint abbreviation (e.g., 'LS', 'RW').
- * @returns {object} A complete notation map for that joint.
- */
-const generateJointNotationMap = (abbrev) => {
-    const map = {};
-    const coords = [-1, 0, 1];
-    
-    // Using simple Unicode arrows for symbols. These can be replaced with custom SVG icons later.
-    const symbols = {
-        '0,1,0': '↑',    '-1,1,0': '↖',    '1,1,0': '↗',
-        '0,-1,0': '↓',   '-1,-1,0': '↙',   '1,-1,0': '↘',
-        '0,0,1': '⇡',    '-1,0,1': '⬈',    '1,0,1': '⬉', // Forward symbols (using different arrows for diagonals)
-        '0,0,-1': '⇣',   '-1,0,-1': '⬋',   '1,0,-1': '⬊', // Backward symbols
-        '-1,0,0': '→',   '1,0,0': '←',
-        '0,0,0': '·'
-    };
-
-    coords.forEach(z => {
-        coords.forEach(y => {
-            coords.forEach(x => {
-                const vector = { x, y, z };
-                const key = `${abbrev}(${x},${y},${z})`;
-                
-                // Determine a representative symbol. Prioritize pure directions.
-                let symbolKey = `${x},${y},${z}`;
-                if (Math.abs(x) + Math.abs(y) + Math.abs(z) > 1) { // It's a diagonal
-                    if (z !== 0) symbolKey = `${x},${y},${z}`; // Keep 3D diagonals unique for now
-                    else symbolKey = `${x},${y},0`;
-                }
-                
-                const finalSymbol = symbols[symbolKey] || '?';
-                
-                map[key] = {
-                    shorthand: `${abbrev}(${x},${y},${z})`,
-                    vector,
-                    symbol: finalSymbol,
-                    joint: abbrev,
-                };
-            });
-        });
-    });
-    return map;
-};
-
-// --- I. CORE NOTATION & SYMBOL MAP ---
-// Generate maps for all relevant joints and combine them.
-const ALL_JOINT_ABBREVS = ['H','N','LS','RS','LE','RE','LW','RW','LP','RP','LH','RH','LK','RK','LA','RA','LF','RF','T','PELV','SPIN_L','SPIN_T','CHEST'];
-export const NOTATION_MAP = ALL_JOINT_ABBREVS.reduce((acc, abbrev) => {
-    return { ...acc, ...generateJointNotationMap(abbrev) };
-}, {});
-
-// Create a reverse map for quick lookups from a vector to its shorthand code
-export const VECTOR_TO_SHORTHAND_MAP = Object.entries(NOTATION_MAP).reduce((acc, [key, value]) => {
-    const vectorKey = `${value.joint},${value.vector.x},${value.vector.y},${value.vector.z}`;
-    acc[vectorKey] = value.shorthand;
-    return acc;
-}, {});
-
-
-// --- II. JOINT ABBREVIATIONS & DESCRIPTIONS ---
+// --- JOINT ABBREVIATIONS ---
 export const JOINT_VERBOSE_MAP = {
+  // ... (all previous definitions remain the same)
   H: { plain: "Head", medical: "Cranium & Cephalic Region" },
   N: { plain: "Neck", medical: "Cervical Spine" },
   LS: { plain: "Left Shoulder", medical: "Left Glenohumeral & Scapulothoracic Complex" },
@@ -73,235 +11,262 @@ export const JOINT_VERBOSE_MAP = {
   RE: { plain: "Right Elbow", medical: "Right Cubital Joint (Humeroulnar & Humeroradial)" },
   LW: { plain: "Left Wrist", medical: "Left Radiocarpal & Midcarpal Joints" },
   RW: { plain: "Right Wrist", medical: "Right Radiocarpal & Midcarpal Joints" },
-  LP: { plain: "Left Palm / Hand", medical: "Left Hand (Palmar Surface, Carpals, Metacarpals, Phalanges)" },
-  RP: { plain: "Right Palm / Hand", medical: "Right Hand (Palmar Surface, Carpals, Metacarpals, Phalanges)" },
-  LH: { plain: "Left Hip", medical: "Left Coxal (Hip) Joint" },
-  RH: { plain: "Right Hip", medical: "Right Coxal (Hip) Joint" },
-  LK: { plain: "Left Knee", medical: "Left Genual (Knee) Joint" },
-  RK: { plain: "Right Knee", medical: "Right Genual (Knee) Joint" },
-  LA: { plain: "Left Ankle", medical: "Left Talocrural & Subtalar Joint Complex" },
-  RA: { plain: "Right Ankle", medical: "Right Talocrural & Subtalar Joint Complex" },
-  LF: { plain: "Left Foot", medical: "Left Pes (Foot)" },
-  RF: { plain: "Right Foot", medical: "Right Pes (Foot)" },
-  T: { plain: "Torso/Core Center", medical: "Trunk Midline" },
-  PELV: { plain: "Pelvis Center", medical: "Center of Pelvic Girdle" },
-  SPIN_L: { plain: "Lumbar Spine", medical: "Lumbar Vertebral Column" },
-  SPIN_T: { plain: "Thoracic Spine", medical: "Thoracic Vertebral Column" },
-  CHEST: { plain: "Chest Center", medical: "Sternum / Mid-Thorax" },
-  LW1: { plain: "Left Wrist (Thumb Side)", medical: "Radial Aspect of Left Carpus" },
-  LW2: { plain: "Left Wrist (Pinky Side)", medical: "Ulnar Aspect of Left Carpus" },
-  RW1: { plain: "Right Wrist (Thumb Side)", medical: "Radial Aspect of Right Carpus" },
-  RW2: { plain: "Right Wrist (Pinky Side)", medical: "Ulnar Aspect of Right Carpus" },
+  LW1: { plain: "Left Wrist Thumb Side", medical: "Radial Aspect of Left Wrist" },
+  LW2: { plain: "Left Wrist Pinky Side", medical: "Ulnar Aspect of Left Wrist" },
+  RW1: { plain: "Right Wrist Thumb Side", medical: "Radial Aspect of Right Wrist" },
+  RW2: { plain: "Right Wrist Pinky Side", medical: "Ulnar Aspect of Right Wrist" },
+  LP: { plain: "Left Palm", medical: "Left Palmar Surface / Metacarpals" },
+  RP: { plain: "Right Palm", medical: "Right Palmar Surface / Metacarpals" },
+  LP1: { plain: "Left Palm base under Index Finger", medical: "Base of Left 2nd Metacarpal (Palmar)" },
+  LP2: { plain: "Left Palm base under Middle Finger", medical: "Base of Left 3rd Metacarpal (Palmar)" },
+  LP3: { plain: "Left Palm base under Ring Finger", medical: "Base of Left 4th Metacarpal (Palmar)" },
+  LP4: { plain: "Left Palm base under Pinky Finger", medical: "Base of Left 5th Metacarpal (Palmar)" },
+  LP5: { plain: "Left Palm base under Thumb (above LP7)", medical: "Base of Left 1st Metacarpal (Thenar Eminence)" },
+  LP6: { plain: "Left Palm base above LP8", medical: "Ulnar border of Left Palm (Hypothenar)" },
+  LP7: { plain: "Side of Left Wrist/Palm aligned with Thumb", medical: "Radial Border of Left Carpus/Metacarpus" },
+  LP8: { plain: "Side of Left Wrist/Palm aligned with Pinky", medical: "Ulnar Border of Left Carpus/Metacarpus" },
+  LPFP1: { plain: "Left Index Fingertip", medical: "Distal Phalanx of Left 2nd Digit (Palmar)" },
+  LPFP2: { plain: "Left Middle Fingertip", medical: "Distal Phalanx of Left 3rd Digit (Palmar)" },
+  LPFP3: { plain: "Left Ring Fingertip", medical: "Distal Phalanx of Left 4th Digit (Palmar)" },
+  LPFP4: { plain: "Left Pinky Fingertip", medical: "Distal Phalanx of Left 5th Digit (Palmar)" },
+  LPFP5: { plain: "Left Thumbtip", medical: "Distal Phalanx of Left 1st Digit (Palmar)" },
+  LPFP12345: { plain: "All Left Fingertips", medical: "All Distal Phalanges of Left Hand (Palmar)" },
+  LP1234FP12345: { plain: "Left Palm and Fingertips (planted except base of thumb)", medical: "Left Palmar Surface & Digits (excluding Thenar base) Ground Contact" },
+  LP12345: { plain: "Full Left Palm", medical: "Entire Left Palmar Surface Contact" },
+  LP1234567: { plain: "Full Left Palm including Wrist", medical: "Entire Left Palmar Surface and Wrist Contact" },
+  LPBK1234: { plain: "Left Hand Base Knuckles (1-4)", medical: "Dorsal Aspect of Left Metacarpophalangeal Joints (II-V)" },
+  LPMK: { plain: "Left Hand Mid Knuckles", medical: "Dorsal Aspect of Left Proximal Interphalangeal Joints" },
+  LPTK: { plain: "Left Hand Top Knuckles", medical: "Dorsal Aspect of Left Distal Interphalangeal Joints" },
+  RP1: { plain: "Right Palm base under Index Finger", medical: "Base of Right 2nd Metacarpal (Palmar)" },
+  RP2: { plain: "Right Palm base under Middle Finger", medical: "Base of Right 3rd Metacarpal (Palmar)" },
+  RP3: { plain: "Right Palm base under Ring Finger", medical: "Base of Right 4th Metacarpal (Palmar)" },
+  RP4: { plain: "Right Palm base under Pinky Finger", medical: "Base of Right 5th Metacarpal (Palmar)" },
+  RP5: { plain: "Right Palm base under Thumb (above RP7)", medical: "Base of Right 1st Metacarpal (Thenar Eminence)" },
+  RP6: { plain: "Right Palm base above RP8", medical: "Ulnar border of Right Palm (Hypothenar)" },
+  RP7: { plain: "Side of Right Wrist/Palm aligned with Thumb", medical: "Radial Border of Right Carpus/Metacarpus" },
+  RP8: { plain: "Side of Right Wrist/Palm aligned with Pinky", medical: "Ulnar Border of Right Carpus/Metacarpus" },
+  RPFP1: { plain: "Right Index Fingertip", medical: "Distal Phalanx of Right 2nd Digit (Palmar)" },
+  RPFP2: { plain: "Right Middle Fingertip", medical: "Distal Phalanx of Right 3rd Digit (Palmar)" },
+  RPFP3: { plain: "Right Ring Fingertip", medical: "Distal Phalanx of Right 4th Digit (Palmar)" },
+  RPFP4: { plain: "Right Pinky Fingertip", medical: "Distal Phalanx of Right 5th Digit (Palmar)" },
+  RPFP5: { plain: "Right Thumbtip", medical: "Distal Phalanx of Right 1st Digit (Palmar)" },
+  RPFP12345: { plain: "All Right Fingertips", medical: "All Distal Phalanges of Right Hand (Palmar)" },
+  RP1234FP12345: { plain: "Right Palm and Fingertips (planted except base of thumb)", medical: "Right Palmar Surface & Digits (excluding Thenar base) Ground Contact" },
+  RP12345: { plain: "Full Right Palm", medical: "Entire Right Palmar Surface Contact" },
+  RP1234567: { plain: "Full Right Palm including Wrist", medical: "Entire Right Palmar Surface and Wrist Contact" },
+  RPBK1234: { plain: "Right Hand Base Knuckles (1-4)", medical: "Dorsal Aspect of Right Metacarpophalangeal Joints (II-V)" },
+  RPMK: { plain: "Right Hand Mid Knuckles", medical: "Dorsal Aspect of Right Proximal Interphalangeal Joints" },
+  RPTK: { plain: "Right Hand Top Knuckles", medical: "Dorsal Aspect of Right Distal Interphalangeal Joints" },
+  T: { plain: "Torso/Core", medical: "Trunk (Thoracic and Lumbar Spine, Abdomen)" },
+  PELV: { plain: "Pelvis", medical: "Pelvic Girdle" },
+  SPIN_L: { plain: "Lumbar Spine", medical: "Lumbar Vertebrae (L1-L5)" },
+  SPIN_T: { plain: "Thoracic Spine", medical: "Thoracic Vertebrae (T1-T12)" },
+  CHEST: { plain: "Chest Center", medical: "Sternum / Anterior Thorax" },
+  LH: { plain: "Left Hip", medical: "Left Coxal Joint" },
+  RH: { plain: "Right Hip", medical: "Right Coxal Joint" },
+  LK: { plain: "Left Knee", medical: "Left Genual Joint (Tibiofemoral & Patellofemoral)" },
+  RK: { plain: "Right Knee", medical: "Right Genual Joint (Tibiofemoral & Patellofemoral)" },
+  LA: { plain: "Left Ankle", medical: "Left Talocrural & Subtalar Complex" },
+  RA: { plain: "Right Ankle", medical: "Right Talocrural & Subtalar Complex" },
   LA1: { plain: "Left Inner Ankle", medical: "Medial Malleolus of Left Ankle" },
   LA2: { plain: "Left Outer Ankle", medical: "Lateral Malleolus of Left Ankle" },
   RA1: { plain: "Right Inner Ankle", medical: "Medial Malleolus of Right Ankle" },
   RA2: { plain: "Right Outer Ankle", medical: "Lateral Malleolus of Right Ankle" },
+  LF: { plain: "Left Foot", medical: "Left Pes" },
+  RF: { plain: "Right Foot", medical: "Right Pes" },
+  L_SH: { plain: "Left Shoulder", medical: "Left Glenohumeral & Scapulothoracic Joints" },
+  R_SH: { plain: "Right Shoulder", medical: "Right Glenohumeral & Scapulothoracic Joints" },
+  L_ELB: { plain: "Left Elbow", medical: "Left Humeroulnar & Humeroradial Articulations" },
+  R_ELB: { plain: "Right Elbow", medical: "Right Humeroulnar & Humeroradial Articulations" },
+  L_WR: { plain: "Left Wrist", medical: "Left Radiocarpal & Ulnocarpal Joints" },
+  R_WR: { plain: "Right Wrist", medical: "Right Radiocarpal & Ulnocarpal Joints" },
+  L_HIP: { plain: "Left Hip", medical: "Left Coxofemoral Joint" },
+  R_HIP: { plain: "Right Hip", medical: "Right Coxofemoral Joint" },
+  L_KNEE: { plain: "Left Knee", medical: "Left Tibiofemoral & Patellofemoral Joints" },
+  R_KNEE: { plain: "Right Knee", medical: "Right Tibiofemoral & Patellofemoral Joints" },
+  L_ANK: { plain: "Left Ankle", medical: "Left Talocrural & Subtalar Joints" },
+  R_ANK: { plain: "Right Ankle", medical: "Right Talocrural & Subtalar Joints" },
 };
 
-// --- III. ORIENTATION SYMBOLS & ROTATIONS ---
+// --- GENERAL ORIENTATION ---
 export const ORIENTATION_VERBOSE_MAP = {
   IN: { plain: "internally rotated", medical: "Internal (Medial) Rotation" },
   OUT: { plain: "externally rotated", medical: "External (Lateral) Rotation" },
-  NEU: { plain: "neutral", medical: "Neutral Alignment / Zero Rotation" },
-  FLEX: { plain: "flexed / bent", medical: "Flexion" },
-  EXT: { plain: "extended / straight", medical: "Extension" },
-  PRO: { plain: "pronated", medical: "Pronation" },
-  SUP: { plain: "supinated", medical: "Supination" },
-  ULN: { plain: "ulnar deviated", medical: "Ulnar Deviation" },
-  RAD: { plain: "radial deviated", medical: "Radial Deviation" },
+  NEU: { plain: "neutral", medical: "Neutral Alignment/Rotation" },
+  FLEX: { plain: "flexed/bent", medical: "Flexion" },
+  EXT: { plain: "extended/straight", medical: "Extension" },
+  PRO: { plain: "pronated (palm down for hand/forearm)", medical: "Pronation" },
+  SUP: { plain: "supinated (palm up for hand/forearm)", medical: "Supination" },
+  ULN: { plain: "ulnar deviated (wrist bent to pinky side)", medical: "Ulnar Deviation" },
+  RAD: { plain: "radial deviated (wrist bent to thumb side)", medical: "Radial Deviation" },
 };
 
-export const ROTATION_DETAIL_VERBOSE_MAP = {
-  "+15R": { plain: "rotated clockwise 15°", medical: "15° Clockwise Angular Displacement" },
-  "-15R": { plain: "rotated counter-clockwise 15°", medical: "15° Counter-Clockwise Angular Displacement" },
-  "CW": { plain: "clockwise", medical: "Clockwise" },
-  "CCW": { plain: "counter-clockwise", medical: "Counter-Clockwise" },
-};
-
-// --- IV. ANKLE-SPECIFIC PLANE ORIENTATIONS ---
+// --- ANKLE-SPECIFIC ORIENTATIONS ---
 export const ANKLE_SAGITTAL_VERBOSE_MAP = {
-  NEU_SAG: { plain: "neutral (sagittal)", medical: "Neutral Sagittal Plane Alignment (Talocrural)" },
-  DORSI: { plain: "toes up / dorsiflexed", medical: "Dorsiflexion (Talocrural Joint)" },
-  PLANTAR: { plain: "toes down / plantarflexed", medical: "Plantarflexion (Talocrural Joint)" },
+  NEU_SAG: { plain: "neutral (foot flat)", medical: "Neutral Sagittal Plane Alignment (Talocrural)" },
+  DORSI: { plain: "pointing toes up", medical: "Dorsiflexion (Talocrural)" },
+  PLANTAR: { plain: "pointing toes down", medical: "Plantarflexion (Talocrural)" },
 };
 export const ANKLE_FRONTAL_VERBOSE_MAP = {
-  NEU_FRON: { plain: "neutral (frontal)", medical: "Neutral Frontal Plane Alignment (Subtalar Joint)" },
-  INVER: { plain: "sole inward / inverted", medical: "Inversion (Subtalar Joint)" },
-  EVER: { plain: "sole outward / everted", medical: "Eversion (Subtalar Joint)" },
+  NEU_FRON: { plain: "neutral (sole flat)", medical: "Neutral Frontal Plane Alignment (Subtalar)" },
+  INVER: { plain: "rolling inward (sole in)", medical: "Inversion (Subtalar)" },
+  EVER: { plain: "rolling outward (sole out)", medical: "Eversion (Subtalar)" },
 };
 export const ANKLE_TRANSVERSE_VERBOSE_MAP = {
-  NEU_TRA: { plain: "neutral (transverse)", medical: "Neutral Transverse Plane Alignment (Forefoot)" },
-  ABD_TRA: { plain: "toes outward / abducted", medical: "Forefoot Abduction" },
-  ADD_TRA: { plain: "toes inward / adducted", medical: "Forefoot Adduction" },
+  NEU_TRA: { plain: "neutral (toes forward)", medical: "Neutral Transverse Plane Alignment (Midtarsal/Forefoot)" },
+  ABD_TRA: { plain: "toes pointing outward", medical: "Forefoot Abduction" },
+  ADD_TRA: { plain: "toes pointing inward", medical: "Forefoot Adduction" },
 };
 
-// --- V. INTENT & ACTION MODIFIERS ---
+// --- INTENT ---
 export const INTENT_VERBOSE_MAP = {
   Transition: { plain: "transitioning", medical: "Transitional Movement Phase" },
-  StrikePrep: { plain: "preparing strike", medical: "Pre-Impact Loading / Strike Preparation Phase" },
-  StrikeRelease: { plain: "releasing strike", medical: "Impact Execution / Strike Release Phase" },
-  BlockPrep: { plain: "preparing block", medical: "Defensive Preparation / Block Loading" },
-  BlockImpact: { plain: "making block impact", medical: "Defensive Contact / Block Execution" },
-  Evasion: { plain: "evading", medical: "Evasive Maneuver" },
-  Grounding: { plain: "shifting ground contact", medical: "Ground Reaction Force Modulation / Weight Transfer" },
-  Idle: { plain: "idle / holding stance", medical: "Static Posture / Stance Maintenance" },
-  Recover: { plain: "recovering / resetting", medical: "Post-Action Recovery / Positional Reset" },
-  Coil: { plain: "coiling energy", medical: "Eccentric Loading / Potential Energy Storage" },
-  ReleasePwr: { plain: "releasing power", medical: "Concentric Contraction / Kinetic Energy Release" },
-  Reach: { plain: "reaching", medical: "Limb Protraction / Reaching Action" },
-  Pull: { plain: "pulling", medical: "Limb Retraction / Pulling Action" },
-  Stabilize: { plain: "stabilizing", medical: "Isometric Contraction for Stabilization" },
-  "+1EXT": { plain: "extending further (1 unit)", medical: "Increased Extension (1 unit magnitude)" },
-  "-1FLEX": { plain: "flexing further (1 unit)", medical: "Increased Flexion (1 unit magnitude)" },
+  StrikePrep: { plain: "preparing strike", medical: "Pre-Impact/Strike Loading Phase" },
+  StrikeRelease: { plain: "releasing strike", medical: "Impact/Strike Execution Phase" },
+  // ... other intents you define in constants.js ...
+  Neutral: { plain: "neutral", medical: "Neutral Intent / Static Posture" }, // From your example options
+  Flex: { plain: "bending", medical: "Flexion" }, // If intent can be FLEX
+  Extend: { plain: "straightening", medical: "Extension" }, // If intent can be EXTEND
+  Abduct: { plain: "moving away from midline", medical: "Abduction" },
+  Adduct: { plain: "moving towards midline", medical: "Adduction" },
+  Coil: { plain: "coiling / loading", medical: "Loading Phase / Eccentric Contraction" },
+  Release: { plain: "releasing / uncoiling", medical: "Release Phase / Concentric Contraction" },
+  Impact: { plain: "making impact", medical: "Impact / Strike Termination" },
+  Reach: { plain: "reaching", medical: "Protraction / Reaching" },
+  Pull: { plain: "pulling", medical: "Retraction / Pulling" },
+  Stabilize: { plain: "stabilizing", medical: "Isometric Contraction / Stabilization" },
+  STRIKE_JAB: { plain: "jabbing", medical: "Jab-type Percussive Action" },
+  STRIKE_CROSS: { plain: "throwing a cross", medical: "Cross-type Percussive Action" },
+  STRIKE_HOOK: { plain: "hooking", medical: "Hook-type Percussive Action" },
 };
 
-// --- VI. GROUNDING POINTS (FOOT & HAND) ---
+// --- GROUNDING POINTS ---
 export const GROUNDING_POINT_VERBOSE_MAP = {
   LF1: { plain: "inner ball of left foot", medical: "Plantar aspect of Left 1st Metatarsal Head" },
-  LF2: { plain: "outer ball of left foot", medical: "Plantar aspect of Left 5th Metatarsal Head (approximating 'pinky toe ball')" },
-  LF3: { plain: "heel of left foot", medical: "Plantar aspect of Left Calcaneus (heel)" },
-  LF1T1: { plain: "left inner ball & big toe", medical: "Plantar Left 1st Metatarsal Head & Hallux" },
-  LF1T12: { plain: "left inner ball, big toe & 2nd toe", medical: "Plantar Left 1st MTH, Hallux, & 2nd Digit" },
-  LF123T12345: { plain: "full left foot plant", medical: "Full Plantar Contact Left Pes (All Metatarsal Heads, Calcaneus, & All Phalanges)" },
-  LF12: { plain: "left front foot (ball area)", medical: "Plantar aspect of Left Metatarsal Heads (1-5)" },
-  LF23: { plain: "left outer blade (outer ball to heel)", medical: "Lateral Border of Left Pes (5th MTH to Calcaneus)" },
-  LF13: { plain: "left inner blade (inner ball to heel)", medical: "Medial Border of Left Pes (1st MTH to Calcaneus)" },
-  LFT1: { plain: "left big toe (flat print)", medical: "Plantar Aspect of Left Hallux" },
-  LFT1Tip: { plain: "tip of left big toe", medical: "Distal Plantar Aspect of Left Hallux" },
-  LFT1Over: { plain: "top of left big toe (nail side)", medical: "Dorsal Aspect of Left Hallux" },
+  LF2: { plain: "outer ball of left foot (pinky side)", medical: "Plantar aspect of Left 5th Metatarsal Head" },
+  LF3: { plain: "heel of left foot", medical: "Plantar aspect of Left Calcaneus" },
+  LF1T1: { plain: "inner ball and big toe of left foot", medical: "Plantar Left 1st Metatarsal Head & Hallux" },
+  LF1T12: { plain: "inner ball, big and pointer toe of left foot", medical: "Plantar Left 1st Metatarsal Head, Hallux, & 2nd Digit" },
+  LF123T12345: { plain: "full left foot plant", medical: "Full Plantar Contact Left Pes" },
+  LF12: { plain: "front ball of left foot", medical: "Plantar aspect of Left Metatarsal Heads 1-5" },
+  LF23: { plain: "outer blade of left foot", medical: "Lateral Border of Left Pes (5th Metatarsal Head to Calcaneus)" },
+  LF13: { plain: "inner blade of left foot", medical: "Medial Border of Left Pes (1st Metatarsal Head to Calcaneus)" },
+  LFT1: { plain: "left big toe", medical: "Plantar aspect of Left Hallux" },
+  LFT1Tip: { plain: "tip of left big toe", medical: "Distal Plantar aspect of Left Hallux" },
+  LFT1Over: { plain: "top of left big toe (nail side)", medical: "Dorsal aspect of Left Hallux" },
   RF1: { plain: "inner ball of right foot", medical: "Plantar aspect of Right 1st Metatarsal Head" },
-  RF2: { plain: "outer ball of right foot", medical: "Plantar aspect of Right 5th Metatarsal Head" },
+  RF2: { plain: "outer ball of right foot (pinky side)", medical: "Plantar aspect of Right 5th Metatarsal Head" },
   RF3: { plain: "heel of right foot", medical: "Plantar aspect of Right Calcaneus" },
-  RF1T1: { plain: "right inner ball & big toe", medical: "Plantar Right 1st Metatarsal Head & Hallux" },
-  RF1T12: { plain: "right inner ball, big toe & 2nd toe", medical: "Plantar Right 1st MTH, Hallux, & 2nd Digit" },
+  RF1T1: { plain: "inner ball and big toe of right foot", medical: "Plantar Right 1st Metatarsal Head & Hallux" },
+  RF1T12: { plain: "inner ball, big and pointer toe of right foot", medical: "Plantar Right 1st Metatarsal Head, Hallux, & 2nd Digit" },
   RF123T12345: { plain: "full right foot plant", medical: "Full Plantar Contact Right Pes" },
-  RF2T12345: { plain: "right ball of foot & all toes", medical: "Plantar Right Metatarsal Heads (assumed all) & All Phalanges" },
-  RF12: { plain: "right front foot (ball area)", medical: "Plantar aspect of Right Metatarsal Heads (1-5)" },
-  RF23: { plain: "right outer blade (outer ball to heel)", medical: "Lateral Border of Right Pes (5th MTH to Calcaneus)" },
-  RF13: { plain: "right inner blade (inner ball to heel)", medical: "Medial Border of Right Pes (1st MTH to Calcaneus)" },
-  RFT1: { plain: "right big toe (flat print)", medical: "Plantar Aspect of Right Hallux" },
-  RFT1Tip: { plain: "tip of right big toe", medical: "Distal Plantar Aspect of Right Hallux" },
-  RFT1Over: { plain: "top of right big toe (nail side)", medical: "Dorsal Aspect of Right Hallux" },
-  LP: { plain: "left palm (general contact)", medical: "General Left Palmar Surface Contact" },
-  LP1: { plain: "base of left index finger (palm side)", medical: "Palmar base of Left 2nd Metacarpal" },
-  LP2: { plain: "base of left middle finger (palm side)", medical: "Palmar base of Left 3rd Metacarpal" },
-  LP3: { plain: "base of left ring finger (palm side)", medical: "Palmar base of Left 4th Metacarpal" },
-  LP4: { plain: "base of left pinky finger (palm side)", medical: "Palmar base of Left 5th Metacarpal" },
-  LP5: { plain: "base of left thumb (palm side, above LP7)", medical: "Palmar base of Left 1st Metacarpal (Thenar)" },
-  LP6: { plain: "left palm base (pinky side, above LP8)", medical: "Palmar base, Ulnar Side (Hypothenar)" },
-  LP7: { plain: "left wrist/palm (thumb side alignment)", medical: "Radial Border of Left Carpus/Proximal Metacarpus" },
-  LP8: { plain: "left wrist/palm (pinky side alignment)", medical: "Ulnar Border of Left Carpus/Proximal Metacarpus" },
-  LPFP1: { plain: "left index fingertip (print)", medical: "Distal Volar Pad, Left 2nd Digit" },
-  LPFP2: { plain: "left middle fingertip (print)", medical: "Distal Volar Pad, Left 3rd Digit" },
-  LPFP3: { plain: "left ring fingertip (print)", medical: "Distal Volar Pad, Left 4th Digit" },
-  LPFP4: { plain: "left pinky fingertip (print)", medical: "Distal Volar Pad, Left 5th Digit" },
-  LPFP5: { plain: "left thumb tip (print)", medical: "Distal Volar Pad, Left 1st Digit (Pollux)" },
-  LPFP12345: { plain: "all left fingertips (prints)", medical: "All Distal Volar Pads, Left Digits I-V" },
-  LP1234FP12345: { plain: "left palm & fingertips (planted, except base of thumb)", medical: "Left Palmar Surface & Digital Volar Pads Contact (excluding Thenar base)" },
-  LP12345: { plain: "full left palm flat", medical: "Full Left Palmar Surface Contact (Metacarpals)" },
-  LP1234567: { plain: "full left palm including wrist", medical: "Full Left Palmar Surface and Anterior Wrist Contact" },
-  LPBK1234: { plain: "left knuckles (base of fingers II-V, back of hand)", medical: "Dorsal Aspect of Left Metacarpophalangeal Joints (II-V)" },
-  LPMK: { plain: "left mid-knuckles (back of hand)", medical: "Dorsal Aspect of Left Proximal Interphalangeal Joints" },
-  LPTK: { plain: "left top-knuckles (back of hand)", medical: "Dorsal Aspect of Left Distal Interphalangeal Joints" },
-  RP: { plain: "right palm (general contact)", medical: "General Right Palmar Surface Contact" },
-  RP1: { plain: "base of right index finger (palm side)", medical: "Palmar base of Right 2nd Metacarpal" },
-  RP2: { plain: "base of right middle finger (palm side)", medical: "Palmar base of Right 3rd Metacarpal" },
-  RP3: { plain: "base of right ring finger (palm side)", medical: "Palmar base of Right 4th Metacarpal" },
-  RP4: { plain: "base of right pinky finger (palm side)", medical: "Palmar base of Right 5th Metacarpal" },
-  RP5: { plain: "base of right thumb (palm side, above RP7)", medical: "Palmar base of Right 1st Metacarpal (Thenar)" },
-  RP6: { plain: "right palm base (pinky side, above RP8)", medical: "Palmar base, Ulnar Side (Hypothenar)" },
-  RP7: { plain: "right wrist/palm (thumb side alignment)", medical: "Radial Border of Right Carpus/Proximal Metacarpus" },
-  RP8: { plain: "right wrist/palm (pinky side alignment)", medical: "Ulnar Border of Right Carpus/Proximal Metacarpus" },
-  RPFP1: { plain: "right index fingertip (print)", medical: "Distal Volar Pad, Right 2nd Digit" },
-  RPFP2: { plain: "right middle fingertip (print)", medical: "Distal Volar Pad, Right 3rd Digit" },
-  RPFP3: { plain: "right ring fingertip (print)", medical: "Distal Volar Pad, Right 4th Digit" },
-  RPFP4: { plain: "right pinky fingertip (print)", medical: "Distal Volar Pad, Right 5th Digit" },
-  RPFP5: { plain: "right thumb tip (print)", medical: "Distal Volar Pad, Right 1st Digit (Pollux)" },
-  RPFP12345: { plain: "all right fingertips (prints)", medical: "All Distal Volar Pads, Right Digits I-V" },
-  RP1234FP12345: { plain: "right palm & fingertips (planted, except base of thumb)", medical: "Right Palmar Surface & Digital Volar Pads Contact (excluding Thenar base)" },
-  RP12345: { plain: "full right palm flat", medical: "Full Right Palmar Surface Contact (Metacarpals)" },
-  RP1234567: { plain: "full right palm including wrist", medical: "Full Right Palmar Surface and Anterior Wrist Contact" },
-  RPBK1234: { plain: "right knuckles (base of fingers II-V, back of hand)", medical: "Dorsal Aspect of Right Metacarpophalangeal Joints (II-V)" },
-  RPMK: { plain: "right mid-knuckles (back of hand)", medical: "Dorsal Aspect of Right Proximal Interphalangeal Joints" },
-  RPTK: { plain: "right top-knuckles (back of hand)", medical: "Dorsal Aspect of Right Distal Interphalangeal Joints" },
+  RF2T12345: { plain: "right ball of foot and all toes", medical: "Plantar Right Metatarsal Heads & All Phalanges" }, // Adjusted based on image
+  RF12: { plain: "front ball of right foot", medical: "Plantar aspect of Right Metatarsal Heads 1-5" },
+  RF23: { plain: "outer blade of right foot", medical: "Lateral Border of Right Pes (5th Metatarsal Head to Calcaneus)" },
+  RF13: { plain: "inner blade of right foot", medical: "Medial Border of Right Pes (1st Metatarsal Head to Calcaneus)" },
+  RFT1: { plain: "right big toe", medical: "Plantar aspect of Right Hallux" },
+  RFT1Tip: { plain: "tip of right big toe", medical: "Distal Plantar aspect of Right Hallux" },
+  RFT1Over: { plain: "top of right big toe (nail side)", medical: "Dorsal aspect of Right Hallux" },
   L_FULL_PLANT: { plain: "full left foot contact", medical: "Full Left Pes Ground Contact"},
   R_FULL_PLANT: { plain: "full right foot contact", medical: "Full Right Pes Ground Contact"},
   L_LIFT: {plain: "left foot lifted", medical: "Left Pes Non-Weight Bearing / Swing Phase"},
   R_LIFT: {plain: "right foot lifted", medical: "Right Pes Non-Weight Bearing / Swing Phase"},
 };
 
-// --- VII. VECTOR DIRECTIONS (from X,Y,Z values) ---
+// --- VECTOR DIRECTIONS ---
+// Corrected export:
 export const VECTOR_PRIMARY_DIRECTION_MAP = {
-  X_POS: { plain: "to its left", medical: "Positive X-axis displacement (Leftward relative to midline)" },
-  X_NEG: { plain: "to its right", medical: "Negative X-axis displacement (Rightward relative to midline)" },
-  Y_POS: { plain: "upwards", medical: "Positive Y-axis displacement (Superiorly)" },
-  Y_NEG: { plain: "downwards", medical: "Negative Y-axis displacement (Inferiorly)" },
-  Z_POS: { plain: "forward / away", medical: "Positive Z-axis displacement (Anteriorly / Distally)" },
-  Z_NEG: { plain: "backward / closer", medical: "Negative Z-axis displacement (Posteriorly / Proximally)" },
+  X_POS: { plain: "to its left", medical: "positive X-axis displacement (Leftward by convention)" }, // As per your image page 6: X=1 is LEFT
+  X_NEG: { plain: "to its right", medical: "negative X-axis displacement (Rightward by convention)" },// As per your image page 6: X=-1 is RIGHT
+  Y_POS: { plain: "upwards", medical: "positive Y-axis displacement (Superior)" },
+  Y_NEG: { plain: "downwards", medical: "negative Y-axis displacement (Inferior)" },
+  Z_POS: { plain: "further away / forward", medical: "positive Z-axis displacement (Forward/Anterior/Distal by convention)" }, // Page 6: Z=1 is FORWARD
+  Z_NEG: { plain: "closer / backward", medical: "negative Z-axis displacement (Backward/Posterior/Proximal by convention)" },    // Page 6: Z=-1 is BACKWARD
 };
 
-// --- VIII. HELPER FUNCTIONS EXPORTED FOR USE ELSEWHERE ---
+// --- HEAD OVER TARGETS ---
+export const HEAD_OVER_VERBOSE_MAP = {
+  None: { plain: "not specified", medical: "Head alignment not specified" },
+  CENTER: { plain: "Center of Mass/Base", medical: "Cephalic alignment over Center of Mass / Base of Support" },
+  // HO RF123T12345 - "Head over right foot fully planted"
+  RF123T12345: {plain: "fully planted Right Foot", medical: "fully planted Right Pes"}, // Example for direct lookup
+  LF123T12345: {plain: "fully planted Left Foot", medical: "fully planted Left Pes"},   // Example for direct lookup
+};
+
+// --- DIRECTIONAL SHORTHAND (Page 3 & 6) ---
+// This map is for translating older shorthand if it appears in data,
+// or for understanding the "Directional Moves (Left Side)" table.
+// The primary vector (X,Y,Z) is handled by describeVector.
+export const DIRECTIONAL_SHORTHAND_VERBOSE_MAP = {
+  "+1X": { plain: "move left one unit", medical: "Positive X-axis displacement (1 unit)" },
+  "-1X": { plain: "move right one unit", medical: "Negative X-axis displacement (1 unit)" },
+  "+1Y": { plain: "move up one unit", medical: "Positive Y-axis displacement (1 unit, superior)" },
+  "-1Y": { plain: "move down one unit", medical: "Negative Y-axis displacement (1 unit, inferior)" },
+  "+1Z": { plain: "move forward one unit", medical: "Positive Z-axis displacement (1 unit, anterior/distal)" },
+  "-1Z": { plain: "move backward one unit", medical: "Negative Z-axis displacement (1 unit, posterior/proximal)" },
+  "v": { plain: "downward motion", medical: "Inferior displacement/vector component" },
+  "^": { plain: "upward motion", medical: "Superior displacement/vector component" },
+  "/>": { plain: "forward motion", medical: "Anterior/Distal displacement/vector component" },
+  "</": { plain: "backward motion", medical: "Posterior/Proximal displacement/vector component" },
+  "<": { plain: "leftward motion", medical: "Medial or Left Lateral displacement/vector component (contextual)" },
+  ">": { plain: "rightward motion", medical: "Lateral or Right Lateral displacement/vector component (contextual)" },
+  "/8": { plain: "figure 8 motion (clockwise start)", medical: "Figure-8 trajectory (clockwise initiation)"},
+  "\\8": { plain: "figure 8 motion (counter-CW start)", medical: "Figure-8 trajectory (counter-clockwise initiation)"},
+  "/O": { plain: "circular motion (clockwise)", medical: "Clockwise circular trajectory"},
+  "\\O": { plain: "circular motion (counter-CW)", medical: "Counter-clockwise circular trajectory"},
+};
+
+// --- ROTATION PARAMETERS (Page 6) ---
+export const ROTATION_PARAM_VERBOSE_MAP = {
+  "+15R": { plain: "rotate clockwise 15 degrees", medical: "Clockwise rotation by 15°" },
+  "-15R": { plain: "rotate counter-clockwise 15 degrees", medical: "Counter-clockwise rotation by 15°" },
+};
+
+// --- OTHER PARAMETERS (Page 6) ---
+export const OTHER_PARAM_VERBOSE_MAP = {
+  "+1EXT": { plain: "extend one unit", medical: "Extension by 1 unit of measure" },
+  "-1FLEX": { plain: "flex one unit", medical: "Flexion by 1 unit of measure" },
+};
+
+
+// --- TRANSITION TYPES & INTENSITY (Page 4) ---
+export const TRANSITION_QUALITY_VERBOSE_MAP = {
+  "/*": { plain: "accelerating transition (slow to fast)", medical: "Accelerating phase of movement" },
+  "*-": { plain: "decelerating transition (fast to slow)", medical: "Decelerating phase of movement" }, // Corrected from image which had '*-*' to '*-'
+  "~*~": { plain: "smooth transition", medical: "Fluid, continuous movement transition" },
+  "^*^": { plain: "wavy/undulating transition", medical: "Undulating or oscillating movement pathway" },
+  "<*>": { plain: "sharp/staccato transition", medical: "Abrupt or staccato movement transition" },
+  ":*:": { plain: "on the beat", medical: "Movement synchronized precisely with beat onset" },
+  "..*": { plain: "behind the beat (lazy/dragged)", medical: "Movement lagging primary beat (rubato feel)" },
+  "*::": { plain: "ahead of the beat (pushed)", medical: "Movement anticipating primary beat (pushed feel)" },
+  "-*+": { plain: "low to high impact/intensity", medical: "Increasing kinetic energy / impact force" },
+  "+*-": { plain: "high to low impact/intensity", medical: "Decreasing kinetic energy / impact force" },
+  "[*]": { plain: "even impact/intensity", medical: "Consistent kinetic energy / impact force" },
+};
+
+
+// --- HELPER FUNCTIONS EXPORTED FOR USE IN NOTATIONUTILS ---
 export const getVerboseJointName = (abbrev, type = 'plain') => {
   return JOINT_VERBOSE_MAP[abbrev]?.[type] || abbrev;
 };
-
-// --- Map for shorthand like "+1X" ---
-export const SHORTHAND_VECTOR_MAP = {
-  "+1X": { plain: "move left one unit", medical: "Displace +1 unit along X-axis (Left)" },
-  "-1X": { plain: "move right one unit", medical: "Displace -1 unit along X-axis (Right)" },
-  "+1Y": { plain: "move up one unit", medical: "Displace +1 unit along Y-axis (Up)" },
-  "-1Y": { plain: "move down one unit", medical: "Displace -1 unit along Y-axis (Down)" },
-  "+1Z": { plain: "move forward one unit", medical: "Displace +1 unit along Z-axis (Forward)" },
-  "-1Z": { plain: "move backward one unit", medical: "Displace -1 unit along Z-axis (Backward)" },
+export const getVerboseOrientation = (orientKey, type = 'plain', isAnkle = false, plane = null) => {
+  if (isAnkle && plane) {
+    if (plane === 'sagittal') return ANKLE_SAGITTAL_VERBOSE_MAP[orientKey]?.[type] || orientKey;
+    if (plane === 'frontal') return ANKLE_FRONTAL_VERBOSE_MAP[orientKey]?.[type] || orientKey;
+    if (plane === 'transverse') return ANKLE_TRANSVERSE_VERBOSE_MAP[orientKey]?.[type] || orientKey;
+  }
+  return ORIENTATION_VERBOSE_MAP[orientKey]?.[type] || orientKey;
 };
-
-// --- Map for symbolic directional moves ---
-export const SYMBOLIC_DIRECTION_MAP = {
-  'v': { plain: "downward", medical: "Inferior Displacement", vector: {x:0, y:-1, z:0}},
-  '^': { plain: "upward", medical: "Superior Displacement", vector: {x:0, y:1, z:0}},
-  '/>': { plain: "forward", medical: "Anterior Displacement", vector: {x:0, y:0, z:1}},
-  '</': { plain: "backward", medical: "Posterior Displacement", vector: {x:0, y:0, z:-1}},
-  '<': { plain: "leftward", medical: "Left Lateral Displacement", vector: {x:1, y:0, z:0}},
-  '>': { plain: "rightward", medical: "Right Lateral Displacement", vector: {x:-1, y:0, z:0}},
-  '/8': { plain: "figure 8 path (clockwise start)", medical: "Figure-8 Trajectory (Clockwise)", vector: {x:0, y:0, z:0}},
-  '\\8': { plain: "figure 8 path (counter-CW start)", medical: "Figure-8 Trajectory (Counter-Clockwise)", vector: {x:0, y:0, z:0}},
-  '/O': { plain: "circular path (clockwise)", medical: "Clockwise Circular Trajectory", vector: {x:0, y:0, z:0}},
-  '\\O': { plain: "circular path (counter-CW)", medical: "Counter-Clockwise Circular Trajectory", vector: {x:0, y:0, z:0}},
+export const getVerboseIntent = (intentKey, type = 'plain') => {
+  return INTENT_VERBOSE_MAP[intentKey]?.[type] || intentKey;
 };
-
-// --- Map for complex path types ---
-export const PATH_TYPE_MAP = {
-  '/8': { plain: 'in a clockwise figure-8 path', shorthand: '/8' },
-  '\\8': { plain: 'in a counter-clockwise figure-8 path', shorthand: '\\8' },
-  '/O': { plain: 'in a clockwise circle', shorthand: '/O' },
-  '\\O': { plain: 'in a counter-clockwise circle', shorthand: '\\O' },
-};
-
-// --- Map for intents ---
-export const INTENT_MAP = {
-    'contact': { plain: 'with contact intent' },
-    'passthrough': { plain: 'with passthrough intent' },
-};
-
-// --- Map for clock-based angle representations ---
-export const ANGLE_CLOCK_VERBOSE_MAP = {
-  "@12": { plain: "towards 12 o'clock (straight ahead/up)", medical: "Target vector aligned with 0°/Superior (contextual)" },
-  "@3": { plain: "towards 3 o'clock (to its right)", medical: "Target vector aligned with 90°/Right Lateral (contextual)" },
-  "@6": { plain: "towards 6 o'clock (straight behind/down)", medical: "Target vector aligned with 180°/Inferior (contextual)" },
-  "@9": { plain: "towards 9 o'clock (to its left)", medical: "Target vector aligned with 270°/Left Lateral (contextual)" },
-};
-
-// --- Map for movement transition quality ---
-export const TRANSITION_QUALITY_VERBOSE_MAP = {
-  "/*": { plain: "accelerating into pose (slow to fast)", medical: "Movement Phase: Acceleration" },
-  "*-": { plain: "decelerating into pose (fast to slow)", medical: "Movement Phase: Deceleration" },
-  "~*~": { plain: "smoothly into pose", medical: "Movement Quality: Fluid / Continuous" },
-  "^*^": { plain: "undulating into pose", medical: "Movement Quality: Oscillating / Undulating" },
-  "<*>": { plain: "sharply into pose", medical: "Movement Quality: Staccato / Abrupt" },
-  ":*:": { plain: "on the beat", medical: "Timing: Synchronized with Beat Onset" },
-  "..*": { plain: "behind the beat", medical: "Timing: Delayed / Rubato (Lagging)" },
-  "*::": { plain: "ahead of the beat", medical: "Timing: Anticipatory / Pushed" },
-  "-*+": { plain: "low to high impact/intensity", medical: "Dynamics: Increasing Kinetic Energy / Impact Force" },
-  "+*-": { plain: "high to low impact/intensity", medical: "Dynamics: Decreasing Kinetic Energy / Impact Force" },
-  "[*]": { plain: "even impact/intensity", medical: "Dynamics: Consistent Kinetic Energy / Impact Force" },
+export const getVerboseHeadOverTarget = (targetAbbrev, type = 'plain') => {
+    if (HEAD_OVER_VERBOSE_MAP[targetAbbrev]) {
+        return HEAD_OVER_VERBOSE_MAP[targetAbbrev][type];
+    }
+    const jointDesc = JOINT_VERBOSE_MAP[targetAbbrev]?.[type];
+    if (jointDesc) return type === 'plain' ? `the ${jointDesc.toLowerCase()}` : jointDesc;
+    const groundDesc = GROUNDING_POINT_VERBOSE_MAP[targetAbbrev]?.[type]; // For direct match like RF123T12345
+    if (groundDesc) return type === 'plain' ? `the ${groundDesc.toLowerCase()}` : groundDesc;
+    return targetAbbrev;
 };

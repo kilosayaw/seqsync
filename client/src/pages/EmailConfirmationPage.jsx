@@ -5,7 +5,7 @@ import { supabase } from '../services/supabaseClient'; // Ensure this path is co
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faCheckCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 import Button from '../components/common/Button'; // Ensure this path is correct
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth'; // To update auth state after confirmation
 
 const EmailConfirmationPage = () => {
   const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error', 'info'
