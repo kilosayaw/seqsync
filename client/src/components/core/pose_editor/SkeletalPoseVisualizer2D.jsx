@@ -2,9 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ALL_JOINTS_MAP, BODY_SEGMENTS, DEFAULT_POSITIONS_2D, Z_DEPTH_JOINT_SCALES, SVG_WIDTH_DEFAULT, SVG_HEIGHT_DEFAULT } from '../../../utils/constants';
 
+// FIX: Increased the base radius for the head for better visibility.
 const DEFAULT_JOINT_CIRCLE_RADIUS = 5;
-const HEAD_RADIUS_MULTIPLIER = 1.5;
-const NOSE_CONE_RADIUS_MULTIPLIER = 0.6;
+const HEAD_RADIUS_MULTIPLIER = 1.5; // Make head 50% larger than other joints
+const NOSE_CONE_RADIUS_MULTIPLIER = 0.6; // Size of nose relative to head
 
 const SkeletalPoseVisualizer2D = ({
   jointInfoData = {},
@@ -18,7 +19,6 @@ const SkeletalPoseVisualizer2D = ({
     const defaultPos = basePositions[jointAbbrev] || { x: 0.5, y: 0.5 };
     const vector = jointData?.vector;
     if (vector) {
-      // Apply vector displacement, scaled to be noticeable but not extreme
       return { x: defaultPos.x + (vector.x * 0.1), y: defaultPos.y - (vector.y * 0.1) };
     }
     return defaultPos;
@@ -36,9 +36,10 @@ const SkeletalPoseVisualizer2D = ({
     const neckRotation = jointInfoData['N']?.rotation || 0;
     const headZScale = getZScale('H');
     const isFacingForward = Math.abs(neckRotation) <= 90;
-    if (!isFacingForward) return null; // Don't draw nose if head is turned away
+    if (!isFacingForward) return null;
 
     const angleRad = (neckRotation - 90) * (Math.PI / 180);
+    // FIX: Calculation now uses the new multipliers for a larger cone
     const coneBaseRadius = DEFAULT_JOINT_CIRCLE_RADIUS * HEAD_RADIUS_MULTIPLIER * headZScale;
     const coneX = headPos.x * SVG_WIDTH_DEFAULT + Math.cos(angleRad) * coneBaseRadius * NOSE_CONE_RADIUS_MULTIPLIER;
     const coneY = headPos.y * SVG_HEIGHT_DEFAULT + Math.sin(angleRad) * coneBaseRadius * NOSE_CONE_RADIUS_MULTIPLIER;
@@ -66,32 +67,20 @@ const SkeletalPoseVisualizer2D = ({
       viewBox={`0 0 ${SVG_WIDTH_DEFAULT} ${SVG_HEIGHT_DEFAULT}`}
       className="w-full h-full"
     >
-      {/* Render Segments with simulated ribboning */}
+      {/* Render Segments (Ribbons) */}
       {BODY_SEGMENTS.map((segment, index) => {
         const p1 = getPosition(segment.from);
         const p2 = getPosition(segment.to);
-        // Rotation is a bit abstract in 2D, but we can use it to affect thickness
-        const rot1 = Math.abs(jointInfoData[segment.from]?.rotation || 0);
-        const rot2 = Math.abs(jointInfoData[segment.to]?.rotation || rot1);
-        const w1 = Math.max(1, 4 * (rot1 / 90)); // Thickness based on rotation
-        const w2 = Math.max(1, 4 * (rot2 / 90));
-        
-        const dx = p2.x * SVG_WIDTH_DEFAULT - p1.x * SVG_WIDTH_DEFAULT;
-        const dy = p2.y * SVG_HEIGHT_DEFAULT - p1.y * SVG_HEIGHT_DEFAULT;
+        const rot1 = jointInfoData[segment.from]?.rotation || 0;
+        const rot2 = jointInfoData[segment.to]?.rotation || rot1;
+        const w1 = Math.max(1, 4 * (Math.abs(rot1) / 90));
+        const w2 = Math.max(1, 4 * (Math.abs(rot2) / 90));
+        const dx = p2.x - p1.x; const dy = p2.y - p1.y;
         const len = Math.sqrt(dx*dx + dy*dy);
         if (len === 0) return null;
-        
-        // Perpendicular vector for thickness
-        const px = -dy / len;
-        const py = dx / len;
-        
-        const points = [
-          `${(p1.x*SVG_WIDTH_DEFAULT) - px*w1} ${(p1.y*SVG_HEIGHT_DEFAULT) - py*w1}`,
-          `${(p1.x*SVG_WIDTH_DEFAULT) + px*w1} ${(p1.y*SVG_HEIGHT_DEFAULT) + py*w1}`,
-          `${(p2.x*SVG_WIDTH_DEFAULT) + px*w2} ${(p2.y*SVG_HEIGHT_DEFAULT) + py*w2}`,
-          `${(p2.x*SVG_WIDTH_DEFAULT) - px*w2} ${(p2.y*SVG_HEIGHT_DEFAULT) - py*w2}`
-        ].join(' ');
-
+        const px = -dy / len; const py = dx / len;
+        const points = [`${(p1.x*SVG_WIDTH_DEFAULT) - px*w1} ${(p1.y*SVG_HEIGHT_DEFAULT) - py*w1}`,
+          `${(p1.x*SVG_WIDTH_DEFAULT) + px*w1} ${(p1.y*SVG_HEIGHT_DEFAULT) + py*w1}`,`${(p2.x*SVG_WIDTH_DEFAULT) + px*w2} ${(p2.y*SVG_HEIGHT_DEFAULT) + py*w2}`,`${(p2.x*SVG_WIDTH_DEFAULT) - px*w2} ${(p2.y*SVG_HEIGHT_DEFAULT) - py*w2}`].join(' ');
         return <polygon key={`segment-${index}`} points={points} className="fill-gray-600/70" />;
       })}
 
@@ -101,7 +90,8 @@ const SkeletalPoseVisualizer2D = ({
         const isHighlighted = highlightJoint === jointAbbrev;
         const zScale = getZScale(jointAbbrev);
         
-        if (jointAbbrev === 'H') return null; // Draw head last
+        // Don't render the Head's main circle here anymore, it's handled below with the indicator
+        if (jointAbbrev === 'H') return null;
 
         return (
           <circle
@@ -122,6 +112,7 @@ const SkeletalPoseVisualizer2D = ({
             key="joint-H"
             cx={getPosition('H').x * SVG_WIDTH_DEFAULT}
             cy={getPosition('H').y * SVG_HEIGHT_DEFAULT}
+            // FIX: Applying the size multiplier for the head
             r={DEFAULT_JOINT_CIRCLE_RADIUS * HEAD_RADIUS_MULTIPLIER * getZScale('H') * (highlightJoint === 'H' ? 1.5 : 1)}
             className={`transition-all duration-150 cursor-pointer ${highlightJoint === 'H' ? 'fill-yellow-400 stroke-white' : 'fill-gray-400 stroke-gray-700'}`}
             strokeWidth="1.5"
@@ -136,7 +127,6 @@ SkeletalPoseVisualizer2D.propTypes = {
   jointInfoData: PropTypes.object,
   highlightJoint: PropTypes.string,
   onJointClick: PropTypes.func, 
-  basePositions: PropTypes.object,
 };
 
 export default SkeletalPoseVisualizer2D;

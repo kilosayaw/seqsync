@@ -1,71 +1,91 @@
+// client/src/hooks/useKeyboardControls.js
 import { useEffect, useCallback } from 'react';
-import { useUIState, MODES } from '../contexts/UIStateContext';
-import { usePlayback } from '../contexts/PlaybackContext';
+import { useUIState } from '../contexts/UIStateContext';
 import { useSequence } from '../contexts/SequenceContext';
-
-// Define key-to-beat mappings
-const TOP_ROW_KEYS = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6, '8': 7 };
-const QWERTY_ROW_KEYS = { 'q': 8, 'w': 9, 'e': 10, 'r': 11, 't': 12, 'y': 13, 'u': 14, 'i': 15 };
+import { usePlayback } from '../contexts/PlaybackContext';
+import { 
+    MODES,
+    KEYBOARD_LAYOUT_MODE_SEQ, 
+    KEYBOARD_TRANSPORT_CONTROLS,
+    KEYBOARD_MODE_SWITCH,
+    KEYBOARD_FOOT_GROUNDING
+} from '../utils/constants';
+import { playSound } from '../utils/audioManager';
 
 export const useKeyboardControls = () => {
-    const { setCurrentMode, selectedBar, setSelectedBar } = useUIState();
-    const { togglePlay, toggleRecord } = usePlayback();
-    const { triggerBeat } = useSequence(); // We'll add this new function to SequenceContext
+    // Consume all necessary contexts
+    const { 
+        viewMode, setViewMode, currentEditingBar, activeBeatIndex, 
+        currentSelectedKitObject, handleBeatClick,
+    } = useUIState();
 
-    const handleKeyDown = useCallback((event) => {
-        // Ignore key presses if typing in an input field
-        if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+    const { songData, updateSongData } = useSequence();
+    const { handlePlayPause, handleStop } = usePlayback();
 
-        const key = event.key.toLowerCase();
-        let beatIndex = -1;
+    const handleKeyDown = useCallback((e) => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
 
-        if (TOP_ROW_KEYS[key] !== undefined) {
-            beatIndex = TOP_ROW_KEYS[key];
-        } else if (QWERTY_ROW_KEYS[key] !== undefined) {
-            beatIndex = QWERTY_ROW_KEYS[key];
-        }
+        const keyLower = e.key.toLowerCase();
 
-        if (beatIndex !== -1) {
-            event.preventDefault();
-            triggerBeat(selectedBar, beatIndex);
+        // --- SHIFT KEY LOGIC REMOVED TO PREVENT CRASH ---
+        // We will re-implement this with a more robust state update pattern later.
+
+        const newMode = KEYBOARD_MODE_SWITCH[keyLower];
+        if (newMode && newMode !== viewMode) {
+            e.preventDefault();
+            setViewMode(newMode);
             return;
         }
 
-        switch (key) {
-            case 'arrowup':
-                event.preventDefault();
-                togglePlay();
-                break;
-            case 'arrowdown':
-                event.preventDefault();
-                toggleRecord();
-                break;
-            case 'arrowleft':
-                event.preventDefault();
-                setSelectedBar(prev => Math.max(0, prev - 1));
-                break;
-            case 'arrowright':
-                event.preventDefault();
-                // Assuming a max of 4 bars for now, can be made dynamic later
-                setSelectedBar(prev => Math.min(3, prev + 1)); 
-                break;
-            case 'p':
-                event.preventDefault();
-                setCurrentMode(MODES.POS);
-                break;
-            case 's':
-                event.preventDefault();
-                setCurrentMode(MODES.SEQ);
-                break;
-            default:
-                break;
+        const transportAction = KEYBOARD_TRANSPORT_CONTROLS[keyLower];
+        if (transportAction) {
+            e.preventDefault();
+            if (transportAction === 'playPause') handlePlayPause();
+            else if (transportAction === 'stop') handleStop();
+            return;
         }
-    }, [selectedBar, setSelectedBar, setCurrentMode, togglePlay, toggleRecord, triggerBeat]);
+
+        if (viewMode === MODES.SEQ) {
+            const beatIndex = KEYBOARD_LAYOUT_MODE_SEQ[keyLower];
+            if (beatIndex !== undefined) {
+                e.preventDefault();
+                handleBeatClick(currentEditingBar, beatIndex);
+                const soundsToPlay = songData?.[currentEditingBar]?.beats?.[beatIndex]?.sounds || [];
+                if (soundsToPlay.length > 0) {
+                    soundsToPlay.forEach(soundName => {
+                        const sound = currentSelectedKitObject.sounds.find(s => s.name === soundName);
+                        if (sound?.url) playSound(sound.url);
+                    });
+                }
+                return;
+            }
+        }
+        
+        if (viewMode === MODES.POS) {
+             const groundingAction = KEYBOARD_FOOT_GROUNDING[keyLower];
+            if (groundingAction) {
+                e.preventDefault();
+                const { side, points } = groundingAction;
+                // Using a functional update to get the latest state
+                updateSongData(d => {
+                    // Defensive check: ensure the bar and beat exist
+                    if (d[currentEditingBar] && d[currentEditingBar].beats[activeBeatIndex]) {
+                        const beat = d[currentEditing-Bar].beats[activeBeatIndex];
+                        if (!beat.grounding) beat.grounding = { L: null, R: null, L_weight: 50 };
+                        beat.grounding[side] = points;
+                    }
+                    return d;
+                }, `Grounding Hotkey: ${side}`);
+            }
+        }
+
+    }, [
+        viewMode, setViewMode, handlePlayPause, handleStop, handleBeatClick, 
+        songData, currentEditingBar, activeBeatIndex, currentSelectedKitObject, updateSongData
+    ]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleKeyDown]);
 };

@@ -1,32 +1,14 @@
+// src/pages/SequencerPage.jsx
 import React from 'react';
-
-// --- CONTEXT PROVIDERS ---
-import { SequencerSettingsProvider } from '../contexts/SequencerSettingsContext';
-import { SequenceProvider } from '../contexts/SequenceContext';
-import { PlaybackProvider } from '../contexts/PlaybackContext';
-import { UIStateProvider } from '../contexts/UIStateContext';
-import { MotionAnalysisProvider } from '../contexts/MotionAnalysisContext';
-import { MediaProvider } from '../contexts/MediaContext';
-
-// --- MAIN COMPONENT IMPORT ---
-import Sequencer from '../components/Sequencer';
+import Studio from '../components/core/studio/Studio';
 
 const SequencerPage = () => {
   return (
-    // --- THE DEFINITIVE, CORRECT NESTING ORDER ---
-    <SequencerSettingsProvider>
-      <SequenceProvider>
-        <PlaybackProvider>
-          <UIStateProvider>
-            <MediaProvider>
-              <MotionAnalysisProvider>
-                <Sequencer />
-              </MotionAnalysisProvider>
-            </MediaProvider>
-          </UIStateProvider>
-        </PlaybackProvider>
-      </SequenceProvider>
-    </SequencerSettingsProvider>
+    // The Studio component is designed to manage its own layout and fill the screen.
+    // This parent div ensures the page context gives it the space it needs.
+    <div className="w-full h-screen bg-dark-bg overflow-hidden">
+      <Studio />
+    </div>
   );
 };
 

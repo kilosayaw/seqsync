@@ -1,62 +1,67 @@
-import React, { createContext, useState, useContext, useCallback } from 'react';
-
-// Assuming you have a constants file with this defined
-export const MODES = { SEQ: 'SEQ', POS: 'POS' };
+import React, { createContext, useState, useCallback, useMemo, useContext } from 'react';
+import { useSequence } from './SequenceContext';
+import { MODES, AVAILABLE_KITS, DEFAULT_SOUND_KIT, createDefaultBeatObject } from '../utils/constants';
 
 const UIStateContext = createContext(null);
 
 export const UIStateProvider = ({ children }) => {
-    // --- MODE SWITCHING & NUDGE STATE ---
-    const [currentMode, setCurrentMode] = useState(MODES.SEQ);
-    const [isNudgeModeActive, setNudgeModeActive] = useState(false);
-    const [is2dOverlayEnabled, set2dOverlayEnabled] = useState(true);
+    // --- State Declarations ---
+    const [viewMode, setViewMode] = useState(MODES.POS);
+    const [activeEditingJoint, setActiveEditingJoint] = useState(null);
+    const [currentEditingBar, setCurrentEditingBar] = useState(0);
+    const [activeBeatIndex, setActiveBeatIndex] = useState(0);
+    const [faderMode, setFaderMode] = useState('WEIGHT');
+    const [isPoseEditorOpen, setIsPoseEditorOpen] = useState(false); // State for the modal
+    const [selectedKitName, setSelectedKitName] = useState(DEFAULT_SOUND_KIT.name);
+    const [currentSoundInBank, setCurrentSoundInBank] = useState(null);
+    const { songData } = useSequence();
 
-    // Existing state...
-    const [selectedBeat, setSelectedBeat] = useState(0);
-    const [selectedBar, setSelectedBar] = useState(0);
-    const [visualizerMode, setVisualizerMode] = useState('2D');
-    const [isLiveCamActive, setLiveCamActive] = useState(false);
-    const [isMirrored, setIsMirrored] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(false);
-    const [editingBeatIndex, setEditingBeatIndex] = useState(null);
-    const [selectedJoint, setSelectedJoint] = useState(null);
+    // --- Derived State ---
+    const soundKitsObject = useMemo(() => AVAILABLE_KITS.reduce((acc, kit) => ({ ...acc, [kit.name]: kit }), {}), []);
+    const currentSelectedKitObject = useMemo(() => soundKitsObject[selectedKitName] || soundKitsObject[DEFAULT_SOUND_KIT.name], [soundKitsObject, selectedKitName]);
+    const activeBeatData = useMemo(() => songData?.[currentEditingBar]?.beats?.[activeBeatIndex] || createDefaultBeatObject(activeBeatIndex), [songData, currentEditingBar, activeBeatIndex]);
 
-    const toggleLiveCam = useCallback(() => setLiveCamActive(p => !p), []);
-    const toggleMirror = useCallback(() => setIsMirrored(p => !p), []);
-    const toggleEditMode = useCallback(() => {
-        setIsEditMode(prev => {
-            if (prev) setEditingBeatIndex(null); // Clear editing index when exiting edit mode
-            return !prev;
-        });
+    // --- UI Handlers ---
+    const handleBeatClick = useCallback((barIdx, beatIdx) => {
+        setCurrentEditingBar(barIdx);
+        setActiveBeatIndex(beatIdx);
     }, []);
-    
-    // Deactivate nudge mode when switching main modes
-    const handleSetCurrentMode = (mode) => {
-        setNudgeModeActive(false);
-        setCurrentMode(mode);
-    };
 
-    const value = {
-        currentMode,
-        setCurrentMode: handleSetCurrentMode,
-        isNudgeModeActive,
-        setNudgeModeActive,
-        selectedBeat, setSelectedBeat,
-        selectedBar, setSelectedBar,
-        visualizerMode, setVisualizerMode,
-        isLiveCamActive, toggleLiveCam,
-        isMirrored, toggleMirror,
-        isEditMode, toggleEditMode,
-        editingBeatIndex, setEditingBeatIndex,
-        selectedJoint, setSelectedJoint, is2dOverlayEnabled,
-        set2dOverlayEnabled,
-    };
+    const handleNavigateEditingBar = useCallback((direction) => {
+        const totalBars = songData.length;
+        setCurrentEditingBar(prevBar => (prevBar + direction + totalBars) % totalBars);
+        setActiveBeatIndex(0);
+    }, [songData.length]);
 
-    return (
-        <UIStateContext.Provider value={value}>
-            {children}
-        </UIStateContext.Provider>
-    );
+    // --- NEW: Handlers for the Pose Editor Modal ---
+    const openPoseEditor = useCallback(() => {
+        setIsPoseEditorOpen(true);
+    }, []);
+
+    const closePoseEditor = useCallback(() => {
+        setIsPoseEditorOpen(false);
+    }, []);
+
+    // --- Context Value ---
+    const value = useMemo(() => ({
+        viewMode, setViewMode,
+        activeEditingJoint, setActiveEditingJoint,
+        currentEditingBar, setCurrentEditingBar,
+        activeBeatIndex, setActiveBeatIndex,
+        faderMode, setFaderMode,
+        selectedKitName, setSelectedKitName,
+        currentSoundInBank, setCurrentSoundInBank,
+        isPoseEditorOpen, openPoseEditor, closePoseEditor, // Expose modal controls
+        activeBeatData, soundKitsObject, currentSelectedKitObject,
+        handleBeatClick, handleNavigateEditingBar
+    }), [
+        viewMode, activeEditingJoint, currentEditingBar, activeBeatIndex, faderMode,
+        selectedKitName, currentSoundInBank, isPoseEditorOpen,
+        activeBeatData, soundKitsObject, currentSelectedKitObject,
+        handleBeatClick, handleNavigateEditingBar, openPoseEditor, closePoseEditor
+    ]);
+
+    return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
 };
 
 export const useUIState = () => {

@@ -1,119 +1,63 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import styled from 'styled-components';
+
+// Import hooks used ONLY by this component's children
+import { useUIState } from '../../../contexts/UIStateContext.jsx';
+import { useMotionAnalysis } from '../../../hooks/useMotionAnalysis';
+
+// Import Child Components
 import LoadSave from '../../common/LoadSave';
-import { usePlayback } from '../../../contexts/PlaybackContext';
-import { useSequence } from '../../../contexts/SequenceContext';
-import { useUIState } from '../../../contexts/UIStateContext';
+import Button from '../../common/Button';
+import SoundBank from '../sequencer/SoundBank';
+import { MODES } from '../../../utils/constants';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMicrochip, faSpinner, faTimes } from '@fortawesome/free-solid-svg-icons';
 
-const HeaderContainer = styled.header`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background-color: var(--color-background-darker, #1a1a1a);
-  border-bottom: 1px solid var(--color-border, #333);
-  flex-shrink: 0; /* Prevent header from shrinking */
-`;
-
-const ControlGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0.75rem; /* 12px */
-`;
-
-const Button = styled.button`
-    padding: 8px 12px;
-    background-color: ${({ $active }) => ($active ? 'var(--color-accent, #00AACC)' : '#444')};
-    border: 1px solid ${({ $active }) => ($active ? 'var(--color-accent-light, #00FFFF)' : '#666')};
-    color: white;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 0.875rem;
-    transition: all 0.2s ease-in-out;
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    &:hover:not(:disabled) {
-        border-color: var(--color-accent-light, #7FFFD4);
-    }
-`;
-
-const RecordButton = styled(Button)`
-    background-color: ${({ $active }) => ($active ? '#FF0000' : '#444')};
-    border-color: ${({ $active }) => ($active ? '#FF6666' : '#666')};
-`;
-
-const BPMDisplay = styled.div`
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.5rem;
-    color: var(--color-text, #FFF);
-    padding: 8px 12px;
-    background-color: #222;
-    border-radius: 4px;
-    min-width: 80px;
-    text-align: center;
-`;
-
-const TimecodeDisplay = styled(BPMDisplay)`
-    font-size: 1.2rem;
-    min-width: 100px;
-    letter-spacing: 2px;
-`;
-
-const TopHeader = ({ onSave, onLoad, onFileSelected, onOpenPoseEditor }) => {
-    const { undo, redo, canUndo, canRedo } = useSequence();
-    const { 
-        isPlaying, togglePlay, 
-        isRecording, toggleRecord, 
-        isMetronomeEnabled, toggleMetronome,
-        bpm, tapTempo, currentStep
-    } = usePlayback();
-    const { 
-        isLiveCamActive, toggleLiveCam,
-        isMirrored, toggleMirror,
-        selectedBar
-    } = useUIState();
+// This component receives its complex handlers as props
+const TopHeader = ({ onSave, onLoad, onFileSelected, onActivateCamera, onAnalyze }) => {
+    // It can still consume contexts for its own direct needs
+    const { viewMode, setViewMode, selectedKitName, setSelectedKitName, currentSoundInBank, setCurrentSoundInBank, soundKitsObject } = useUIState();
+    const { isAnalyzing, progress, cancelFullAnalysis } = useMotionAnalysis({ onAnalysisComplete: () => {} }); // onAnalysisComplete is handled by parent
 
     return (
-        <HeaderContainer>
-            <ControlGroup>
-                <h1>SĒQsync</h1>
-                <LoadSave
+        <header className="mb-2 p-2 bg-gray-800 rounded-lg shadow-md flex flex-wrap items-center justify-between gap-x-4 gap-y-2 flex-shrink-0 z-30">
+            <div className="flex items-center gap-2 flex-wrap">
+                <LoadSave 
                     onSave={onSave}
                     onLoad={onLoad}
                     onFileSelected={onFileSelected}
+                    onActivateCamera={onActivateCamera}
                 />
-            </ControlGroup>
-            <ControlGroup>
-                <Button onClick={toggleLiveCam} $active={isLiveCamActive}>Live Cam</Button>
-                <Button onClick={toggleMirror} $active={isMirrored} disabled={!isLiveCamActive}>Mirror</Button>
-                <RecordButton onClick={toggleRecord} $active={isRecording} disabled={!isLiveCamActive}>Record</RecordButton>
-                
-                <TimecodeDisplay>
-                    {String(selectedBar + 1).padStart(2, '0')}:
-                    {/* Display 00 if playback is stopped, otherwise show the current beat */}
-                    {isPlaying ? String(currentStep + 1).padStart(2, '0') : '00'}
-                </TimecodeDisplay>
-                <BPMDisplay>{bpm.toFixed(0)}</BPMDisplay>
-                <Button onClick={tapTempo}>Tap</Button>
-                <Button onClick={toggleMetronome} $active={isMetronomeEnabled}>Metronome</Button>
-                <Button onClick={togglePlay}>{isPlaying ? 'Stop' : 'Play'}</Button>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-wrap">
+                <Button 
+                    onClick={onAnalyze} 
+                    variant="primary" 
+                    size="sm" 
+                    disabled={isAnalyzing} // Simplified disabled logic
+                    iconLeft={isAnalyzing ? faSpinner : faMicrochip} 
+                    iconProps={isAnalyzing ? { spin: true } : {}}
+                >
+                    {isAnalyzing ? `Analyzing... ${progress.toFixed(0)}%` : "Analyze"}
+                </Button>
+                {isAnalyzing && <Button onClick={cancelFullAnalysis} variant="danger" size="xs" iconLeft={faTimes} />}
+            </div>
 
-                <Button onClick={undo} disabled={!canUndo}>Undo</Button>
-                <Button onClick={redo} disabled={!canRedo}>Redo</Button>
-                <Button onClick={onOpenPoseEditor}>Pose Editor</Button>
-            </ControlGroup>
-        </HeaderContainer>
+            <div className="flex items-center gap-4">
+                <SoundBank 
+                    soundKits={soundKitsObject} 
+                    selectedKitName={selectedKitName} 
+                    onKitSelect={setSelectedKitName} 
+                    currentSoundInKit={currentSoundInBank} 
+                    onSoundInKitSelect={setCurrentSoundInBank} 
+                />
+                <div className="flex items-center gap-1">
+                    <Button onClick={() => setViewMode(MODES.POS)} variant={viewMode === MODES.POS ? "custom" : "secondary"} className={`!px-3 h-8 ${viewMode === MODES.POS && '!bg-pos-yellow !text-black font-semibold'}`}>POS</Button>
+                    <Button onClick={() => setViewMode(MODES.SEQ)} variant={viewMode === MODES.SEQ ? "custom" : "secondary"} className={`!px-3 h-8 ${viewMode === MODES.SEQ && '!bg-brand-seq !text-white font-semibold'}`}>SEQ</Button>
+                </div>
+            </div>
+        </header>
     );
-};
-
-TopHeader.propTypes = {
-    onSave: PropTypes.func.isRequired,
-    onLoad: PropTypes.func.isRequired,
-    onFileSelected: PropTypes.func.isRequired,
-    onOpenPoseEditor: PropTypes.func.isRequired,
 };
 
 export default TopHeader;
