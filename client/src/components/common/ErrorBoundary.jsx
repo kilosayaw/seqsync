@@ -1,45 +1,52 @@
+// src/components/common/ErrorBoundary.jsx
 import React from 'react';
+import PropTypes from 'prop-types';
 import Button from './Button';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
   static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
-    // You can also log the error to an error reporting service
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+    this.setState({ errorInfo });
   }
 
-  handleReload = () => {
-    window.location.reload();
+  handleReset = () => {
+    this.setState({ hasError: false, error: null, errorInfo: null });
+    if (this.props.onReset) {
+        this.props.onReset();
+    } else {
+        // Fallback: navigate to home or reload. Reload is simpler here.
+        window.location.href = '/'; // Or window.location.reload();
+    }
   };
 
   render() {
     if (this.state.hasError) {
-      // You can render any custom fallback UI
       return (
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white p-8">
-          <h1 className="text-3xl font-bold text-red-500 mb-4">Something went wrong.</h1>
-          <p className="text-lg mb-6 text-center">
-            An unexpected error occurred. Reloading the application may fix the issue.
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-gray-200 p-4 text-center">
+          <h1 className="text-3xl font-orbitron text-red-500 mb-4">Oops! Something Went Wrong</h1>
+          <p className="text-gray-400 mb-6">
+            An unexpected error occurred in the application. We apologize for the inconvenience.
           </p>
-          <details className="w-full max-w-2xl bg-gray-800 p-4 rounded-md mb-6">
-            <summary className="cursor-pointer text-yellow-400">Error Details</summary>
-            <pre className="mt-2 text-sm text-red-300 whitespace-pre-wrap break-all">
-              {this.state.error?.toString()}
-              {"\n"}
-              {this.state.error?.stack}
-            </pre>
-          </details>
-          <Button onClick={this.handleReload} variant="primary">
-            Reload Application
+          {import.meta.env.DEV && this.state.error && ( // Use Vite's env var for development
+            <details className="mb-6 text-left bg-gray-800 p-4 rounded-md max-w-2xl mx-auto overflow-auto">
+              <summary className="cursor-pointer font-semibold text-red-400">Error Details (Dev Mode)</summary>
+              <pre className="mt-2 text-xs text-gray-300 whitespace-pre-wrap">
+                {this.state.error.toString()}
+                {this.state.errorInfo && this.state.errorInfo.componentStack}
+              </pre>
+            </details>
+          )}
+          <Button onClick={this.handleReset} variant="primary">
+            Try Again or Go Home
           </Button>
         </div>
       );
@@ -48,5 +55,10 @@ class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+
+ErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+  onReset: PropTypes.func,
+};
 
 export default ErrorBoundary;
