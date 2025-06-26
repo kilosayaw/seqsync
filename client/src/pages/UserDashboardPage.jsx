@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import sequenceService from '../services/sequenceService';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth'; 
 import Button from '../components/common/Button';
 import SequenceListItem from '../components/dashboard/SequenceListItem'; 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

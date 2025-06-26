@@ -1,7 +1,7 @@
 // src/pages/LoginPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom'; // Link is used by AuthFormWrapper
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import AuthFormWrapper from '../components/auth/AuthFormWrapper';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';

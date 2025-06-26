@@ -1,89 +1,139 @@
-// client/src/utils/audioManager.js
+// src/utils/audioManager.js
 let audioContext = null;
-let isAudioContextUnlocked = false;
-const audioBufferCache = new Map();
+const preloadedBuffers = {}; // Store by full path
+let soundsCurrentlyLoading = 0; // Simple counter
 
-const logAudio = (level, message, ...args) => {
-    const prefix = `[AudioManager|${level.toUpperCase()}]`;
-    if (process.env.NODE_ENV === 'development') {
-        console.log(prefix, message, ...args);
-    }
-};
-
-// This function can be called safely at any time.
 export const getAudioContext = () => {
-    if (!audioContext && typeof window !== 'undefined') {
-        try {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            logAudio('info', `AudioContext created in ${audioContext.state} state.`);
-        } catch (e) {
-            logAudio('error', 'Web Audio API is not supported.', e);
-            return null;
+  if (typeof window !== 'undefined') {
+    if (!audioContext) {
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('[AudioManager] AudioContext created.');
+        if (audioContext.state === 'suspended') {
+          console.warn('[AudioManager] AudioContext is initially suspended. User interaction may be needed.');
         }
+      } catch (e) {
+        console.error('[AudioManager] Error creating AudioContext:', e);
+        return null;
+      }
     }
-    return audioContext;
+  }
+  return audioContext;
 };
 
-// This function MUST be called after a user interaction (e.g., a click).
-export const unlockAudioContext = () => {
-    const context = getAudioContext();
-    if (context && context.state === 'suspended') {
-        context.resume().then(() => {
-            isAudioContextUnlocked = true;
-            logAudio('info', "AudioContext resumed successfully.");
-        });
-    } else if (context) {
-        isAudioContextUnlocked = true;
-    }
-};
-
-const loadSound = async (soundObject) => {
-    const { url, name } = soundObject;
-    if (!url) return Promise.reject(new Error(`URL missing for ${name}.`));
-    if (audioBufferCache.has(url)) return Promise.resolve(audioBufferCache.get(url));
-
-    const context = getAudioContext();
-    if (!context) return Promise.reject(new Error("AudioContext not available."));
-
+export const resumeAudioContext = async () => {
+  let ctx = getAudioContext(); // Ensure it's initialized
+  if (ctx && ctx.state === 'suspended') {
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await context.decodeAudioData(arrayBuffer);
-        audioBufferCache.set(url, audioBuffer);
-        return audioBuffer; // Return the buffer on success
-    } catch (error) {
-        logAudio('error', `Failed to load '${name}':`, error.message);
-        throw error;
+      await ctx.resume();
+      console.log('[AudioManager] AudioContext resumed successfully.');
+    } catch (e) {
+      console.error('[AudioManager] Error resuming AudioContext:', e);
+      throw e; 
     }
+  } else if (!ctx) {
+    console.error('[AudioManager] AudioContext not available for resume.');
+    throw new Error("AudioContext not available.");
+  }
+  return ctx; // Return the context, whether it needed resuming or was already running
 };
 
-export const preloadSounds = async (sounds) => {
-    if (!Array.isArray(sounds) || sounds.length === 0) return;
-    // Use Promise.allSettled to ensure all load attempts complete, even if some fail
-    const loadPromises = sounds.map(sound => loadSound(sound).catch(e => e));
-    await Promise.allSettled(loadPromises);
-    logAudio('info', `${sounds.length} sounds preloading process initiated.`);
-};
-
-export const playSound = (url) => {
-    const context = getAudioContext();
-    if (!context || !isAudioContextUnlocked) {
-        logAudio('warn', `Cannot play sound: AudioContext not unlocked for ${url}. Call unlockAudioContext() on user interaction.`);
-        return;
-    }
-    const audioBuffer = audioBufferCache.get(url);
-    if (!audioBuffer) {
-        logAudio('warn', `Sound not preloaded: ${url}.`);
-        return;
-    }
-
+export const preloadSounds = async (soundFilePathsArray) => {
+  const ctx = getAudioContext();
+  if (!ctx) {
+    return Promise.reject(new Error("AudioContext not available for preloading sounds."));
+  }
+  if (ctx.state === 'suspended') {
+    console.warn('[AudioManager] AudioContext is suspended during preload. Attempting resume.');
     try {
-        const source = context.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(context.destination);
-        source.start(0);
-    } catch (error) {
-        logAudio('error', `Error playing sound '${url}':`, error);
+      await resumeAudioContext();
+    } catch (e) {
+      return Promise.reject(new Error("AudioContext suspended and could not be resumed for preload."));
     }
+  }
+
+  const uniquePathsToLoad = [...new Set(soundFilePathsArray.filter(path => path && !preloadedBuffers[path]))];
+  
+  if (uniquePathsToLoad.length === 0) {
+    console.log('[AudioManager] All requested sounds already loaded or paths invalid.');
+    return Promise.resolve();
+  }
+
+  console.log('[AudioManager] Starting sound preloading for:', uniquePathsToLoad);
+  soundsCurrentlyLoading += uniquePathsToLoad.length;
+  
+  const promises = uniquePathsToLoad.map(path => {
+    preloadedBuffers[path] = 'loading'; // Mark as loading
+    return fetch(path)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status} for ${path}`);
+        }
+        return response.arrayBuffer();
+      })
+      .then(arrayBuffer => ctx.decodeAudioData(arrayBuffer))
+      .then(audioBuffer => {
+        preloadedBuffers[path] = audioBuffer;
+        console.log(`[AudioManager] Sound "${path}" preloaded successfully.`);
+      })
+      .catch(error => {
+        console.error(`[AudioManager] Error preloading/decoding "${path}":`, error);
+        preloadedBuffers[path] = null; // Mark as failed
+      })
+      .finally(() => {
+        soundsCurrentlyLoading--;
+      });
+  });
+
+  return Promise.allSettled(promises).then(results => {
+    console.log('[AudioManager] All requested sound preloading attempts finished.');
+    const failedLoads = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && preloadedBuffers[r.value === undefined ? uniquePathsToLoad[results.indexOf(r)] : ''] === null ) ); // A bit complex due to allSettled
+    if (failedLoads.length > 0) {
+      console.warn(`[AudioManager] ${failedLoads.length} sound(s) failed to load or decode.`);
+    }
+    return new Promise((resolve) => { // Ensure all async operations within map are done
+        const checkLoadingComplete = () => {
+            if (soundsCurrentlyLoading === 0) {
+                const successfullyLoadedCount = Object.values(preloadedBuffers).filter(b => b && b !== 'loading' && b !== null).length;
+                const totalAttempted = uniquePathsToLoad.length;
+                console.log(`[AudioManager] Sound preloading batch complete. Successfully loaded: ${successfullyLoadedCount}/${totalAttempted}`);
+                resolve();
+            } else {
+                setTimeout(checkLoadingComplete, 50);
+            }
+        };
+        checkLoadingComplete();
+    });
+  });
+};
+
+export const playSound = (soundPath, options = {}) => {
+  const ctx = getAudioContext();
+  if (!ctx || ctx.state !== 'running') {
+    console.warn('[AudioManager] AudioContext not running/available. Cannot play sound:', soundPath);
+    return;
+  }
+
+  const buffer = preloadedBuffers[soundPath]; 
+  if (buffer && buffer !== 'loading' && buffer !== null) {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = options.volume !== undefined ? Math.max(0, Math.min(1, options.volume)) : 1;
+    
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    let offset = 0;
+    if (options.randomOffset && buffer.duration > 0.05) { 
+      offset = Math.random() * 0.02; 
+    }
+    
+    source.start(0, offset); // Play immediately with optional offset
+  } else if (buffer === 'loading') {
+    console.warn(`[AudioManager] Sound "${soundPath}" is still loading. Playback skipped.`);
+  } else {
+    console.error(`[AudioManager] Sound "${soundPath}" not preloaded or failed to load. Current status:`, buffer);
+  }
 };

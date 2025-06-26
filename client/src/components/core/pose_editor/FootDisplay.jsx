@@ -1,160 +1,122 @@
-import React, { useCallback, useRef, useState, useMemo } from 'react';
+// src/components/core/pose_editor/FootDisplay.jsx
+import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { useActionLogger } from '../../../hooks/useActionLogger';
-import { FOOT_CONTACT_ZONES } from '../../../utils/constants';
 
-const FootDisplay = ({ side, groundPoints, rotation, ankleRotation, onRotate, onGroundingChange, onAnkleRotationChange }) => {
-    const log = useActionLogger('FootDisplay');
-    const platterRef = useRef(null);
-    const [isInteracting, setIsInteracting] = useState(false);
-    
-    // The inner circle for grounding interaction.
-    const interactionRef = useRef(null); 
-    const contactZones = useMemo(() => FOOT_CONTACT_ZONES[side], [side]);
+// Corrected base paths assuming assets are served from /public/assets/
+const GROUND_ASSETS_BASE_PATH = '/assets/ground/'; // For foot outlines and ground points
+// const IMAGES_ASSETS_BASE_PATH = '/assets/images/'; // Original, if foot-wheel was in a separate images folder
 
-    const getZoneFromPosition = useCallback((x, y, rect) => {
-        const normX = (x - rect.left) / rect.width;
-        const normY = (y - rect.top) / rect.height;
-        for (const zone of contactZones) {
-            const dx = normX - zone.cx;
-            const dy = normY - zone.cy;
-            if (dx * dx + dy * dy < zone.radius * zone.radius) {
-                return zone.notation;
-            }
-        }
-        return null;
-    }, [contactZones]);
-    
-    // --- Grounding Interaction (Inner Circle) ---
-    const handleGroundingInteraction = useCallback((e) => {
-        if (!interactionRef.current) return;
-        const rect = interactionRef.current.getBoundingClientRect();
-        // Default to a full plant if no specific zone is hit, providing tactile feedback
-        const zoneNotation = getZoneFromPosition(e.clientX, e.clientY, rect) || `${side}123T12345`;
-        
-        if (zoneNotation !== groundPoints) {
-            onGroundingChange(side, zoneNotation);
-        }
-    }, [getZoneFromPosition, onGroundingChange, side, groundPoints]);
-    
-    const handlePointerDown = useCallback((e) => {
-        e.preventDefault();
-        setIsInteracting(true);
-        // On initial press, register a full grounding contact
-        const fullPlantNotation = `${side}123T12345`;
-        log('GroundingEngaged', { side, initialContact: fullPlantNotation });
-        onGroundingChange(side, fullPlantNotation);
-        document.addEventListener('pointermove', handleGroundingInteraction);
-        document.addEventListener('pointerup', handlePointerUp);
-    }, [side, onGroundingChange, handleGroundingInteraction, log]);
-    
-    const handlePointerUp = useCallback(() => {
-        setIsInteracting(false);
-        log('GroundingReleased', { side });
-        onGroundingChange(side, null); // Set grounding to null when released
-        document.removeEventListener('pointermove', handleGroundingInteraction);
-        document.removeEventListener('pointerup', handlePointerUp);
-    }, [side, onGroundingChange, log, handleGroundingInteraction]);
+// If foot-wheel.png is also in /assets/ground/ as per your path example:
+const WHEEL_IMAGE_PATH = '/assets/ground/foot-wheel.png';
 
-    // --- Platter Rotation (Outer Wheel) ---
-    const handlePlatterDrag = useCallback((e) => {
-        if (!platterRef.current) return;
-        e.preventDefault();
-        const platter = platterRef.current;
-        const rect = platter.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        
-        // Calculate the angle of the initial click
-        const startAngleRad = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-        const startRotation = rotation;
 
-        const handleMove = (moveEvent) => {
-            const currentAngleRad = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX);
-            const angleDiff = (currentAngleRad - startAngleRad) * (180 / Math.PI); // Convert radians to degrees
-            onRotate(side, startRotation + angleDiff);
-        };
+const FootDisplay = ({ 
+  side, 
+  groundPoints,
+  type = 'image',
+  sizeClasses, 
+  rotation = 0,
+  className = "",
+}) => {
+  const [baseImageError, setBaseImageError] = useState(false);
+  const [groundPointImageErrors, setGroundPointImageErrors] = useState({});
+  const [wheelImageError, setWheelImageError] = useState(false);
 
-        const handleUp = () => {
-            document.removeEventListener('mousemove', handleMove);
-            document.removeEventListener('mouseup', handleUp);
-            document.removeEventListener('touchmove', handleMove);
-            document.removeEventListener('touchend', handleUp);
-        };
+  const baseFootImageSrc = useMemo(() => side === 'L' 
+    ? `${GROUND_ASSETS_BASE_PATH}foot-left.png` 
+    : `${GROUND_ASSETS_BASE_PATH}foot-right.png`, [side]);
+  
+  const wheelImageSrc = WHEEL_IMAGE_PATH; // Use the corrected constant
 
-        document.addEventListener('mousemove', handleMove);
-        document.addEventListener('mouseup', handleUp);
-        document.addEventListener('touchmove', handleMove);
-        document.addEventListener('touchend', handleUp);
-    }, [rotation, side, onRotate]);
+  useEffect(() => {
+    setBaseImageError(false);
+    setWheelImageError(false);
+    setGroundPointImageErrors({});
+  }, [side, groundPoints]); // Reset errors when props change
 
-    const baseFootImage = `/assets/ground/foot-${side.toLowerCase()}.png`;
-    const activeGroundingImage = groundPoints ? `/assets/ground/${groundPoints}.png` : baseFootImage;
+  const handleImageError = (setter, path) => { 
+    setter(true); 
+    console.error(`[FootDisplay] Error loading image: ${path}`); 
+  };
+  const handleGroundPointError = (pointName) => { 
+    setGroundPointImageErrors(prev => ({ ...prev, [pointName]: true })); 
+    console.error(`[FootDisplay] Error loading ground point image: ${GROUND_ASSETS_BASE_PATH}${pointName}.png`);
+  };
 
+  const activeGroundPointsArray = useMemo(() => {
+    if (!groundPoints) return [];
+    return (Array.isArray(groundPoints) ? groundPoints : [groundPoints]).filter(Boolean);
+  }, [groundPoints]);
+
+  if (type === 'image') {
     return (
-        <div className="relative w-[250px] h-[250px] flex flex-col items-center justify-center select-none">
-            {/* The Draggable Outer Wheel for Rotation */}
-            <div
-                ref={platterRef}
-                className="absolute inset-0 bg-contain bg-center bg-no-repeat cursor-grab active:cursor-grabbing z-10"
-                style={{ 
-                    backgroundImage: `url(/assets/ground/foot-wheel.png)`, 
-                    transform: `rotate(${rotation}deg)`,
-                    transition: 'transform 0.05s linear' // Add a slight smoothing
-                }}
-                onMouseDown={handlePlatterDrag}
-                onTouchStart={handlePlatterDrag}
-                role="slider"
-                aria-label={`${side} foot rotation`}
-                aria-valuenow={Math.round(rotation)}
+      <div className={`relative ${sizeClasses} flex items-center justify-center select-none ${className}`}>
+        {!wheelImageError ? (
+          <img
+            src={wheelImageSrc}
+            alt="Foot grounding wheel" // Added alt text
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-60 sm:opacity-75"
+            onError={() => handleImageError(setWheelImageError, wheelImageSrc)}
+            aria-hidden="true"
+            draggable="false"
+          />
+        ) : ( <div className="absolute inset-0 flex items-center justify-center text-red-700/60 text-xs font-mono bg-black/30 rounded-full">WheelImg Err</div> )}
+
+        <div
+          className="absolute w-[65%] h-[65%] flex items-center justify-center" 
+          style={{ transform: `rotate(${rotation}deg)` }} 
+        >
+          {!baseImageError ? (
+            <img
+              src={baseFootImageSrc}
+              alt={`${side === 'L' ? 'Left' : 'Right'} Foot Outline`}
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+              onError={() => handleImageError(setBaseImageError, baseFootImageSrc)}
+              draggable="false"
             />
+          ) : ( <div className="absolute inset-0 flex items-center justify-center text-red-500 text-sm font-semibold font-mono bg-black/30">BaseImg Err</div> )}
 
-            {/* The Grounding Interaction Pad */}
-            <div
-                ref={interactionRef}
-                className="absolute w-[65%] h-[65%] rounded-full cursor-pointer z-20"
-                onPointerDown={handlePointerDown}
-            >
-                <img src={baseFootImage} alt={`${side} Foot Outline`} className="w-full h-full object-contain pointer-events-none opacity-20" draggable="false" />
-                <img
-                    src={activeGroundingImage}
-                    alt={groundPoints || `${side} Foot Lifted`}
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-100"
-                    style={{ opacity: isInteracting ? 1 : 0.2 }}
-                    draggable="false"
-                />
-            </div>
-
-            {/* --- DEFINITIVE FIX: Ankle Slider and Rotation Readout are kept and cleanly separated --- */}
-            <div className="absolute -bottom-12 text-center w-full z-30 space-y-2">
-                <div className="w-4/5 mx-auto">
-                    <label htmlFor={`${side}-ankle-in-ex`} className="text-xs text-text-muted block mb-1">Ankle In/Ex</label>
-                    <input
-                        id={`${side}-ankle-in-ex`}
-                        type="range"
-                        min="-30" max="30" step="1"
-                        value={ankleRotation || 0}
-                        onChange={(e) => onAnkleRotationChange(side, Number(e.target.value))}
-                        className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-pos-yellow"
-                    />
-                    <span className="text-xs font-mono text-text-secondary">{ankleRotation || 0}°</span>
-                </div>
-                <div>
-                    <p className="text-sm text-text-muted uppercase font-semibold">FOOT ROT: <span className="font-mono text-text-primary">{Math.round(rotation)}°</span></p>
-                </div>
-            </div>
+          {activeGroundPointsArray.map((pointName) => {
+            if (groundPointImageErrors[pointName]) {
+              return <div key={`${pointName}-err`} className="absolute inset-0 flex items-center justify-center text-red-600/80 text-[0.5rem] font-mono bg-black/20">{pointName} Err</div>;
+            }
+            const pointImageSrc = `${GROUND_ASSETS_BASE_PATH}${pointName}.png`;
+            return (
+              <img 
+                key={pointName} 
+                src={pointImageSrc} 
+                alt={`Grounding point: ${pointName}`} 
+                className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-90" 
+                onError={() => handleGroundPointError(pointName)} 
+                draggable="false"
+              />
+            );
+          })}
+           {activeGroundPointsArray.length === 0 && !baseImageError && (
+             <p className="text-xs text-gray-500/70 absolute bottom-1 opacity-80 pointer-events-none font-mono">No Ground</p>
+           )}
         </div>
+         {baseImageError && ( <p className="text-red-500 text-xs font-semibold absolute bottom-0 bg-black/60 px-1 rounded font-mono">Base Foot Img Err</p> )}
+      </div>
     );
+  }
+  
+  return ( 
+    <div className={`${sizeClasses} bg-gray-700 flex flex-col items-center justify-center rounded-full p-1 text-xs ${className}`}> 
+      <p>{side} Foot</p> 
+      <p>Rot: {rotation}°</p> 
+      <p className="truncate w-full text-center">Pts: {activeGroundPointsArray.join(',')||'N/A'}</p> 
+    </div>
+  );
 };
 
 FootDisplay.propTypes = {
   side: PropTypes.oneOf(['L', 'R']).isRequired,
-  groundPoints: PropTypes.string,
+  groundPoints: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
+  type: PropTypes.string,
+  sizeClasses: PropTypes.string.isRequired,
   rotation: PropTypes.number,
-  ankleRotation: PropTypes.number,
-  onRotate: PropTypes.func.isRequired,
-  onGroundingChange: PropTypes.func.isRequired,
-  onAnkleRotationChange: PropTypes.func.isRequired,
+  className: PropTypes.string,
 };
 
 export default FootDisplay;

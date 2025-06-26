@@ -1,63 +1,155 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-/* ==========================================================================
-   Font Definitions
-   ========================================================================== */
-
+/* --- Custom Digital Play Font Definitions --- */
 @font-face {
   font-family: 'Digital Play';
   src: url('/assets/fonts/Digital Play St.ttf') format('truetype');
-  font-weight: normal;
+  font-weight: normal;  /* Or specific weight if known, e.g., 400 */
   font-style: normal;
 }
+
 @font-face {
-  font-family: 'Digital Play';
+  font-family: 'Digital Play'; /* Same family name for italic variant */
   src: url('/assets/fonts/Digital Play Italic St.ttf') format('truetype');
-  font-weight: normal;
+  font-weight: normal;  /* Or specific weight if known */
   font-style: italic;
 }
+
 @font-face {
-  font-family: 'Digital Play Hollow';
+  font-family: 'Digital Play Hollow'; /* Treat as a separate family for clarity */
   src: url('/assets/fonts/Digital Play Hollow St.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
-@font-face {
-  font-family: 'Orbitron';
-  src: url('/assets/fonts/Orbitron-Regular.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Share Tech Mono';
-  src: url('/assets/fonts/ShareTechMono-Regular.ttf') format('truetype');
-}
+/* --- End Custom Font Definitions --- */
 
-
-/* ==========================================================================
-   Global Styles & CSS Variables
-   ========================================================================== */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  /* Default font for the entire application */
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Define the RGB values for your brand colors */
+  --color-brand-accent-rgb: 0, 242, 234;   /* From #00F2EA */
+  --color-brand-pos-rgb: 250, 204, 21;     /* From #FACC15 */
+  --color-brand-seq-rgb: 59, 130, 246;    /* From #3B82F6 */
+  --color-brand-sync-rgb: 168, 85, 247;   /* From #A855F7 */
 
-  /* --- Font Family Variables --- */
-  --font-body: 'Inter', sans-serif;
-  --font-digital-solid: 'Digital Play', 'Orbitron', monospace;
-  --font-digital-hollow: 'Digital Play Hollow', monospace;
-  --font-mono: 'Share Tech Mono', monospace;
+  /* Base text and background colors */
+  --color-text-primary: 243, 244, 246; /* gray-100 */
+  --color-bg-main: 17, 24, 39; /* gray-900 */
 }
 
-/* Optional: Utility classes if you prefer to use them with Tailwind */
-@layer utilities {
-  .font-digital {
-    font-family: var(--font-digital-solid);
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
   }
-  .font-digital-hollow {
-    font-family: var(--font-digital-hollow);
+
+  body {
+    @apply bg-dark-bg text-text-primary antialiased;
+    font-family: theme('fontFamily.sans'); /* Default sans-serif from Tailwind config */
+    min-height: 100vh;
+    overflow-x: hidden; /* Prevent horizontal scroll */
   }
-  .font-mono-tech {
-    font-family: var(--font-mono);
+
+  /* Custom Scrollbar Styling */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
   }
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-800 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: theme('colors.brand-accent-base'); 
+    @apply rounded-full border-2 border-transparent bg-clip-content;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.brand-accent-base');
+  }
+
+  /* For Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.brand-accent-base') theme('colors.gray.800');
+  }
+
+  /* Form Inputs Base Styles */
+  .input-field, .input-select {
+    @apply block w-full px-3 py-2 bg-element-bg border border-border-color rounded-md text-sm text-text-primary placeholder-text-muted;
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent;
+    @apply transition-colors duration-150 ease-in-out;
+  }
+  
+  .input-field[type="number"] {
+    -moz-appearance: textfield;
+  }
+  .input-field[type="number"]::-webkit-outer-spin-button,
+  .input-field[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  .input-select {
+    @apply appearance-none bg-no-repeat;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+
+  .label-text {
+    @apply block text-xs font-medium text-text-secondary mb-1;
+  }
+
+  .btn {
+    @apply font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors duration-150 ease-in-out flex items-center justify-center;
+  }
+
+  .shadow-beat-pad {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.05), inset 0 -1px 1px rgba(0,0,0,0.2);
+  }
+  .shadow-transport {
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.03);
+  }
+}
+
+/* Utility for Orbitron font (already defined via @import) */
+.font-orbitron {
+  font-family: 'Orbitron', sans-serif;
+}
+
+/* CLASS FOR YOUR NEW DIGITAL FONT */
+.font-digital-play {
+  font-family: 'Digital Play', 'Share Tech Mono', monospace; /* Fallback to Share Tech Mono, then generic monospace */
+}
+.font-digital-play-hollow {
+  font-family: 'Digital Play Hollow', 'Share Tech Mono', monospace; /* Fallback */
+}
+
+
+/* Toastify Dark Theme Customization */
+.Toastify__toast-theme--dark {
+  background: #1F2937 !important; 
+  color: #F3F4F6 !important; 
+  border: 1px solid #374151; 
+}
+.Toastify__close-button--dark {
+  color: #D1D5DB !important; 
+  opacity: 0.7 !important;
+}
+.Toastify__progress-bar--dark {
+  background: theme('colors.brand-accent-base') !important; /* Use theme() for Tailwind color */
+}
+.Toastify__toast-icon svg {
+  fill: theme('colors.brand-accent-base') !important; /* Use theme() */
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }

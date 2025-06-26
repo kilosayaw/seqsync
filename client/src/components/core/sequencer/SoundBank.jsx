@@ -1,156 +1,156 @@
+// src/components/core/sequencer/SoundBank.jsx
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBoxArchive, faMusic, faChevronDown, faChevronUp, faUpload, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
-
-// ============================================================================
-// FIX: The import path is now corrected to go up two directories.
-// From: .../core/sequencer/ -> ../ -> .../core/ -> ../ -> .../components/ -> common/
-// ============================================================================
+import { faBoxArchive, faMusic, faChevronDown, faChevronUp, faCaretRight } from '@fortawesome/free-solid-svg-icons'; // Added faBoxArchive, faCaretRight
+import { getSoundNameFromPath } from '../../../utils/sounds'; // Assuming tr808SoundKeys and tr808SoundFiles are not needed directly here anymore
+import Tooltip from '../../common/Tooltip';
 import Button from '../../common/Button';
 
 const SoundBank = ({
-  soundKits,
-  selectedKitName,
-  onKitSelect,
-  currentSoundInKit,
-  onSoundInKitSelect,
+  // Kit related props
+  availableKits,       // Array of kit names: ['TR-808', 'DRUMBRUTE']
+  selectedKit,         // String: name of the currently selected kit
+  onKitSelect,         // Function: (kitName) => void
+
+  // Sound related props (relative to the selected kit)
+  currentSoundInKit,   // String: key of the current sound within the selectedKit
+  onSoundInKitSelect,  // Function: (soundKey) => void
+  soundsForSelectedKit,// Array: sound keys for the selectedKit
+  fileMapForSelectedKit,// Object: file map for the selectedKit
+
   isCompact = false,
-  isAdmin = false,
-  onUploadKitClick,
+  logToConsole,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showKitList, setShowKitList] = useState(false);
   const dropdownRef = useRef(null);
 
-  const currentSelectedKitData = useMemo(() => {
-    if (!selectedKitName || !soundKits || !soundKits[selectedKitName]) {
-      return null;
-    }
-    return soundKits[selectedKitName];
-  }, [soundKits, selectedKitName]);
-
-  const soundsForDisplayInSelectedKit = useMemo(() => {
-    if (!currentSelectedKitData || !currentSelectedKitData.sounds || !currentSelectedKitData.orderedKeys) {
-      return [];
-    }
-    const soundMap = currentSelectedKitData.sounds.reduce((acc, sound) => {
-      acc[sound.name] = sound;
-      return acc;
-    }, {});
-    
-    return currentSelectedKitData.orderedKeys
-      .map(key => soundMap[key])
-      .filter(Boolean);
-  }, [currentSelectedKitData]);
-
-  useEffect(() => {
-    if (isDropdownOpen) {
-      const kitCount = Object.keys(soundKits || {}).length;
-      if (kitCount > 1) {
-        setShowKitList(true);
-      } else {
-        setShowKitList(false);
-      }
-    }
-  }, [isDropdownOpen, soundKits]);
-
-  const handleKitSelectInternal = useCallback((kitNameKey) => {
+  const handleKitSelectInternal = useCallback((kitName) => {
+    logToConsole?.(`[SoundBank] Kit selected: ${kitName}`);
     if (onKitSelect) {
-      onKitSelect(kitNameKey);
+      onKitSelect(kitName);
     }
-    setShowKitList(false);
-  }, [onKitSelect]);
+    // Keep dropdown open to select a sound, or close if that's preferred UX
+    // For now, let's assume selecting a kit populates sounds and keeps dropdown open.
+    // If a sound should be auto-selected, parent component would handle that.
+  }, [onKitSelect, logToConsole]);
 
-  const handleSoundSelectInternal = useCallback((soundName) => {
+  const handleSoundSelectInternal = useCallback((soundKey) => {
+    logToConsole?.(`[SoundBank] Sound selected in kit '${selectedKit}': ${soundKey}`);
     if (onSoundInKitSelect) {
-      onSoundInKitSelect(soundName);
+      onSoundInKitSelect(soundKey);
     }
-    setIsDropdownOpen(false);
-  }, [onSoundInKitSelect]);
+    setIsDropdownOpen(false); // Close dropdown after sound selection
+  }, [onSoundInKitSelect, selectedKit, logToConsole]);
 
   const toggleDropdown = useCallback(() => {
+    logToConsole?.(`[SoundBank] Toggling dropdown. Was open: ${isDropdownOpen}`);
     setIsDropdownOpen(prev => !prev);
-  }, []);
+  }, [isDropdownOpen, logToConsole]);
 
+  // Close dropdown if clicked outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
     };
-    if (isDropdownOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isDropdownOpen]);
 
   const mainButtonText = useMemo(() => {
-    if (currentSoundInKit) {
-      return currentSoundInKit;
+    if (selectedKit && currentSoundInKit) {
+      const soundName = getSoundNameFromPath(fileMapForSelectedKit?.[currentSoundInKit] || currentSoundInKit);
+      return isCompact ? soundName.substring(0, 4) : `${selectedKit}: ${soundName}`;
     }
-    if (currentSelectedKitData) {
-      return currentSelectedKitData.displayName || selectedKitName;
+    if (selectedKit) {
+      return isCompact ? selectedKit.substring(0,6) : `${selectedKit}: Select Sound`;
     }
-    return "Sound Bank";
-  }, [currentSoundInKit, currentSelectedKitData, selectedKitName]);
+    return "Sound Kits";
+  }, [selectedKit, currentSoundInKit, fileMapForSelectedKit, isCompact]);
 
-  const mainButtonIcon = useMemo(() => currentSoundInKit ? faMusic : faBoxArchive, [currentSoundInKit]);
-  const buttonTextMaxWidthClass = isCompact ? 'max-w-[70px] sm:max-w-[80px]' : 'max-w-[160px] sm:max-w-[200px]';
+  const mainButtonIcon = useMemo(() => {
+    return selectedKit ? faMusic : faBoxArchive;
+  }, [selectedKit]);
 
   const renderKitSelection = () => (
     <div className="py-1">
-      {Object.values(soundKits).map((kit) => (
+      {availableKits.map((kitName) => (
         <button
-          key={kit.name}
-          onClick={() => handleKitSelectInternal(kit.name)}
-          className={`flex items-center justify-between w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors ${selectedKitName === kit.name ? 'bg-blue-600 text-white font-semibold' : 'text-gray-200 hover:bg-gray-600/70'}`}
-          title={`Select kit: ${kit.displayName}`}
+          key={kitName}
+          onClick={() => handleKitSelectInternal(kitName)}
+          className={`flex items-center justify-between w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors
+                      ${selectedKit === kitName ? 'bg-brand-primary-dark text-white font-semibold' : 'text-gray-200 hover:bg-gray-600/70'}`}
+          title={`Select kit: ${kitName}`}
         >
-          <span>{kit.displayName}</span>
+          <span>{kitName}</span>
+          {selectedKit === kitName && <FontAwesomeIcon icon={faCaretRight} className="text-xs" />}
         </button>
       ))}
     </div>
   );
-  
-  const renderSoundSelection = () => (
-    <div className={`py-1 ${isCompact ? 'max-h-40' : 'max-h-80'} overflow-y-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-700/50`}>
-      {soundsForDisplayInSelectedKit.map((sound) => {
-        const isSelected = currentSoundInKit === sound.name;
-        return (
-          <button
-            key={sound.name}
-            onClick={() => handleSoundSelectInternal(sound.name)}
-            className={`block w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors ${isSelected ? 'bg-blue-500 text-white font-semibold' : 'text-gray-200 hover:bg-gray-600/70'}`}
-            title={`Select sound: ${sound.name}`}
-          >
-            {sound.name}
-          </button>
-        );
-      })}
-    </div>
-  );
+
+  const renderSoundSelection = () => {
+    if (!soundsForSelectedKit || soundsForSelectedKit.length === 0) {
+      return <p className="text-xs text-gray-400 p-3 text-center">No sounds in {selectedKit || 'this kit'}.</p>;
+    }
+    return (
+      <div className={`py-1 ${isCompact ? 'max-h-36' : 'max-h-60'} overflow-y-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-700`}>
+        {soundsForSelectedKit.map((soundKey) => {
+          const displayName = getSoundNameFromPath(fileMapForSelectedKit?.[soundKey] || soundKey);
+          const isSelected = currentSoundInKit === soundKey;
+          return (
+            <button
+              key={soundKey}
+              onClick={() => handleSoundSelectInternal(soundKey)}
+              className={`block w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors
+                          ${isSelected ? 'bg-brand-seq text-white font-semibold' : 'text-gray-200 hover:bg-gray-600/70'}`}
+              title={`Select ${displayName}`}
+            >
+              {displayName}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className="relative" ref={dropdownRef}>
       <Button
         onClick={toggleDropdown}
-        variant="custom"
-        className={`flex items-center justify-between ${isCompact ? 'px-2 h-8 min-w-[90px] text-xs' : 'px-3 h-9 sm:h-10 min-w-[180px] text-sm'} ${isDropdownOpen ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-600'} bg-gray-700 hover:ring-gray-500 text-gray-100`}
-        title={isDropdownOpen ? "Close selection" : `Current: ${mainButtonText}`}
+        variant="secondary" // Or a custom variant for dropdown triggers
+        size={isCompact ? "sm" : "sm"}
+        className={`flex items-center justify-between w-full ${isCompact ? 'px-2 !h-8' : 'px-3 !h-9 sm:!h-10'}`}
+        title={isDropdownOpen ? "Close selection" : `Current: ${mainButtonText}. Click to change.`}
+        aria-expanded={isDropdownOpen}
+        aria-haspopup="listbox" // Accessibility
       >
         <FontAwesomeIcon icon={mainButtonIcon} className={`mr-1.5 ${isCompact ? 'text-xs' : 'text-sm'}`} />
-        <span className={`truncate ${buttonTextMaxWidthClass}`}>
+        <span className={`truncate ${isCompact ? 'max-w-[50px] sm:max-w-[70px]' : 'max-w-[90px] sm:max-w-[110px]'}`}>
           {mainButtonText}
         </span>
-        <FontAwesomeIcon icon={isDropdownOpen ? faChevronUp : faChevronDown} className={`ml-auto pl-1.5 ${isCompact ? 'text-xs' : 'text-sm'}`} />
+        <FontAwesomeIcon icon={isDropdownOpen ? faChevronUp : faChevronDown} className={`ml-1.5 ${isCompact ? 'text-xs' : 'text-sm'}`} />
       </Button>
 
       {isDropdownOpen && (
-        <div className={`absolute z-50 right-0 mt-1 w-52 sm:w-60 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl backdrop-blur-sm bg-opacity-95`}>
-          {showKitList ? renderKitSelection() : renderSoundSelection()}
-          {currentSelectedKitData && Object.keys(soundKits || {}).length > 1 && !showKitList && (
+        <div className={`absolute z-50 right-0 mt-1 w-44 sm:w-52 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl`}>
+          {!selectedKit || availableKits.length === 0 ? renderKitSelection() : renderSoundSelection()}
+          {/* Optionally, add a "Back to Kits" button if a kit is selected */}
+          {selectedKit && availableKits.length > 1 && (
             <div className="border-t border-gray-700/50 p-1">
-              <Button onClick={() => setShowKitList(true)} variant="custom" className="text-xs text-gray-400 hover:text-blue-400 w-full justify-start px-3 py-1">
-                « View Kits
+              <Button
+                onClick={() => { onKitSelect(null); logToConsole?.("[SoundBank] Returned to kit selection.");}} // Clear selected kit to show kit list
+                variant="link"
+                size="sm"
+                className="text-xs text-gray-400 hover:text-brand-accent w-full"
+              >
+                « Change Kit
               </Button>
             </div>
           )}
@@ -161,22 +161,17 @@ const SoundBank = ({
 };
 
 SoundBank.propTypes = {
-  soundKits: PropTypes.objectOf(PropTypes.shape({
-    name: PropTypes.string.isRequired,
-    displayName: PropTypes.string.isRequired,
-    sounds: PropTypes.arrayOf(PropTypes.shape({
-        name: PropTypes.string.isRequired,
-        url: PropTypes.string.isRequired,
-    })).isRequired,
-    orderedKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
-  })).isRequired,
-  selectedKitName: PropTypes.string,
+  availableKits: PropTypes.arrayOf(PropTypes.string).isRequired,
+  selectedKit: PropTypes.string, // Can be null if no kit is selected yet
   onKitSelect: PropTypes.func.isRequired,
-  currentSoundInKit: PropTypes.string,
+
+  currentSoundInKit: PropTypes.string, // Key of the sound within the selected kit
   onSoundInKitSelect: PropTypes.func.isRequired,
+  soundsForSelectedKit: PropTypes.arrayOf(PropTypes.string), // Sounds for the currently selected kit
+  fileMapForSelectedKit: PropTypes.object,                  // File map for the currently selected kit
+
   isCompact: PropTypes.bool,
-  isAdmin: PropTypes.bool,
-  onUploadKitClick: PropTypes.func,
+  logToConsole: PropTypes.func,
 };
 
 export default React.memo(SoundBank);

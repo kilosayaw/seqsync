@@ -1,307 +1,182 @@
-import React, { useState, useEffect } from 'react';
+// src/components/core/sequencer/BeatButton.jsx
+// Full updated version with intended styling for sound names.
+
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import styled from 'styled-components';
-import { Plus, X } from 'react-feather';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus, faTimes, faBroadcastTower } from '@fortawesome/free-solid-svg-icons';
+import { getSoundNameFromPath, tr808SoundFiles } from '../../../utils/sounds';
+import Tooltip from '../../common/Tooltip';
+import { toast } from 'react-toastify';
+import {
+  MODE_SEQ, MODE_POS, MAX_SOUNDS_PER_BEAT, createDefaultBeatObject,
+  DEFAULT_ANKLE_SAGITTAL, DEFAULT_ANKLE_FRONTAL, DEFAULT_ANKLE_TRANSVERSE,
+  DEFAULT_JOINT_ENERGY, DEFAULT_INTENT, DEFAULT_GENERAL_ORIENTATION,
+} from '../../../utils/constants';
 
-// --- CONTEXT & UTILS ---
-import { useUIState, MODES } from '../../../contexts/UIStateContext';
-import { getSoundNameFromPath } from '../../../utils/soundLibrary';
+const BeatButton = React.memo(({
+  beatData, beatIndex, appMode, isSelectedForEdit, isCurrentlySelectedInSeqMode,
+  isCurrentlyPlayingAtBeat, isPlayheadPositionWhenPaused,
+  onClick, onAddSound, onDeleteSound, currentSoundInBank, logToConsole,
+}) => {
+  const [isHoveringButton, setIsHoveringButton] = useState(false);
+  const [hoveredSoundKey, setHoveredSoundKey] = useState(null);
 
-// --- COMPONENTS ---
-import BeatWaveform from './BeatWaveform';
+  useEffect(() => {
+    logToConsole?.(`[BeatButton ${beatIndex + 1}] Render/Update. beatData.sounds:`, JSON.stringify(beatData?.sounds));
+  }, [beatData, beatIndex, logToConsole]);
 
+  const currentBeatData = useMemo(() => {
+    const defaultBeat = createDefaultBeatObject(beatIndex);
+    let finalData = { ...defaultBeat, id: beatIndex };
+    if (beatData && typeof beatData === 'object') {
+      finalData = { ...finalData, ...beatData,
+        sounds: Array.isArray(beatData.sounds) ? beatData.sounds : [],
+        jointInfo: (typeof beatData.jointInfo === 'object' && beatData.jointInfo !== null) ? beatData.jointInfo : {},
+        grounding: (typeof beatData.grounding === 'object' && beatData.grounding !== null) ? beatData.grounding : { L: null, R: null, L_weight: 50 },
+        mediaCuePoint: beatData.mediaCuePoint !== undefined ? beatData.mediaCuePoint : null,
+      };
+    }
+    return finalData;
+  }, [beatData, beatIndex]);
 
+  const { sounds, jointInfo, grounding, mediaCuePoint } = currentBeatData;
 
-// --- P5.JS SKETCH FOR THUMBNAILS ---
-// This sketch is optimized to be lightweight and reusable.
-function thumbnailSketch(p5) {
-    let pose = null;
+  const handleClick = useCallback(() => {
+    logToConsole?.(`[BeatButton ${beatIndex + 1}] Clicked. AppMode: ${appMode}`);
+    onClick(beatIndex);
+  }, [onClick, beatIndex, appMode, logToConsole]);
 
-    p5.setup = () => {
-        p5.createCanvas(100, 100);
-        p5.noLoop(); // We only redraw when props change
-    };
+  const handleKeyPress = useCallback((e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      logToConsole?.(`[BeatButton ${beatIndex + 1}] KeyPressed (${e.key}). AppMode: ${appMode}`);
+      onClick(beatIndex);
+    }
+  }, [onClick, beatIndex, appMode, logToConsole]);
 
-    p5.updateWithProps = (props) => {
-        if (props.pose) {
-            pose = props.pose;
-            p5.redraw();
-        }
-    };
+  const handleAddSoundClickInternal = useCallback((e) => {
+    e.stopPropagation();
+    logToConsole?.(`[BeatButton ${beatIndex + 1}] AddSoundClickInternal. SoundInBank: ${currentSoundInBank}, SoundsOnBeat: ${sounds?.length}`);
+    if (onAddSound && currentSoundInBank && (!sounds || sounds.length < MAX_SOUNDS_PER_BEAT)) {
+      onAddSound(beatIndex);
+    } else if (sounds && sounds.length >= MAX_SOUNDS_PER_BEAT) {
+      toast.warn(`Max ${MAX_SOUNDS_PER_BEAT} sounds per beat.`);
+    } else if (!currentSoundInBank) {
+      toast.info("No sound selected in bank to add.");
+    }
+  }, [onAddSound, currentSoundInBank, sounds, beatIndex, logToConsole]);
 
-    p5.draw = () => {
-        p5.clear();
-        p5.background(15, 23, 42, 220); // Dark background for contrast
+  const handleDeleteSoundClickInternal = useCallback((e, soundKey) => {
+    e.stopPropagation();
+    logToConsole?.(`[BeatButton ${beatIndex + 1}] DeleteSoundClickInternal. SoundKey: ${soundKey}`);
+    if (onDeleteSound) onDeleteSound(beatIndex, soundKey);
+  }, [onDeleteSound, beatIndex, logToConsole]);
 
-        if (!pose?.jointInfo) return;
+  const hasSoundData = useMemo(() => sounds && sounds.length > 0, [sounds]);
+  const hasMeaningfulJointData = useMemo(() => Object.values(jointInfo || {}).some(details => details && typeof details === 'object' && ((details.rotation !== undefined && parseFloat(details.rotation) !== 0) || (details.orientation && details.orientation !== DEFAULT_GENERAL_ORIENTATION) || (details.vector && (details.vector.x !== 0 || details.vector.y !== 0 || details.vector.z !== 0)) || (details.intent && details.intent !== DEFAULT_INTENT) || (details.energy !== undefined && parseFloat(details.energy) !== DEFAULT_JOINT_ENERGY) || (details.orientation_sagittal && details.orientation_sagittal !== DEFAULT_ANKLE_SAGITTAL) || (details.orientation_frontal && details.orientation_frontal !== DEFAULT_ANKLE_FRONTAL) || (details.orientation_transverse && details.orientation_transverse !== DEFAULT_ANKLE_TRANSVERSE))), [jointInfo]);
+  const hasGroundingData = useMemo(() => (grounding?.L && grounding.L.length > 0) || (grounding?.R && grounding.R.length > 0) || (grounding?.L_weight !== undefined && grounding.L_weight !== 50), [grounding]);
+  const hasMediaCueData = useMemo(() => mediaCuePoint !== null && mediaCuePoint !== undefined, [mediaCuePoint]);
+  const hasAnyProgrammedData = useMemo(() => hasSoundData || hasMeaningfulJointData || hasGroundingData || hasMediaCueData, [hasSoundData, hasMeaningfulJointData, hasGroundingData, hasMediaCueData]);
 
-        p5.push();
-        p5.translate(50, 50); // Center the drawing
-        p5.scale(0.4, -0.4);  // Scale and flip Y-axis for standard coordinates
+  const textAndIconColorClass = useMemo(() => (isSelectedForEdit && appMode === MODE_POS) ? "text-black font-semibold" : (isCurrentlySelectedInSeqMode && appMode === MODE_SEQ) ? "text-white" : hasAnyProgrammedData ? "text-gray-100" : "text-gray-400", [isSelectedForEdit, appMode, isCurrentlySelectedInSeqMode, hasAnyProgrammedData]);
+  const primaryJointDisplayAbbrev = useMemo(() => { if (appMode === MODE_POS && hasMeaningfulJointData) { const jointInfoToParse = jointInfo || {}; const firstSigJoint = Object.keys(jointInfoToParse).find(k => jointInfoToParse[k] && typeof jointInfoToParse[k]==='object' && ( (jointInfoToParse[k].vector&&(jointInfoToParse[k].vector.x!==0||jointInfoToParse[k].vector.y!==0||jointInfoToParse[k].vector.z!==0)) || (jointInfoToParse[k].rotation!==undefined&&parseFloat(jointInfoToParse[k].rotation)!==0) || (jointInfoToParse[k].orientation&&jointInfoToParse[k].orientation!==DEFAULT_GENERAL_ORIENTATION) || (jointInfoToParse[k].orientation_sagittal&&jointInfoToParse[k].orientation_sagittal!==DEFAULT_ANKLE_SAGITTAL) || (jointInfoToParse[k].orientation_frontal&&jointInfoToParse[k].orientation_frontal!==DEFAULT_ANKLE_FRONTAL) || (jointInfoToParse[k].orientation_transverse&&jointInfoToParse[k].orientation_transverse!==DEFAULT_ANKLE_TRANSVERSE) || (jointInfoToParse[k].intent&&jointInfoToParse[k].intent!==DEFAULT_INTENT) || (jointInfoToParse[k].energy!==undefined&&parseFloat(jointInfoToParse[k].energy)!==DEFAULT_JOINT_ENERGY) )) || Object.keys(jointInfoToParse)[0]; return firstSigJoint ? firstSigJoint.substring(0,4).replace('_','') : null; } return null; }, [appMode, hasMeaningfulJointData, jointInfo]);
+  
+  const canAddSound = useMemo(() => appMode === MODE_SEQ && currentSoundInBank && (!sounds || sounds.length < MAX_SOUNDS_PER_BEAT), [appMode, currentSoundInBank, sounds]);
+  const showAddSoundHint = useMemo(() => appMode === MODE_SEQ && !currentSoundInBank && (!sounds || sounds.length < MAX_SOUNDS_PER_BEAT), [appMode, currentSoundInBank, sounds]);
 
-        const { jointInfo } = pose;
+  const padSizeClasses = "w-full h-full";
+  const buttonClasses = useMemo(() => `relative ${padSizeClasses} rounded flex flex-col items-center justify-start pt-1 pb-1 px-0.5 transition-all duration-150 ease-in-out focus:outline-none font-mono text-[0.6rem] shadow-md hover:shadow-lg overflow-hidden cursor-pointer ${isCurrentlyPlayingAtBeat ? "ring-[3px] ring-offset-1 ring-offset-gray-800 ring-white animate-pulse-border-white shadow-lg z-10" : isPlayheadPositionWhenPaused ? "ring-2 ring-offset-1 ring-offset-gray-800 ring-gray-300 shadow-md" : ""} ${isSelectedForEdit && appMode === MODE_POS ? "bg-brand-pos/70 ring-2 ring-brand-pos shadow-lg scale-105 z-20" : isCurrentlySelectedInSeqMode && appMode === MODE_SEQ ? "bg-brand-seq/60 ring-2 ring-brand-seq shadow-md" : ""} ${hasAnyProgrammedData ? "bg-gray-700/70" : "bg-gray-800/60"} ${!(isSelectedForEdit && appMode === MODE_POS) && !(isCurrentlySelectedInSeqMode && appMode === MODE_SEQ) && !isCurrentlyPlayingAtBeat && !isPlayheadPositionWhenPaused ? (hasAnyProgrammedData ? "hover:bg-gray-600/80" : "hover:bg-gray-700/70") : ""}`, [isCurrentlyPlayingAtBeat, isPlayheadPositionWhenPaused, isSelectedForEdit, appMode, isCurrentlySelectedInSeqMode, hasAnyProgrammedData, padSizeClasses]);
+  const beatNumberColorClass = useMemo(() => isCurrentlyPlayingAtBeat ? "text-white font-bold" : (isSelectedForEdit && appMode === MODE_POS) ? "text-yellow-900 font-bold" : (isCurrentlySelectedInSeqMode && appMode === MODE_SEQ) ? "text-blue-100 font-bold" : isPlayheadPositionWhenPaused ? "text-gray-300" : "text-gray-500", [isCurrentlyPlayingAtBeat, isSelectedForEdit, appMode, isCurrentlySelectedInSeqMode, isPlayheadPositionWhenPaused]);
 
-        // --- FULL IMPLEMENTATION of connections ---
-        const connections = [
-            ['N', 'LS'], ['N', 'RS'], ['LS', 'RS'], ['LS', 'LE'], ['LE', 'LW'],
-            ['RS', 'RE'], ['RE', 'RW'], ['LS', 'LH'], ['RS', 'RH'], ['LH', 'RH'],
-            ['LH', 'LK'], ['LK', 'LA'], ['RH', 'RK'], ['RK', 'RA']
-        ];
+  return (
+    <div
+      className={`w-full h-full group/beatbutton aspect-square`}
+      onMouseEnter={() => setIsHoveringButton(true)}
+      onMouseLeave={() => { setIsHoveringButton(false); setHoveredSoundKey(null); }}
+    >
+      <div
+        role="button" tabIndex={0} className={buttonClasses} onClick={handleClick} onKeyPress={handleKeyPress}
+        aria-pressed={isSelectedForEdit || isCurrentlySelectedInSeqMode}
+        aria-label={`Beat ${beatIndex + 1}. Status: ${hasAnyProgrammedData ? 'Programmed' : 'Empty'}.`}
+      >
+        <span className={`absolute top-0.5 left-1 text-[0.5rem] sm:text-[0.6rem] font-bold ${beatNumberColorClass} opacity-80 select-none`}>
+          {beatIndex + 1}
+        </span>
+        {hasMediaCueData && ( <Tooltip content={`Media Cue @ ${parseFloat(mediaCuePoint || 0).toFixed(2)}s`} placement="top" wrapperElementType="span"> <FontAwesomeIcon icon={faBroadcastTower} className="absolute top-1 right-1 text-[0.6rem] text-brand-sync/80" /> </Tooltip> )}
         
-        // Draw skeleton lines
-        p5.stroke(200, 200, 220, 150);
-        p5.strokeWeight(3);
-        connections.forEach(([startKey, endKey]) => {
-            const p1 = jointInfo[startKey]?.vector;
-            const p2 = jointInfo[endKey]?.vector;
-            if (p1 && p2) {
-                p5.line(p1.x * 100, p1.y * 100, p2.x * 100, p2.y * 100);
-            }
-        });
-        
-        // Draw joints
-        p5.stroke('#facc15'); // Yellow for joints
-        p5.strokeWeight(8);
-        for (const key in jointInfo) {
-            if (jointInfo[key]?.vector) {
-                p5.point(jointInfo[key].vector.x * 100, jointInfo[key].vector.y * 100);
-            }
-        }
-        p5.pop();
-    };
-}
-
-
-// --- STYLED COMPONENTS ---
-const ButtonWrapper = styled.div`
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: var(--border-radius-small, 4px);
-  overflow: hidden;
-  border: 3px solid ${({ $isActive, $isCurrentStep, $isSelectedForEdit }) => 
-    ($isSelectedForEdit ? '#facc15' : $isCurrentStep ? '#22d3ee' : $isActive ? '#38bdf8' : '#334155')};
-  box-shadow: ${({ $isCurrentStep, $isSelectedForEdit }) => 
-    ($isSelectedForEdit ? '0 0 10px 2px #facc15' : $isCurrentStep ? '0 0 8px 2px #22d3ee' : 'none')};
-  background-color: #0f172a;
-  transition: all 0.1s ease-in-out;
-  cursor: pointer;
-  &:hover {
-    border-color: #5eead4;
-  }
-`;
-const BeatNumber = styled.span`
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  color: #64748b;
-  font-size: 0.8em;
-  font-weight: bold;
-  pointer-events: none;
-`;
-const ContentContainer = styled.div`
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-`;
-const SoundListContainer = styled.div`
-  position: absolute;
-  top: 2px; left: 2px; right: 2px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  max-height: calc(100% - 28px);
-  overflow: hidden;
-`;
-const SoundLabel = styled.div`
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(2px);
-  color: #e2e8f0;
-  font-size: 0.6rem;
-  padding: 1px 3px 1px 6px;
-  border-radius: 3px;
-  width: 95%;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-`;
-const DeleteSoundButton = styled.button`
-  background: none; border: none;
-  color: #ef4444;
-  cursor: pointer;
-  padding: 0 2px;
-  margin-left: 4px;
-  display: flex;
-  border-radius: 50%;
-  &:hover { 
-    color: #f87171;
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-`;
-const AddSoundButton = styled.button`
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  background-color: rgba(45, 212, 191, 0.2);
-  border: 1px solid rgba(45, 212, 191, 0.5);
-  color: #5eead4;
-  border-radius: 50%;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  &:hover {
-    background-color: rgba(45, 212, 191, 0.4);
-    transform: scale(1.1);
-  }
-`;
-const PoseContainer = styled.div`
-  width: 100%;
-  height: 100%;
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-`;
-
-// --- The Main Mode-Aware BeatButton Component ---
-const BeatButton = ({ beatData, onClick, onAddSoundClick, onSoundDelete, isCurrentStep, isSelectedForEdit }) => {
-    const { currentMode } = useUIState();
-    const [thumbnailUrl, setThumbnailUrl] = useState(null);
-
-    const hasPose = beatData?.pose?.jointInfo && Object.keys(beatData.pose.jointInfo).length > 0;
-    const hasSounds = beatData?.sounds?.length > 0;
-    const hasWaveform = beatData?.waveform?.length > 0;
-    const isActive = hasPose || hasSounds;
-
-    useEffect(() => {
-        if (hasPose && currentMode === MODES.POS) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 100;
-            canvas.height = 100;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-
-            // Drawing logic
-            ctx.fillStyle = '#0f172a'; // Match background
-            ctx.fillRect(0, 0, 100, 100);
-            ctx.save();
-            ctx.translate(50, 50);
-            ctx.scale(0.4, -0.4);
-
-            const { jointInfo } = beatData.pose;
-            const connections = [
-                ['N', 'LS'], ['N', 'RS'], ['LS', 'RS'], ['LS', 'LE'], ['LE', 'LW'],
-                ['RS', 'RE'], ['RE', 'RW'], ['LS', 'LH'], ['RS', 'RH'], ['LH', 'RH'],
-                ['LH', 'LK'], ['LK', 'LA'], ['RH', 'RK'], ['RK', 'RA']
-            ];
-            
-            ctx.strokeStyle = '#94a3b8'; // Lighter gray for lines
-            ctx.lineWidth = 2;
-            connections.forEach(([startKey, endKey]) => {
-                const p1 = jointInfo[startKey]?.vector;
-                const p2 = jointInfo[endKey]?.vector;
-                if (p1 && p2) {
-                    ctx.beginPath();
-                    ctx.moveTo(p1.x * 100, p1.y * 100);
-                    ctx.lineTo(p2.x * 100, p2.y * 100);
-                    ctx.stroke();
-                }
-            });
-
-            ctx.fillStyle = '#facc15'; // Yellow
-            for (const key in jointInfo) {
-                if (jointInfo[key]?.vector) {
-                    ctx.beginPath();
-                    ctx.arc(jointInfo[key].vector.x * 100, jointInfo[key].vector.y * 100, 5, 0, 2 * Math.PI);
-                    ctx.fill();
-                }
-            }
-            ctx.restore();
-            
-            // Set the generated image as a data URL
-            setThumbnailUrl(canvas.toDataURL('image/png'));
-        } else {
-            setThumbnailUrl(null); // Clear thumbnail if no pose or not in POS mode
-        }
-    }, [beatData.pose, hasPose, currentMode]);
-
-    const renderSeqContent = () => (
-        <>
-          {hasSounds && (
-            <SoundListContainer>
-              {beatData.sounds.map(soundUrl => (
-                <SoundLabel key={soundUrl}>
-                  <span>{getSoundNameFromPath(soundUrl)}</span>
-                  <DeleteSoundButton onClick={(e) => { e.stopPropagation(); onSoundDelete(soundUrl); }}>
-                    <X size={12} />
-                  </DeleteSoundButton>
-                </SoundLabel>
-              ))}
-            </SoundListContainer>
+        <div className="flex-grow w-full flex flex-col items-center justify-center px-0.5 space-y-0.5 overflow-hidden mt-1.5 mb-1.5">
+          {appMode === MODE_POS && primaryJointDisplayAbbrev ? (
+            <span className={`text-xs sm:text-sm font-bold truncate px-0.5 ${isSelectedForEdit ? 'text-yellow-900' : 'text-yellow-400'}`}>
+              {primaryJointDisplayAbbrev}
+            </span>
+          ) : (
+            sounds && sounds.slice(0, MAX_SOUNDS_PER_BEAT).map((soundKey, index) => (
+              <div 
+                key={`${soundKey}-${index}-${beatIndex}`} 
+                className="relative group/sounditem w-full max-w-[90%] my-px flex items-center justify-center"
+                onMouseEnter={() => {if (appMode === MODE_SEQ) setHoveredSoundKey(soundKey);}}
+                onMouseLeave={() => {if (appMode === MODE_SEQ) setHoveredSoundKey(null);}}
+              >
+                <p 
+                  className={`truncate text-center text-[0.6rem] sm:text-xs leading-tight py-0.5 px-1 rounded-sm w-full transition-colors font-digital-play ${textAndIconColorClass} ${isCurrentlySelectedInSeqMode && appMode === MODE_SEQ ? 'bg-brand-seq/40' : hasAnyProgrammedData ? 'bg-gray-600/50 group-hover/sounditem:bg-gray-500/60' : 'bg-gray-700/50 group-hover/sounditem:bg-gray-600/60'} group-hover/sounditem:opacity-70`}
+                  title={getSoundNameFromPath(tr808SoundFiles[soundKey] || soundKey)}
+                >
+                  {getSoundNameFromPath(tr808SoundFiles[soundKey] || soundKey).substring(0, 6)}
+                </p>
+                {/* Delete Sound Button - X appears on hover of sound item and if main button is hovered */}
+                {appMode === MODE_SEQ && isHoveringButton && hoveredSoundKey === soundKey && ( 
+                <Tooltip content={`Delete ${getSoundNameFromPath(tr808SoundFiles[soundKey] || soundKey)}`} placement="right" wrapperElementType="span" delay={0}>
+                  <button 
+                    type="button" 
+                    onClick={(e) => handleDeleteSoundClickInternal(e, soundKey)} 
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[110%] w-4 h-4 bg-red-600 hover:bg-red-500 text-white rounded-full flex items-center justify-center text-[0.5rem] shadow-md z-50 opacity-0 group-hover/sounditem:opacity-100 transition-opacity" 
+                    aria-label={`Remove ${getSoundNameFromPath(tr808SoundFiles[soundKey] || soundKey)}`}> 
+                      <FontAwesomeIcon icon={faTimes} /> 
+                  </button> 
+                </Tooltip> 
+                )}
+              </div>
+            ))
           )}
-          <AddSoundButton onClick={(e) => { e.stopPropagation(); onAddSoundClick(); }}>
-            <Plus size={14} />
-          </AddSoundButton>
-        </>
-    );
+        </div>
 
-    const renderPosContent = () => {
-        if (hasPose) {
-            return (
-                <PoseContainer>
-                    <ReactP5Wrapper sketch={thumbnailSketch} pose={beatData.pose} />
-                </PoseContainer>
-            );
-        }
-        return null;
-    };
+        {appMode === MODE_SEQ && isHoveringButton && canAddSound && (
+          <Tooltip content={`Add ${currentSoundInBank ? getSoundNameFromPath(tr808SoundFiles[currentSoundInBank] || currentSoundInBank) : 'sound'}`} placement="bottom" wrapperElementType="span" delay={0}>
+            <button type="button" onClick={handleAddSoundClickInternal} className="absolute bottom-1 left-1 w-4 h-4 bg-green-500 hover:bg-green-400 text-white rounded-full flex items-center justify-center shadow-md z-30 opacity-100 transition-opacity" aria-label="Add selected sound"> 
+              <FontAwesomeIcon icon={faPlus} className="text-[0.5rem]" /> 
+            </button> 
+          </Tooltip>
+        )}
+        {appMode === MODE_SEQ && isHoveringButton && showAddSoundHint && (
+           <div className="absolute bottom-1 left-1 px-1 py-0.5 bg-gray-700 text-white text-[0.5rem] rounded-sm shadow-md z-30 opacity-90 pointer-events-none" title="Please select a sound from the bank to add.">
+            Select Sound
+          </div>
+        )}
 
-    const renderContent = () => {
-        const backgroundWaveform = hasWaveform ? (
-            <BeatWaveform 
-                waveformPoints={beatData.waveform} 
-                color={currentMode === 'SEQ' ? 'rgba(0, 170, 204, 0.5)' : 'rgba(100, 116, 139, 0.3)'}
-            />
-        ) : null;
-    
-        const foregroundContent = currentMode === MODES.SEQ ? renderSeqContent() : renderPosContent();
-    
-        return (
-            <>
-                {backgroundWaveform}
-                {foregroundContent}
-            </>
-        );
-    };
-
-    return (
-        <ButtonWrapper onClick={onClick} $isActive={isActive} $isCurrentStep={isCurrentStep} $isSelectedForEdit={isSelectedForEdit}>
-            <BeatNumber>{beatData.beatIndex + 1}</BeatNumber>
-            <ContentContainer>
-                {renderContent()}
-            </ContentContainer>
-        </ButtonWrapper>
-    );
-};
+        <div className="absolute bottom-1 right-1 flex space-x-0.5 pointer-events-none">
+          {hasSoundData && <Tooltip content="Sounds Programmed" wrapperElementType="span" delay={300}><div className="w-1.5 h-1.5 bg-brand-seq rounded-full opacity-80"></div></Tooltip>}
+          {hasMeaningfulJointData && <Tooltip content="Pose Data Programmed" wrapperElementType="span" delay={300}><div className="w-1.5 h-1.5 bg-brand-pos rounded-full opacity-80"></div></Tooltip>}
+          {hasGroundingData && <Tooltip content="Grounding Defined" wrapperElementType="span" delay={300}><div className="w-1.5 h-1.5 bg-green-500 rounded-full opacity-80"></div></Tooltip>}
+        </div>
+      </div>
+    </div>
+  );
+});
 
 BeatButton.propTypes = {
-    beatData: PropTypes.object.isRequired,
-    onClick: PropTypes.func.isRequired,
-    onAddSoundClick: PropTypes.func.isRequired,
-    onSoundDelete: PropTypes.func.isRequired,
-    isCurrentStep: PropTypes.bool.isRequired,
-    isSelectedForEdit: PropTypes.bool,
+  beatData: PropTypes.object,
+  beatIndex: PropTypes.number.isRequired,
+  appMode: PropTypes.string.isRequired,
+  isSelectedForEdit: PropTypes.bool,
+  isCurrentlySelectedInSeqMode: PropTypes.bool,
+  isCurrentlyPlayingAtBeat: PropTypes.bool,
+  isPlayheadPositionWhenPaused: PropTypes.bool,
+  onClick: PropTypes.func.isRequired,
+  onAddSound: PropTypes.func,
+  onDeleteSound: PropTypes.func,
+  currentSoundInBank: PropTypes.string,
+  logToConsole: PropTypes.func,
 };
 
-export default React.memo(BeatButton);
+export default BeatButton;

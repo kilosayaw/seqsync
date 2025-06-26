@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCubesStacked, faSignInAlt, faUserPlus, faTachometerAlt } from '@fortawesome/free-solid-svg-icons';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import Button from '../components/common/Button'; // Using common Button for consistency
 
 const HomePage = () => {
@@ -42,13 +42,7 @@ const HomePage = () => {
               </Button>
             </Link>
             <Link to="/register" className="w-full">
-              {/* Changed variant from "outline" to "secondary" */}
-              {/* You can add specific styling here if "secondary" default isn't what you want for an outline look */}
-              <Button 
-                variant="secondary" // Using a supported variant
-                className="w-full !py-3 border border-brand-accent text-brand-accent hover:bg-brand-accent/10 hover:text-white" // Added border and text color to mimic outline
-                iconLeft={faUserPlus}
-              >
+              <Button variant="outline" className="w-full !py-3 border-brand-accent text-brand-accent hover:bg-brand-accent/10" iconLeft={faUserPlus}>
                 Create Account
               </Button>
             </Link>

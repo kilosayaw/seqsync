@@ -1,105 +1,222 @@
-// =================================================================================================
-// SĒQsync Project Constants - The Single Source of Truth for Configuration (Definitive Version)
-// =================================================================================================
+// src/utils/constants.js
 
-export const UI_PADS_PER_BAR = 16;
-export const DATA_DEFAULT_BEATS_PER_BAR = 16;
-export const BARS_PER_SEQUENCE = 4;
+// --- MODES ---
+export const MODE_SEQ = 'SEQ';
+export const MODE_POS = 'POS';
+export const MODE_SYNC = 'SYNC';
+
+// --- SEQUENCER & BPM DEFAULTS ---
 export const DEFAULT_BPM = 120;
 export const BPM_MIN = 30;
 export const BPM_MAX = 300;
 export const DEFAULT_TIME_SIGNATURE = { beatsPerBar: 4, beatUnit: 4 };
-export const TAP_TEMPO_MIN_TAPS = 3;
-export const TAP_TEMPO_MAX_INTERVAL_MS = 2000;
-export const ONSET_DETECTION_CONFIG = { FRAME_SIZE: 1024, HOP_SIZE: 512, PEAK_THRESHOLD: 1.35, REFRACTORY_PERIOD_SAMPLES: 8192, };
-
-// II. APPLICATION MODES & UI SETTINGS
-export const MODES = { SEQ: 'SEQ', POS: 'POS', SYNC: 'SYNC' };
-export const DEFAULT_FADER_MODE = 'WEIGHT';
-export const SKIP_OPTIONS = [1, 2, 4, 8, 16];
-
-// III. AUDIO CONFIGURATION
+export const DEFAULT_NUM_BEATS_PER_BAR_CONST = 16;
+export const INTERNAL_SEQUENCER_RESOLUTION = 96;
 export const MAX_SOUNDS_PER_BEAT = 4;
+export const MAX_BEATS_PER_BAR_HARD_LIMIT = 32; // For time signature changes
 
-// IV. JOINT, POSE, & SKELETON DEFINITIONS
-export const ALL_JOINTS_MAP = { H: { name: 'Head', group: 'Center' }, N: { name: 'Neck', group: 'Center' }, CHEST: { name: 'Chest Center', group: 'Center' }, SPIN_T: { name: 'Thoracic Spine', group: 'Center' }, SPIN_L: { name: 'Lumbar Spine', group: 'Center' }, PELV: { name: 'Pelvis Center', group: 'Center' }, LS: { name: 'L Shoulder', group: 'Left' }, RS: { name: 'R Shoulder', group: 'Right' }, LE: { name: 'L Elbow', group: 'Left' }, RE: { name: 'R Elbow', group: 'Right' }, LW: { name: 'L Wrist', group: 'Left' }, RW: { name: 'R Wrist', group: 'Right' }, LP: { name: 'L Palm', group: 'Left' }, RP: { name: 'R Palm', group: 'Right' }, LH: { name: 'L Hip', group: 'Left' }, RH: { name: 'R Hip', group: 'Right' }, LK: { name: 'L Knee', group: 'Left' }, RK: { name: 'R Knee', group: 'Right' }, LA: { name: 'L Ankle', group: 'Left' }, RA: { name: 'R Ankle', group: 'Right' }, LF: { name: 'L Foot Base', group: 'Left' }, RF: { name: 'R Foot Base', group: 'Right' }};
-export const POSE_DEFAULT_VECTOR = {x:0,y:0,z:0};
-export const UI_LEFT_JOINTS_ABBREVS_NEW = Object.entries(ALL_JOINTS_MAP).filter(([,d])=>d.group==='Left').map(([a,d])=>({abbrev:a, name:d.name}));
-export const UI_RIGHT_JOINTS_ABBREVS_NEW = Object.entries(ALL_JOINTS_MAP).filter(([,d])=>d.group==='Right').map(([a,d])=>({abbrev:a, name:d.name}));
+// --- TAP TEMPO CONSTANTS --- (NEWLY ADDED SECTION)
+export const TAP_TEMPO_MIN_TAPS = 3; // Minimum taps to calculate BPM (e.g., 3 taps for 2 intervals)
+export const TAP_TEMPO_MAX_INTERVAL_MS = 2000; // Max milliseconds between taps before history resets (2 seconds)
 
-// V. SKELETAL VISUALIZER CONSTANTS
-export const BODY_SEGMENTS = [ {from:'N',to:'H'},{from:'CHEST',to:'N'}, {from:'CHEST',to:'LS'},{from:'CHEST',to:'RS'}, {from:'LS',to:'LE'},{from:'RS',to:'RE'}, {from:'LE',to:'LW'},{from:'RE',to:'RW'}, {from:'LW',to:'LP'},{from:'RW',to:'RP'}, {from:'CHEST',to:'SPIN_T'},{from:'SPIN_T',to:'SPIN_L'}, {from:'SPIN_L',to:'PELV'}, {from:'PELV',to:'LH'},{from:'PELV',to:'RH'}, {from:'LH',to:'LK'},{from:'RH',to:'RK'}, {from:'LK',to:'LA'},{from:'RK',to:'RA'}, {from:'LA',to:'LF'},{from:'RA',to:'RF'} ];
-export const DEFAULT_JOINT_CIRCLE_RADIUS = 5;
-export const Z_DEPTH_JOINT_SCALES = { NEAR: 1.25, NEUTRAL: 1.0, FAR: 0.75 };
-export const RIBBON_LIMB_WIDTH = 12; 
-export const SVG_WIDTH_DEFAULT = 220;
-export const SVG_HEIGHT_DEFAULT = 300;
-export const DEFAULT_POSITIONS_2D = { H: {x:0.50,y:0.10}, N: {x:0.50,y:0.18}, CHEST:{x:0.50,y:0.25}, SPIN_T:{x:0.50,y:0.32}, SPIN_L:{x:0.50,y:0.40}, PELV:{x:0.50,y:0.48}, LS: {x:0.38,y:0.26}, RS: {x:0.62,y:0.26}, LE: {x:0.30,y:0.38}, RE: {x:0.70,y:0.38}, LW: {x:0.25,y:0.54}, RW: {x:0.75,y:0.54}, LP: {x:0.23,y:0.60}, RP: {x:0.77,y:0.60}, LH: {x:0.42,y:0.50}, RH: {x:0.58,y:0.50}, LK: {x:0.40,y:0.70}, RK: {x:0.60,y:0.70}, LA: {x:0.38,y:0.88}, RA: {x:0.62,y:0.88}, LF: {x:0.37,y:0.95}, RF: {x:0.63,y:0.95} };
+// --- UI & DISPLAY CONSTANTS ---
+export const DEBOUNCE_DELAY = 250;
+export const BEATS_PER_ROW_DISPLAY = 8;
 
-// VI. NOTATION & POSE MODIFIER OPTIONS
+// ... (rest of your constants.js file remains the same) ...
+
+// --- DEFAULT JOINT PROPERTIES ---
+export const DEFAULT_JOINT_ROTATION = 0;
+export const DEFAULT_JOINT_VECTOR = { x: 0, y: 0, z: 0, x_base_direction: 0, y_base_direction: 0 };
+export const DEFAULT_INTENT = 'Neutral';
+export const DEFAULT_JOINT_ENERGY = 50;
+
+// --- POSE EDITOR OPTIONS (JointInputPanel) ---
+export const GENERAL_ORIENTATION_OPTIONS = [
+  { value: 'NEU', label: 'Neutral (Std)' }, { value: 'IN', label: 'Internal Rot.' }, { value: 'OUT', label: 'External Rot.' },
+  { value: 'FLEX', label: 'Flexion (Gen)' }, { value: 'EXT', label: 'Extension (Gen)' },
+  { value: 'PRO', label: 'Pronation' }, { value: 'SUP', label: 'Supination' },
+  // Consider adding common spinal/head orientations here too if not handled by specific joints
+  { value: 'SPIN_FLEX', label: 'Spine Flexion' }, { value: 'SPIN_EXT', label: 'Spine Extension' },
+  { value: 'SPIN_LAT_L', label: 'Spine Lat.Bend L' }, { value: 'SPIN_LAT_R', label: 'Spine Lat.Bend R' },
+  { value: 'SPIN_ROT_L', label: 'Spine Rotate L' }, { value: 'SPIN_ROT_R', label: 'Spine Rotate R' },
+];
+export const DEFAULT_GENERAL_ORIENTATION = 'NEU';
+
 export const INTENT_OPTIONS = [
-    { value: 'StrikeRelease', label: 'Strike' },
-    { value: 'BlockImpact', label: 'Block' },
-    { value: 'Evasion', label: 'Evade' },
-    { value: 'Coil', label: 'Coil' },
-    { value: 'ReleasePwr', label: 'Release' },
-    { value: 'PassThrough', label: 'Pass-Thru' },
-    { value: 'Stabilize', label: 'Stabilize' },
-    { value: 'Recover', label: 'Recover' },
+  { value: 'Neutral', label: 'Neutral Intent' }, { value: 'Load', label: 'Load/Coil/Chamber' },
+  { value: 'Release', label: 'Release/Strike/Extend' }, { value: 'Hold', label: 'Hold/Stabilize/Brace' },
+  { value: 'Flow', label: 'Flow/Transition' }, { value: 'Recoil', label: 'Recoil/Reset' },
+  { value: 'Impact', label: 'Impact/Land/Absorb' }, { value: 'Eject', label: 'Eject/Push' },
+  { value: 'Redirect', label: 'Redirect/Evade' }, { value: 'Float', label: 'Float/Suspend' },
+  { value: 'Ground', label: 'Ground/Settle' }, { value: 'Reach', label: 'Reach/Explore' },
+  { value: 'Snap', label: 'Snap/Whip' }, { value: 'Pulse', label: 'Pulse/Accent' },
+];
+// DEFAULT_INTENT is already defined
+
+export const ENERGY_LEVEL_LABELS = { LOW: 'Low', MEDIUM: 'Medium', HIGH: 'High' };
+
+// ANKLE SPECIFIC ORIENTATIONS
+export const ANKLE_SAGITTAL_OPTIONS = [
+  { value: 'NEUTRAL_SAG', label: 'Neutral Sagittal' },
+  { value: 'DORSIFLEX_MIN', label: 'Dorsiflexion Min' }, { value: 'DORSIFLEX_MED', label: 'Dorsiflexion Med' }, { value: 'DORSIFLEX_MAX', label: 'Dorsiflexion Max' },
+  { value: 'PLANTARFLEX_MIN', label: 'Plantarflexion Min' }, { value: 'PLANTARFLEX_MED', label: 'Plantarflexion Med' }, { value: 'PLANTARFLEX_MAX', label: 'Plantarflexion Max' },
+];
+export const DEFAULT_ANKLE_SAGITTAL = 'NEUTRAL_SAG';
+
+export const ANKLE_FRONTAL_OPTIONS = [
+  { value: 'NEUTRAL_FRON', label: 'Neutral Frontal' },
+  { value: 'INVERSION_MIN', label: 'Inversion Min' }, { value: 'INVERSION_MED', label: 'Inversion Med' }, { value: 'INVERSION_MAX', label: 'Inversion Max' },
+  { value: 'EVERSION_MIN', label: 'Eversion Min' }, { value: 'EVERSION_MED', label: 'Eversion Med' }, { value: 'EVERSION_MAX', label: 'Eversion Max' },
+];
+export const DEFAULT_ANKLE_FRONTAL = 'NEUTRAL_FRON';
+
+export const ANKLE_TRANSVERSE_OPTIONS = [
+  { value: 'NEUTRAL_TRA', label: 'Neutral Transverse' },
+  { value: 'ADDUCT_FOOT_MIN', label: 'Adduct Min (Int.Rot)' }, { value: 'ADDUCT_FOOT_MED', label: 'Adduct Med' }, { value: 'ADDUCT_FOOT_MAX', label: 'Adduct Max' },
+  { value: 'ABDUCT_FOOT_MIN', label: 'Abduct Min (Ext.Rot)' }, { value: 'ABDUCT_FOOT_MED', label: 'Abduct Med' }, { value: 'ABDUCT_FOOT_MAX', label: 'Abduct Max' },
+];
+export const DEFAULT_ANKLE_TRANSVERSE = 'NEUTRAL_TRA';
+
+// --- VECTOR GRID & DISPLACEMENT (JointInputPanel) ---
+export const VECTOR_GRID_INCREMENT = 0.25;
+export const NUDGE_INCREMENT_OPTIONS = [
+  { value: 0.01, label: '0.01 (Micro)' }, { value: 0.025, label: '0.025 (Fine)' },
+  { value: 0.05, label: '0.05 (Small)' }, { value: 0.1, label: '0.1 (Medium)' },
+  { value: 0.25, label: '0.25 (Large)' },
+];
+export const DEFAULT_NUDGE_INCREMENT = 0.05;
+
+export const Z_DEPTH_CONFIG = {
+  '-1':   { value: -1,   label: 'N', title: 'Z: -1 (Nearer)',  color: 'bg-red-500',   activeColor: 'bg-red-400',   ring: 'ring-red-300',   sizeClasses: 'w-4/5 h-4/5' },
+  '-0.5': { value: -0.5, label: 'n', title: 'Z: -0.5 (Mod. Nearer)',color: 'bg-red-600/80',activeColor: 'bg-red-500/90',ring: 'ring-red-400/80',sizeClasses: 'w-3/4 h-3/4' },
+  '0':    { value: 0,    label: 'M', title: 'Z: 0 (Middle)',    color: 'bg-gray-500',  activeColor: 'bg-gray-400',  ring: 'ring-gray-300',  sizeClasses: 'w-3/5 h-3/5' },
+  '0.5':  { value: 0.5,  label: 'f', title: 'Z: +0.5 (Mod. Farther)',   color: 'bg-blue-600/80',activeColor: 'bg-blue-500/90',ring: 'ring-blue-400/80',sizeClasses: 'w-1/2 h-1/2' },
+  '1':    { value: 1,    label: 'F', title: 'Z: +1 (Farther)',  color: 'bg-blue-500',  activeColor: 'bg-blue-400',  ring: 'ring-blue-300',  sizeClasses: 'w-2/5 h-2/5' }
+};
+export const Z_RENDER_ORDER = [-1, -0.5, 0, 0.5, 1];
+
+export const VECTOR_GRID_CELLS = [
+  { x: -1, y: 1, desc: "Up-Left" },   { x: 0, y: 1, desc: "Up" },    { x: 1, y: 1, desc: "Up-Right" },
+  { x: -1, y: 0, desc: "Left" },    { x: 0, y: 0, desc: "Center (Tap to Cycle Z)" }, { x: 1, y: 0, desc: "Right" },
+  { x: -1, y: -1, desc: "Down-Left" }, { x: 0, y: -1, desc: "Down" },  { x: 1, y: -1, desc: "Down-Right" },
 ];
 
-// VII. TRANSITION & ANIMATION CURVES
-export const TRANSITION_CURVES = { LINEAR: { label: 'Linear', function: (t) => t }, EASE_IN: { label: 'Ease In', function: (t) => t * t }, EASE_OUT: { label: 'Ease Out', function: (t) => t * (2 - t) }, EASE_IN_OUT: { label: 'Ease In-Out', function: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t) }, BOUNCE_OUT: { label: 'Bounce Out', function: (t) => { const n1 = 7.5625; const d1 = 2.75; if (t < 1 / d1) return n1 * t * t; if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75; if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375; return n1 * (t -= 2.625 / d1) * t + 0.984375; }}, ELASTIC_OUT: { label: 'Elastic Out', function: (t) => { const c4 = (2 * Math.PI) / 3; return t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1; }}, };
-
-
-// VIII. VECTOR GRID & INPUT MAPPINGS
-export const VECTOR_GRID_CELLS = [ {x: -1, y: 1, desc: 'Up-Left'}, {x: 0, y: 1, desc: 'Up'}, {x: 1, y: 1, desc: 'Up-Right'}, {x: -1, y: 0, desc: 'Left'}, {x: 0, y: 0, desc: 'Center'}, {x: 1, y: 0, desc: 'Right'}, {x: -1, y:-1, desc: 'Down-Left'}, {x: 0, y:-1, desc: 'Down'}, {x: 1, y:-1, desc: 'Down-Right'} ];
-export const Z_DEPTH_CONFIG = { '1': { value: 1, label: 'Forward', color: 'bg-blue-400', sizeClasses: 'w-6 h-6' }, '0': { value: 0, label: 'Neutral', color: 'bg-yellow-400', sizeClasses: 'w-4 h-4' }, '-1': { value: -1, label: 'Backward', color: 'bg-red-400', sizeClasses: 'w-2 h-2' }};
-
-
-// IX. KEYBOARD CONTROLS
-export const KEYBOARD_LAYOUT_MODE_SEQ = { '1':0, '2':1, '3':2, '4':3, '5':4, '6':5, '7':6, '8':7, 'q':8, 'w':9, 'e':10,'r':11,'t':12,'y':13,'u':14,'i':15 };
-export const KEYBOARD_MODE_SWITCH = { 'p': MODES.POS, 's': MODES.SEQ, };
-export const KEYBOARD_TRANSPORT_CONTROLS = { ' ': 'playPause', 'Enter': 'stop' };
-export const KEYBOARD_FOOT_GROUNDING = { 'z': { side: 'L', points: ['L1'] }, 'x': { side: 'L', points: ['L2'] }, 'c': { side: 'L', points: ['L3'] }, ',': { side: 'R', points: ['R1'] }, '.': { side: 'R', points: ['R2'] }, '/': { side: 'R', points: ['R3'] }, };
-
-// --- DEFINITIVE FIX: ADDING MISSING CONSTANT ---
-// X. FOOT CONTACT ZONES for Joystick Interaction
-// Coordinates are normalized (0 to 1). cx/cy is center, radius is size.
-export const FOOT_CONTACT_ZONES = {
-  L: [
-    { name: 'L1', notation: 'L1', cx: 0.68, cy: 0.5, radius: 0.12 },
-    { name: 'L2', notation: 'L2', cx: 0.32, cy: 0.5, radius: 0.12 },
-    { name: 'L3', notation: 'L3', cx: 0.5, cy: 0.8, radius: 0.15 },
-    { name: 'L13', notation: 'L13', cx: 0.6, cy: 0.65, radius: 0.1 },
-    { name: 'L23', notation: 'L23', cx: 0.4, cy: 0.65, radius: 0.1 },
-    { name: 'L12', notation: 'L12', cx: 0.5, cy: 0.45, radius: 0.1 },
-    { name: 'L12T345', notation: 'L12T345', cx: 0.35, cy: 0.25, radius: 0.1 },
-    { name: 'L12T12', notation: 'L12T12', cx: 0.65, cy: 0.25, radius: 0.1 },
-  ],
-  R: [ // Mirrored X-coordinates
-    { name: 'R1', notation: 'R1', cx: 0.32, cy: 0.5, radius: 0.12 },
-    { name: 'R2', notation: 'R2', cx: 0.68, cy: 0.5, radius: 0.12 },
-    { name: 'R3', notation: 'R3', cx: 0.5, cy: 0.8, radius: 0.15 },
-    { name: 'R13', notation: 'R13', cx: 0.4, cy: 0.65, radius: 0.1 },
-    { name: 'R23', notation: 'R23', cx: 0.6, cy: 0.65, radius: 0.1 },
-    { name: 'R12', notation: 'R12', cx: 0.5, cy: 0.45, radius: 0.1 },
-    { name: 'R12T345', notation: 'R12T345', cx: 0.65, cy: 0.25, radius: 0.1 },
-    { name: 'R12T12', notation: 'R12T12', cx: 0.35, cy: 0.25, radius: 0.1 },
-  ],
-};
-export const STRIKE_ANGLES = {
-    1: { angle: 315, vector: { x: -0.707, y: 0.707, z: 0 }, desc: "Downward diagonal strike from right shoulder" },
-    2: { angle: 225, vector: { x: -0.707, y: -0.707, z: 0 }, desc: "Upward diagonal strike from right knee" },
-    3: { angle: 0, vector: { x: -1, y: 0, z: 0 }, desc: "Horizontal strike from right to left" },
-    4: { angle: 180, vector: { x: 1, y: 0, z: 0 }, desc: "Horizontal strike from left to right" },
-    5: { angle: 270, vector: { x: 0, y: -1, z: 0 }, desc: "Straight thrust to the torso" },
-    6: { angle: 315, vector: { x: -0.707, y: 0.707, z: 0 }, desc: "Downward diagonal thrust to right chest" }, // Same as 1 but different target
-    7: { angle: 225, vector: { x: -0.707, y: -0.707, z: 0 }, desc: "Downward diagonal thrust to left chest" }, // Same as 2 but different target
-    8: { angle: 135, vector: { x: 0.707, y: -0.707, z: 0 }, desc: "Upward diagonal strike from left knee" },
-    9: { angle: 45, vector: { x: 0.707, y: 0.707, z: 0 }, desc: "Downward diagonal strike from left shoulder" },
-    10: { angle: 270, vector: { x: 0, y: -1, z: 0 }, desc: "Thrust to the right eye" }, // Same as 5 but different target
-    11: { angle: 270, vector: { x: 0, y: -1, z: 0 }, desc: "Thrust to the left eye" }, // Same as 5 but different target
-    12: { angle: 270, vector: { x: 0, y: 1, z: 0 }, desc: "Downward vertical strike to the crown" }
+// --- FOOT JOYSTICK MAPS & ANGLES ---
+export const LEFT_FOOT_JOYSTICK_MAP = {
+  CENTER_TAP: { points: ['LF123T12345'], label: 'L Full Plant Tap' },
+  N:    { points: ['L12T12345'], label: 'L Ball 1&2 + All Toes' },
+  NE:   { points: ['L12T12'],    label: 'L Ball 1&2 + Toes 1&2' },
+  E:    { points: ['L1'],        label: 'L Inner Ball (L1)' },
+  SE:   { points: ['L13'],       label: 'L Inner Blade (L1+L3)' },
+  S:    { points: ['L3'],        label: 'L Heel (L3)' },
+  SW:   { points: ['L23'],       label: 'L Outer Blade (L2+L3)' },
+  W:    { points: ['L2'],        label: 'L Outer Ball (L2)' },
+  NW:   { points: ['L12T345'],   label: 'L Ball 1&2 + Toes 3,4,5' },
 };
 
+export const RIGHT_FOOT_JOYSTICK_MAP = {
+  CENTER_TAP: { points: ['RF123T12345'], label: 'R Full Plant Tap' },
+  N:    { points: ['RF12T12345'], label: 'R Ball 1&2 + All Toes' },
+  NE:   { points: ['RF12T12'],    label: 'R Ball 1&2 + Toes 1&2' },
+  E:    { points: ['RF1'],        label: 'R Inner Ball (R1)' },
+  SE:   { points: ['RF13'],       label: 'R Inner Blade (R1+R3)' },
+  S:    { points: ['RF3'],        label: 'R Heel (R3)' },
+  SW:   { points: ['RF23'],       label: 'R Outer Blade (R2+R3)' },
+  W:    { points: ['RF2'],        label: 'R Outer Ball (R2)' },
+  NW:   { points: ['RF12T345'],   label: 'R Ball 1&2 + Toes 3,4,5' },
+};
+
+// For mapping angles to zones (0 degrees is East/Right, 90 is North, -90 is South, +/-180 is West)
+export const JOYSTICK_ZONES_ANGLES = [
+  { zone: 'E',  minAngle: -22.5, maxAngle: 22.5, label: 'East (Inner Ball/Edge)' },
+  { zone: 'NE', minAngle: 22.5,  maxAngle: 67.5, label: 'North-East (Inner Toes & Ball)' },
+  { zone: 'N',  minAngle: 67.5,  maxAngle: 112.5, label: 'North (Full Toes & Ball)' },
+  { zone: 'NW', minAngle: 112.5, maxAngle: 157.5, label: 'North-West (Outer Toes & Ball)' },
+  { zone: 'W',  minAngle: 157.5, maxAngle: 180.001, label: 'West (Outer Ball/Edge)' }, // Catches +180
+  { zone: 'W_NEG',minAngle: -180, maxAngle: -157.5, label: 'West (Outer Ball/Edge, neg angle)' }, // Catches -180
+  { zone: 'SW', minAngle: -157.5,maxAngle: -112.5, label: 'South-West (Outer Blade)' },
+  { zone: 'S',  minAngle: -112.5,maxAngle: -67.5, label: 'South (Heel)' },
+  { zone: 'SE', minAngle: -67.5, maxAngle: -22.5, label: 'South-East (Inner Blade)' },
+];
+
+export const getZoneFromCoordinates = (x, y, centerX, centerY, radius) => {
+    const dx = x - centerX;
+    const dy = centerY - y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < radius * 0.30) { // Increased dead-zone slightly to 30% for center tap reliability
+      return 'CENTER_TAP';
+    }
+    let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+    // Check West first due to +/- 180 ambiguity
+    if (angle > 157.5 || angle <= -157.5) return 'W';
+
+    for (const zoneDef of JOYSTICK_ZONES_ANGLES) {
+      if (zoneDef.zone === 'W' || zoneDef.zone === 'W_NEG') continue; // Already handled
+      if (angle >= zoneDef.minAngle && angle < zoneDef.maxAngle) {
+        return zoneDef.zone;
+      }
+    }
+    return null;
+};
+
+// --- BEAT OBJECT STRUCTURE & DEFAULTS ---
+export const createDefaultBeatObject = (beatIndexInBar) => ({
+  id: beatIndexInBar,
+  sounds: [],
+  grounding: { L: null, R: null, L_weight: 50 },
+  syllable: '',
+  headOver: null,
+  jointInfo: {},
+  mediaCuePoint: null,
+});
+
+export const createNewBarData = (numBeats = DEFAULT_NUM_BEATS_PER_BAR_CONST) => {
+  // Ensure numBeats is a valid positive integer, otherwise use default
+  const validNumBeats = (Number.isInteger(numBeats) && numBeats > 0)
+                          ? numBeats
+                          : DEFAULT_NUM_BEATS_PER_BAR_CONST;
+  return Array(validNumBeats).fill(null).map((_, i) => createDefaultBeatObject(i));
+};
+
+// --- SKELETAL VISUALIZATION CONSTANTS ---
+export const DEFAULT_POSITIONS_2D = { /* ... (Your full list as provided before) ... */
+  HEAD: { x: 0.5, y: 0.1 }, NECK: { x: 0.5, y: 0.18 }, SPIN_T: { x: 0.5, y: 0.28 }, PELV: { x: 0.5, y: 0.48 },
+  L_SHO:  { x: 0.4, y: 0.28 }, L_ELB:  { x: 0.3, y: 0.38 }, L_WRST: { x: 0.25, y: 0.48 }, L_HAND: { x: 0.2, y: 0.55 },
+  R_SHO:  { x: 0.6, y: 0.28 }, R_ELB:  { x: 0.7, y: 0.38 }, R_WRST: { x: 0.75, y: 0.48 }, R_HAND: { x: 0.8, y: 0.55 },
+  L_HIP:  { x: 0.45, y: 0.5 }, L_KNEE: { x: 0.45, y: 0.68 }, L_ANK:  { x: 0.45, y: 0.85 }, L_FOOT: { x: 0.45, y: 0.95 },
+  R_HIP:  { x: 0.55, y: 0.5 }, R_KNEE: { x: 0.55, y: 0.68 }, R_ANK:  { x: 0.55, y: 0.85 }, R_FOOT: { x: 0.55, y: 0.95 },
+  CHEST: { x: 0.5, y: 0.28 } // Adding CHEST for consistency with BODY_SEGMENTS if SPIN_T not always primary upper anchor
+};
+export const BODY_SEGMENTS = [ /* ... (Your full list as provided before) ... */
+  { from: 'NECK', to: 'HEAD' }, { from: 'CHEST', to: 'NECK' }, { from: 'CHEST', to: 'L_SHO' },  { from: 'CHEST', to: 'R_SHO' },
+  { from: 'L_SHO', to: 'L_ELB' },  { from: 'R_SHO', to: 'R_ELB' }, { from: 'L_ELB', to: 'L_WRST' }, { from: 'R_ELB', to: 'R_WRST' },
+  { from: 'L_WRST', to: 'L_HAND' }, { from: 'R_WRST', to: 'R_HAND' }, { from: 'SPIN_T', to: 'CHEST' },  { from: 'SPIN_L', to: 'SPIN_T'},
+  { from: 'PELV', to: 'SPIN_L' }, { from: 'PELV', to: 'L_HIP' },    { from: 'PELV', to: 'R_HIP' }, { from: 'L_HIP', to: 'L_KNEE' },
+  { from: 'R_HIP', to: 'R_KNEE' }, { from: 'L_KNEE', to: 'L_ANK' },  { from: 'R_KNEE', to: 'R_ANK' }, { from: 'L_ANK', to: 'L_FOOT' },
+  { from: 'R_ANK', to: 'R_FOOT' },
+];
+
+export const Z_DEPTH_JOINT_SCALES = { NEAR: 1.2, NEUTRAL: 1.0, FAR: 0.8 }; // Simplified for visualizer
+export const SIDE_SELECTOR_JOINT_CIRCLE_BASE_RADIUS = 18;
+export const DEFAULT_JOINT_CIRCLE_RADIUS = 8;
+
+// --- SIDE JOINT SELECTOR ABBREVIATIONS ---
+export const UI_LEFT_JOINTS_ABBREVS_NEW = [
+  { abbrev: 'L_SHO', name: 'Left Shoulder' }, { abbrev: 'L_ELB', name: 'Left Elbow' },
+  { abbrev: 'L_WRST', name: 'Left Wrist' },   { abbrev: 'L_HIP', name: 'Left Hip' },
+  { abbrev: 'L_KNEE', name: 'Left Knee' },    { abbrev: 'L_ANK', name: 'Left Ankle' },
+];
+export const UI_RIGHT_JOINTS_ABBREVS_NEW = [
+  { abbrev: 'R_SHO', name: 'Right Shoulder' }, { abbrev: 'R_ELB', name: 'Right Elbow' },
+  { abbrev: 'R_WRST', name: 'Right Wrist' },  { abbrev: 'R_HIP', name: 'Right Hip' },
+  { abbrev: 'R_KNEE', name: 'Right Knee' },   { abbrev: 'R_ANK', name: 'Right Ankle' },
+];
+
+// --- INTENT FLOW TRANSITIONS ---
+export const INTENT_TRANSITIONS = {
+  SMOOTH: '-*-', WAVY: '~*~', SHARP: '<*>', ON_BEAT: ':*:',
+  ACCEL_IN: '/-*', DECEL_IN: '\\-*', ACCEL_OUT: '*-/', DECEL_OUT: '*-\\'
+};
