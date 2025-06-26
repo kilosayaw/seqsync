@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Font Definitions
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Digital Play';
+  src: url('/assets/fonts/Digital Play St.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Digital Play';
+  src: url('/assets/fonts/Digital Play Italic St.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Digital Play Hollow';
+  src: url('/assets/fonts/Digital Play Hollow St.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Orbitron';
+  src: url('/assets/fonts/Orbitron-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Share Tech Mono';
+  src: url('/assets/fonts/ShareTechMono-Regular.ttf') format('truetype');
+}
+
+
+/* ==========================================================================
+   Global Styles & CSS Variables
+   ========================================================================== */
+
+:root {
+  /* Default font for the entire application */
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  /* --- Font Family Variables --- */
+  --font-body: 'Inter', sans-serif;
+  --font-digital-solid: 'Digital Play', 'Orbitron', monospace;
+  --font-digital-hollow: 'Digital Play Hollow', monospace;
+  --font-mono: 'Share Tech Mono', monospace;
+}
+
+/* Optional: Utility classes if you prefer to use them with Tailwind */
+@layer utilities {
+  .font-digital {
+    font-family: var(--font-digital-solid);
+  }
+  .font-digital-hollow {
+    font-family: var(--font-digital-hollow);
+  }
+  .font-mono-tech {
+    font-family: var(--font-mono);
+  }
+}
