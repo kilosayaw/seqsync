@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import { X } from 'react-feather';
-import { categorizedTr808Sounds, getSoundNameFromPath } from '../../../utils/soundLibrary';
+
+// --- UTILS & LIBRARIES ---
+import { tr808SoundsArray, getSoundNameFromPath } from '../../../utils/soundLibrary';
 import { playSound, unlockAudioContext } from '../../../utils/audioManager';
 
 // --- STYLED COMPONENTS ---
@@ -38,29 +40,6 @@ const CloseButton = styled.button`
   &:hover { background-color: #334155; color: white; }
 `;
 
-const CategoryTabs = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #334155;
-`;
-
-const CategoryButton = styled.button`
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    background-color: ${({ $active }) => ($active ? '#38bdf8' : '#273142')};
-    border: 1px solid #475569;
-    color: ${({ $active }) => ($active ? 'white' : '#94a3b8')};
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.2s;
-    &:hover {
-        background-color: #334155;
-    }
-`;
-
 const SoundList = styled.div`
   padding: 1rem;
   overflow-y: auto;
@@ -89,12 +68,10 @@ const SoundButton = styled.button`
 
 // --- THE FUNCTIONAL COMPONENT ---
 const SoundBrowser = ({ onSelectSound, onClose }) => {
-    const [selectedCategory, setSelectedCategory] = useState('Kicks');
-
     const handleSoundClick = (soundUrl) => {
-        unlockAudioContext();
-        playSound(soundUrl);
-        onSelectSound(soundUrl);
+        unlockAudioContext(); // Ensure audio is ready on the first user click
+        playSound(soundUrl);    // Preview the sound when clicked
+        onSelectSound(soundUrl); // Pass the selected sound URL back to the parent
     };
 
     return (
@@ -104,19 +81,9 @@ const SoundBrowser = ({ onSelectSound, onClose }) => {
                     <ModalTitle>TR-808 Sound Bank</ModalTitle>
                     <CloseButton onClick={onClose}><X size={24} /></CloseButton>
                 </ModalHeader>
-                <CategoryTabs>
-                    {Object.keys(categorizedTr808Sounds).map(category => (
-                        <CategoryButton 
-                            key={category}
-                            $active={selectedCategory === category}
-                            onClick={() => setSelectedCategory(category)}
-                        >
-                            {category}
-                        </CategoryButton>
-                    ))}
-                </CategoryTabs>
                 <SoundList>
-                    {categorizedTr808Sounds[selectedCategory]?.map(sound => (
+                    {/* Map over the imported sound array and create a button for each */}
+                    {tr808SoundsArray.map(sound => (
                         <SoundButton key={sound.key} onClick={() => handleSoundClick(sound.url)}>
                             {getSoundNameFromPath(sound.name)}
                         </SoundButton>

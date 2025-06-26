@@ -1,115 +1,94 @@
-import React, { useRef, useEffect } from 'react';
-import p5 from 'p5';
+// /client/src/components/core/pose_editor/P5SkeletalVisualizer.jsx
+import React from 'react';
+import { ReactP5Wrapper } from 'react-p5-wrapper';
 import PropTypes from 'prop-types';
 
-const P5SkeletalVisualizer = ({ poseData, analysisData, mode = '2D', isMirrored = false, highlightJoint = null }) => {
-    const sketchRef = useRef();
-    const p5InstanceRef = useRef(null); // Ref to hold the p5 instance
+function sketch(p5) {
+    let poseData = null;
+    let highlightJoint = null;
+    let mode = '2D'; // This remains the default within the sketch
 
-    // --- SETUP EFFECT: Runs only ONCE when the component mounts ---
-    useEffect(() => {
-        const sketch = (p) => {
-            p.setup = () => {
-                p.createCanvas(400, 300);
-                p.noLoop(); // We will manually call redraw when props change
-            };
+    const connections = [
+        ['LS', 'RS'], ['LS', 'LE'], ['LE', 'LW'], ['RS', 'RE'], ['RE', 'RW'],
+        ['LS', 'LH'], ['RS', 'RH'], ['LH', 'RH'], ['LH', 'LK'], ['LK', 'LA'],
+        ['RH', 'RK'], ['RK', 'RA']
+    ];
+    
+    p5.updateWithProps = props => {
+        if (props.poseData) poseData = props.poseData;
+        if (props.highlightJoint !== undefined) highlightJoint = props.highlightJoint;
+        if (props.mode) mode = props.mode;
+    };
 
-            // This function will be called from our update effect
-            p.updateWithProps = (props) => {
-                p.redraw();
-            };
+    p5.setup = () => {
+        p5.createCanvas(640, 360, p5.WEBGL);
+        p5.angleMode(p5.DEGREES);
+    };
 
-            p.draw = () => {
-                if (!sketchRef.current) return;
-                p.resizeCanvas(sketchRef.current.offsetWidth, sketchRef.current.offsetHeight);
-                p.clear();
-                p.background(15, 23, 42);
-
-                if (!poseData?.jointInfo) return;
-
-                p.translate(p.width / 2, p.height / 2);
-                if (isMirrored) p.scale(-1, 1);
-                p.scale(1, -1);
-                p.scale(p.height / 2.5);
-
-                const { jointInfo } = poseData;
-                const connections = [
-                    ['LS', 'RS'], ['LS', 'LE'], ['LE', 'LW'], ['RS', 'RE'], ['RE', 'RW'],
-                    ['LS', 'LH'], ['RS', 'RH'], ['LH', 'RH'], ['LH', 'LK'], ['LK', 'LA'],
-                    ['RH', 'RK'], ['RK', 'RA']
-                ];
-
-                // Draw Base of Support
-                if (analysisData?.baseOfSupport) {
-                    const bos = analysisData.baseOfSupport;
-                    p.stroke('rgba(0, 100, 255, 0.5)');
-                    p.fill('rgba(0, 100, 255, 0.1)');
-                    p.beginShape();
-                    bos.forEach(point => p.vertex(point.x, point.y));
-                    p.endShape(p.CLOSE);
-                }
-
-                // Draw skeleton lines
-                p.stroke(255, 255, 255, 100);
-                p.strokeWeight(2 / (p.height / 2.5));
-                connections.forEach(([startKey, endKey]) => {
-                    const p1 = jointInfo[startKey]?.vector;
-                    const p2 = jointInfo[endKey]?.vector;
-                    if (p1 && p2) p.line(p1.x, p1.y, p2.x, p2.y);
-                });
-
-                // Draw Joints with dynamic colors
-                p.strokeWeight(6 / (p.height / 2.5));
-                for (const key in jointInfo) {
-                    const pVec = jointInfo[key]?.vector;
-                    if (pVec) {
-                        let jointColor = '#facc15'; // Default
-                        if (key === highlightJoint) jointColor = '#f87171'; // Selected
-                        else if (key === analysisData?.driver) jointColor = '#f97316'; // Driver
-                        else if (analysisData?.rotations?.[key] === 'IN') jointColor = '#38bdf8'; // IN
-                        else if (analysisData?.rotations?.[key] === 'OUT') jointColor = '#fb923c'; // OUT
-                        
-                        p.stroke(jointColor);
-                        p.point(pVec.x, pVec.y);
-                    }
-                }
-
-                // Draw Center of Mass
-                if (analysisData?.centerOfMass) {
-                    const com = analysisData.centerOfMass;
-                    p.noStroke();
-                    p.fill(analysisData.stability > 50 ? 'rgba(0, 255, 150, 0.8)' : 'rgba(255, 100, 0, 0.8)');
-                    p.ellipse(com.x, com.y, 0.05, 0.05);
-                }
-            };
-        };
-        
-        // Create the p5 instance and store it in the ref
-        p5InstanceRef.current = new p5(sketch, sketchRef.current);
-
-        // Cleanup function to remove the p5 instance when the component unmounts
-        return () => {
-            p5InstanceRef.current.remove();
-        };
-    }, []); // Empty dependency array means this runs only once
-
-    // --- UPDATE EFFECT: Runs whenever props change ---
-    useEffect(() => {
-        // If the p5 instance exists, just pass the new props to it to trigger a redraw.
-        if (p5InstanceRef.current) {
-            p5InstanceRef.current.updateWithProps({ poseData, analysisData, mode, isMirrored, highlightJoint });
+    p5.draw = () => {
+        p5.clear();
+        if (!poseData || !poseData.jointInfo) return;
+        if (mode === '3D') p5.orbitControl();
+        const jointInfo = poseData.jointInfo;
+        const width = p5.width;
+        const height = p5.height;
+        const getCoords = (vector) => ({
+            x: vector.x * (width / 2.5),
+            y: -vector.y * (height / 2.5),
+            z: (vector.z || 0) * 100
+        });
+        p5.stroke(255, 255, 255, 150);
+        p5.strokeWeight(2);
+        connections.forEach(([startKey, endKey]) => {
+            const startJoint = jointInfo[startKey];
+            const endJoint = jointInfo[endKey];
+            if (startJoint?.vector && endJoint?.vector) {
+                const start = getCoords(startJoint.vector);
+                const end = getCoords(endJoint.vector);
+                p5.line(start.x, start.y, start.z, end.x, end.y, end.z);
+            }
+        });
+        for (const key in jointInfo) {
+            const joint = jointInfo[key];
+            if (joint?.vector) {
+                const pos = getCoords(joint.vector);
+                const isActive = key === highlightJoint;
+                const radius = isActive ? 15 : 10;
+                let jointColor = isActive ? p5.color(255, 255, 0) : p5.color(0, 255, 255);
+                const orientation = joint.orientation || 'NEU';
+                if (orientation === 'IN') jointColor = p5.color(255, 100, 100);
+                if (orientation === 'OUT') jointColor = p5.color(100, 150, 255);
+                p5.push();
+                p5.translate(pos.x, pos.y, pos.z);
+                p5.noStroke();
+                p5.fill(jointColor);
+                p5.sphere(radius);
+                p5.pop();
+            }
         }
-    }, [poseData, analysisData, mode, isMirrored, highlightJoint]);
+    };
+}
 
-    return <div ref={sketchRef} style={{ width: '100%', height: '100%' }} />;
+// --- THIS IS THE FIX ---
+// We set the default value for the 'mode' prop directly in the function signature.
+const P5SkeletalVisualizer = ({ poseData, highlightJoint, mode = '2D' }) => {
+    return <ReactP5Wrapper 
+        sketch={sketch} 
+        poseData={poseData} 
+        highlightJoint={highlightJoint} 
+        mode={mode} 
+    />;
 };
 
 P5SkeletalVisualizer.propTypes = {
     poseData: PropTypes.object,
-    analysisData: PropTypes.object,
-    mode: PropTypes.oneOf(['2D', '3D']),
-    isMirrored: PropTypes.bool,
     highlightJoint: PropTypes.string,
+    mode: PropTypes.oneOf(['2D', '3D']),
 };
+
+// --- THIS BLOCK IS REMOVED ---
+// P5SkeletalVisualizer.defaultProps = {
+//     mode: '2D',
+// };
 
 export default React.memo(P5SkeletalVisualizer);

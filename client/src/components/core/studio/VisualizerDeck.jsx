@@ -1,70 +1,70 @@
+// /client/src/components/core/studio/VisualizerDeck.jsx
 import React from 'react';
+import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { useUIState } from '../../../contexts/UIStateContext';
-import { useSequence } from '../../../contexts/SequenceContext';
-import { useMotionAnalysisContext } from '../../../contexts/MotionAnalysisContext';
-import P5SkeletalVisualizer from '../pose_editor/P5SkeletalVisualizer';
-import LiveCameraFeed from '../../visualizers/LiveCameraFeed';
+import { useUIState } from '../../../contexts/UIStateContext.jsx';
+import { useMedia } from '../../../contexts/MediaContext.jsx';
+import { usePlayback } from '../../../contexts/PlaybackContext.jsx';
+import { useSequence } from '../../../contexts/SequenceContext.jsx';
+import VideoMediaPlayer from '../media/VideoMediaPlayer.jsx';
+import SkeletalOverlay from '../pose_editor/SkeletalOverlay.jsx';
 
 const DeckContainer = styled.div`
   position: relative;
   width: 100%;
-  max-width: 640px; 
-  aspect-ratio: 4 / 3;
-  background-color: #020617;
-  border: 1px solid #334155;
+  max-width: 640px;
+  margin: auto;
+  aspect-ratio: 16 / 9;
+  background-color: #1a293b;
   border-radius: 8px;
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
-  color: #94a3b8;
 `;
 
-const VisualizerDeck = () => {
-    // --- FIX: Add selectedBar and selectedBeat back to the destructuring ---
-    const { 
-        isLiveCamActive, 
-        is2dOverlayEnabled, 
-        isMirrored,
-        selectedBar, 
-        selectedBeat,
-        selectedJoint 
-    } = useUIState();
-    const { getBeatData } = useSequence();
-    const { livePose, isAnalyzing } = useMotionAnalysisContext();
+const VisualizerOverlay = styled.div`
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+`;
 
-    let poseToDisplay = null;
-    let analysisToDisplay = null;
+const PlaceholderText = styled.span`
+    font-size: 1rem;
+    color: #475569;
+`;
 
-    if (isLiveCamActive) {
-        poseToDisplay = livePose;
-        // The analysis data is now nested inside the livePose object
-        analysisToDisplay = livePose?.analysis;
-    } else {
-        const beatData = getBeatData(selectedBar, selectedBeat);
-        poseToDisplay = beatData?.pose;
-        analysisToDisplay = beatData?.pose?.analysis;
-    }
+const VisualizerDeck = ({ poseData }) => {
+    const { videoRef, mediaStream } = useMedia();
+    const { songData } = useSequence();
+    const { isPlaying } = usePlayback();
+    const { visualizerMode, selectedJoint, isFeedMirrored } = useUIState();
+
+    const mediaUrl = songData.videoUrl;
+    const hasMedia = mediaUrl || mediaStream;
 
     return (
         <DeckContainer>
-            {isLiveCamActive && <LiveCameraFeed isMirrored={isMirrored} />}
-            
-            {isLiveCamActive && is2dOverlayEnabled && livePose && (
-                <P5SkeletalVisualizer
-                    poseData={poseToDisplay}
-                    analysisData={analysisToDisplay}
-                    isMirrored={isMirrored}
-                    highlightJoint={selectedJoint}
+            {hasMedia ? (
+                <VideoMediaPlayer
+                    ref={videoRef}
+                    src={mediaUrl}
+                    stream={mediaStream}
+                    isPlaying={isPlaying}
                 />
+            ) : (
+                <PlaceholderText>No Video Loaded</PlaceholderText>
             )}
-
-            {!isLiveCamActive && (
-                 <span>Visualizer Deck</span>
-            )}
+            <VisualizerOverlay style={{ transform: isFeedMirrored ? 'scaleX(-1)' : 'scaleX(1)' }}>
+                {poseData && <SkeletalOverlay poseData={poseData} mode={visualizerMode} highlightJoint={selectedJoint} />}
+            </VisualizerOverlay>
         </DeckContainer>
     );
+};
+
+VisualizerDeck.propTypes = {
+    poseData: PropTypes.object,
+    onPlayerReady: PropTypes.func,
 };
 
 export default VisualizerDeck;
