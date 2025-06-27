@@ -2,10 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ==========================================================================
-   Font Definitions
-   ========================================================================== */
-
+/* --- DEFINITIVE FONT FIX --- */
 @font-face {
   font-family: 'Digital Play';
   src: url('/assets/fonts/Digital Play St.ttf') format('truetype');
@@ -33,31 +30,14 @@
   src: url('/assets/fonts/ShareTechMono-Regular.ttf') format('truetype');
 }
 
-
-/* ==========================================================================
-   Global Styles & CSS Variables
-   ========================================================================== */
-
-:root {
-  /* Default font for the entire application */
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-
-  /* --- Font Family Variables --- */
-  --font-body: 'Inter', sans-serif;
-  --font-digital-solid: 'Digital Play', 'Orbitron', monospace;
-  --font-digital-hollow: 'Digital Play Hollow', monospace;
-  --font-mono: 'Share Tech Mono', monospace;
+body {
+  font-family: 'Inter', sans-serif;
 }
 
-/* Optional: Utility classes if you prefer to use them with Tailwind */
-@layer utilities {
-  .font-digital {
-    font-family: var(--font-digital-solid);
-  }
-  .font-digital-hollow {
-    font-family: var(--font-digital-hollow);
-  }
-  .font-mono-tech {
-    font-family: var(--font-mono);
-  }
+.font-digital {
+  font-family: 'Digital Play', sans-serif;
+}
+
+.font-digital-hollow {
+    font-family: 'Digital Play Hollow', sans-serif;
 }
