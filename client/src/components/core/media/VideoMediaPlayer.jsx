@@ -1,85 +1,68 @@
-import React, { forwardRef, useEffect, useRef } from 'react';
+import React, { useEffect, forwardRef } from 'react';
 import PropTypes from 'prop-types';
 
-const VideoMediaPlayer = forwardRef(({ mediaUrl, mediaStream, isPlaying, onReady }, ref) => {
-  const videoRef = useRef(null);
-
-  React.useImperativeHandle(ref, () => videoRef.current);
-
+/**
+ * Media Player with forwarded ref so that StepSequencerControls or SyncHandler can control it.
+ */
+const VideoMediaPlayer = forwardRef(({ mediaSrc, mediaType, className = "" }, ref) => {
   useEffect(() => {
-    const videoElement = videoRef.current;
-    if (!videoElement) return;
-
-    // --- Event Handler Definitions ---
-    const handleCanPlay = () => {
-      if (onReady && videoElement.videoWidth > 0) onReady(videoElement);
-    };
-
-    const handleLoadedMetadata = () => {
-      // For live streams, we must call play() here to ensure autoplay works.
-      if (mediaStream) {
-        videoElement.play().catch(e => console.error("Autoplay interrupted or failed:", e));
-      }
-    };
-    
-    videoElement.addEventListener('canplay', handleCanPlay);
-    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
-
-    // --- DEFINITIVE FIX: Refactored Source Management ---
-    // Only perform actions if a valid source exists.
-    if (mediaStream) {
-      if (videoElement.srcObject !== mediaStream) {
-        videoElement.srcObject = mediaStream;
-      }
-      videoElement.src = ''; // Clear file source if stream is active
-      videoElement.muted = true;
-      videoElement.controls = false;
-    } else if (mediaUrl) {
-      if (videoElement.src !== mediaUrl) {
-        videoElement.src = mediaUrl;
-      }
-      videoElement.srcObject = null; // Clear stream source if file is active
-      videoElement.muted = false;
-      videoElement.controls = true; // Show controls for video files
-    } else {
-      // If no source, clear both and do nothing else.
-      videoElement.srcObject = null;
-      videoElement.src = '';
+    if (!mediaSrc) {
+      // Reset the ref if no media is loaded
+      if (ref?.current) ref.current = null;
     }
+  }, [mediaSrc, ref]);
 
-    // --- Playback Control for Files (only if a URL is set) ---
-    if (mediaUrl) {
-      if (isPlaying && videoElement.paused) {
-        videoElement.play().catch(e => console.error("Error playing video file:", e));
-      } else if (!isPlaying && !videoElement.paused) {
-        videoElement.pause();
-      }
-    }
+  if (!mediaSrc) {
+    return (
+      <div
+        className={`flex items-center justify-center text-center text-xs text-gray-500 bg-gray-800/30 rounded-md ${className || 'w-full aspect-[9/16]'}`}
+        style={{ minHeight: '150px' }}
+      >
+        Upload Media to View
+      </div>
+    );
+  }
 
-    return () => {
-      videoElement.removeEventListener('canplay', handleCanPlay);
-      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
-    };
-  }, [mediaUrl, mediaStream, isPlaying, onReady]);
+  const commonProps = {
+    ref: ref,
+    controls: true,
+    className: `w-full h-full object-contain ${className}`,
+  };
+
+  if (mediaType === 'video') {
+    return (
+      <video {...commonProps} src={mediaSrc} onError={e => console.error("Video Error:", e)}>
+        Your browser does not support the video tag.
+      </video>
+    );
+  }
+
+  if (mediaType === 'audio') {
+    return (
+      <div className={`flex flex-col items-center justify-center bg-gray-700/50 rounded ${className}`}>
+        <p className="text-gray-300 text-sm p-2 truncate w-full text-center">
+          Audio: {mediaSrc.split('/').pop().split('#')[0].split('?')[0]}
+        </p>
+        <audio {...commonProps} src={mediaSrc} onError={e => console.error("Audio Error:", e)}>
+          Your browser does not support the audio element.
+        </audio>
+      </div>
+    );
+  }
 
   return (
-    <video
-      key={mediaStream?.id || mediaUrl}
-      ref={videoRef}
-      className="w-full h-full object-contain"
-      loop={false}
-      playsInline
-    />
+    <div className={`flex items-center justify-center text-xs text-gray-400 ${className}`}>
+      Unsupported media type or loading...
+    </div>
   );
 });
 
 VideoMediaPlayer.displayName = 'VideoMediaPlayer';
 
 VideoMediaPlayer.propTypes = {
-  mediaUrl: PropTypes.string,
-  mediaStream: PropTypes.object,
-  isPlaying: PropTypes.bool.isRequired,
-  onReady: PropTypes.func,
+  mediaSrc: PropTypes.string,
+  mediaType: PropTypes.oneOf(['video', 'audio']),
+  className: PropTypes.string,
 };
 
 export default VideoMediaPlayer;
