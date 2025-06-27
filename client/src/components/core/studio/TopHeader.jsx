@@ -14,10 +14,9 @@ const HeaderContainer = styled.header`
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
-  background-color: #1e293b;
-  border-bottom: 1px solid #334155;
+  background-color: var(--color-background-darker, #1a1a1a);
+  border-bottom: 1px solid var(--color-border, #333);
   flex-shrink: 0;
-  user-select: none;
 `;
 
 const ControlGroup = styled.div`
@@ -30,36 +29,34 @@ const Button = styled.button`
     padding: 6px 12px;
     font-size: 0.8rem;
     font-weight: bold;
-    background-color: ${({ $active }) => ($active ? '#38bdf8' : '#334155')};
-    border: 1px solid ${({ $active }) => ($active ? '#7dd3fc' : '#475569')};
+    background-color: ${({ $active }) => ($active ? 'var(--color-accent, #00AACC)' : '#444')};
+    border: 1px solid ${({ $active }) => ($active ? 'var(--color-accent-light, #00FFFF)' : '#666')};
     color: white;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 4px;
     transition: all 0.2s ease-in-out;
     white-space: nowrap;
     &:disabled {
-        opacity: 0.4;
+        opacity: 0.5;
         cursor: not-allowed;
-        background-color: #334155;
-        border-color: #475569;
     }
     &:hover:not(:disabled) {
-        border-color: #7dd3fc;
+        border-color: var(--color-accent-light, #7FFFD4);
     }
 `;
 
 const RecordButton = styled(Button)`
-    background-color: ${({ $active }) => ($active ? '#f43f5e' : '#334155')};
-    border-color: ${({ $active }) => ($active ? '#fb7185' : '#475569')};
+    background-color: ${({ $active }) => ($active ? '#e11d48' : '#444')};
+    border-color: ${({ $active }) => ($active ? '#fb7185' : '#666')};
     &:hover:not(:disabled) {
-        background-color: ${({ $active }) => ($active ? '#fb7185' : '#475569')};
+        background-color: ${({ $active }) => ($active ? '#fb7185' : '#555')};
     }
 `;
 
 const Display = styled.div`
     font-family: var(--font-digital-solid, 'Orbitron', monospace);
-    color: #e2e8f0;
-    background-color: #0f172a;
+    color: var(--color-text, #FFF);
+    background-color: #1e293b;
     border: 1px solid #334155;
     border-radius: 4px;
     padding: 6px 12px;
@@ -79,8 +76,7 @@ const BarBeatDisplay = styled(Display)`
 `;
 
 // --- The Main Header Component ---
-// FIX: The onToggleLiveCam prop is no longer needed, as this logic is handled by the UI context.
-const TopHeader = ({ onSave, onLoad, onLoadAudio }) => {
+const TopHeader = ({ onSave, onLoad, onLoadAudio, onToggleLiveCam }) => {
     const { undo, redo, canUndo, canRedo } = useSequence();
     const { 
         isPlaying, togglePlay, 
@@ -91,17 +87,17 @@ const TopHeader = ({ onSave, onLoad, onLoadAudio }) => {
     } = usePlayback();
     const { bpm } = useSequencerSettings();
     const { 
-        isLiveCamActive, toggleLiveCam, // We get the function directly from the context
+        isLiveCamActive,
         isMirrored, toggleMirror,
         selectedBar, setSelectedBar,
         isEditMode, toggleEditMode,
-        currentMode, setCurrentMode, 
-        isNudgeModeActive, setNudgeModeActive,
-        is2dOverlayEnabled, set2dOverlayEnabled 
+        currentMode, setCurrentMode,
+        isNudgeModeActive, setNudgeModeActive
     } = useUIState();
 
     const goToNextBar = () => setSelectedBar(prev => Math.min(3, prev + 1));
     const goToPrevBar = () => setSelectedBar(prev => Math.max(0, prev - 1));
+
     const displayBar = isPlaying ? currentBar + 1 : selectedBar + 1;
 
     return (
@@ -123,7 +119,7 @@ const TopHeader = ({ onSave, onLoad, onLoadAudio }) => {
             <ControlGroup>
                 <BPMDisplay>{bpm.toFixed(0)}</BPMDisplay>
                 <Button onClick={tapTempo}>Tap</Button>
-                <Button onClick={() => setNudgeModeActive(true)} $active={isNudgeModeActive}>
+                <Button onClick={() => setNudgeModeActive(prev => !prev)} $active={isNudgeModeActive}>
                     Nudge
                 </Button>
             </ControlGroup>
@@ -131,12 +127,7 @@ const TopHeader = ({ onSave, onLoad, onLoadAudio }) => {
             <ControlGroup>
                 <Button onClick={() => setCurrentMode(MODES.SEQ)} $active={currentMode === MODES.SEQ}>SEQ</Button>
                 <Button onClick={() => setCurrentMode(MODES.POS)} $active={currentMode === MODES.POS}>POS</Button>
-            </ControlGroup>
-
-            <ControlGroup>
-                {/* FIX: The onClick now uses the function from the context */}
-                <Button onClick={toggleLiveCam} $active={isLiveCamActive}>Live</Button>
-                <Button onClick={() => set2dOverlayEnabled(prev => !prev)} $active={is2dOverlayEnabled} disabled={!isLiveCamActive}>2D</Button>
+                <Button onClick={onToggleLiveCam} $active={isLiveCamActive}>Live</Button>
                 <Button onClick={toggleMirror} $active={isMirrored} disabled={!isLiveCamActive}>Mirror</Button>
                 <RecordButton onClick={toggleRecord} $active={isRecording} disabled={!isLiveCamActive}>Rec</RecordButton>
                 <Button onClick={togglePlay}>{isPlaying ? 'Stop' : 'Play'}</Button>
@@ -149,11 +140,11 @@ const TopHeader = ({ onSave, onLoad, onLoadAudio }) => {
     );
 };
 
-// FIX: Removed the unnecessary onToggleLiveCam from propTypes
 TopHeader.propTypes = {
     onSave: PropTypes.func.isRequired,
     onLoad: PropTypes.func.isRequired,
     onLoadAudio: PropTypes.func.isRequired,
+    onToggleLiveCam: PropTypes.func.isRequired,
 };
 
 export default TopHeader;

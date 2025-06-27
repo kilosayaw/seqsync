@@ -56,7 +56,6 @@ const MasterWaveformEditor = ({ onClose }) => {
     const { songData, setGridStartTime } = useSequence();
     const { bpm } = usePlayback();
     const [offsetPx, setOffsetPx] = useState(0);
-    
 
     // Set initial offset from context when the modal opens
     useEffect(() => {
@@ -123,27 +122,21 @@ const MasterWaveformEditor = ({ onClose }) => {
         const PLAYHEAD_POSITION_PX = 80;
         const containerWidth = containerRef.current.clientWidth;
         const duration = songData.audioBuffer.duration;
-        // Calculate the new start time based on the drag offset
         const newOffsetInSeconds = ((PLAYHEAD_POSITION_PX - offsetPx) / containerWidth) * duration;
-        
-        // Update the global state in the context
-        setGridStartTime(Math.max(0, newOffsetInSeconds)); 
-        
-        // Close the modal
+        setGridStartTime(Math.max(0, newOffsetInSeconds)); // Ensure offset is not negative
         onClose();
     };
     
     if (!songData.audioBuffer) {
         return (
              <EditorModal onClick={onClose}>
-            <EditorContainer onClick={e => e.stopPropagation()}>
+                <EditorContainer onClick={e => e.stopPropagation()}>
                     <ModalHeader>
                        <ModalTitle>Error</ModalTitle>
                        <X onClick={onClose} cursor="pointer"/>
                     </ModalHeader>
                     <p>No audio file loaded. Please load an audio file first to use the Nudge tool.</p>
-                <DoneButton onClick={handleDone}>Done</DoneButton>
-            </EditorContainer>
+                </EditorContainer>
             </EditorModal>
         )
     }

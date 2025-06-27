@@ -9,7 +9,6 @@ export const audioContext = new (window.AudioContext || window.webkitAudioContex
 
 export const PlaybackProvider = ({ children }) => {
     // --- STATE & REFS ---
-    
     const [isPlaying, setIsPlaying] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
@@ -107,7 +106,6 @@ export const PlaybackProvider = ({ children }) => {
                     setCurrentBar(newCurrentBar);
                     setCurrentStep(newCurrentStep);
 
-                    // --- FIX: This single call now handles all sound playback ---
                     triggerBeat(newCurrentBar, newCurrentStep);
 
                     if (isMetronomeEnabled) {
@@ -127,7 +125,7 @@ export const PlaybackProvider = ({ children }) => {
 
         animationFrameId.current = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(animationFrameId.current);
-    }, [isPlaying, isRecording, bpm, isMetronomeEnabled, songData.bars, triggerBeat]);
+    }, [isPlaying, isRecording, bpm, isMetronomeEnabled, songData, setPoseForBeat, getLivePose, triggerBeat]);
     
     // --- CONTEXT VALUE ---
     const value = {

@@ -172,8 +172,8 @@ const Sequencer = () => {
                     </Cockpit>
                 </MainContent>
 
-                 {isPoseEditorOpen && <DetailEditor onClose={handleCloseEditor} />}
-                {isNudgeModeActive && <MasterWaveformEditor onClose={() => setNudgeModeActive(false)} />}
+                {isPoseEditorOpen && <DetailEditor onClose={handleCloseEditor} />}
+                {isNudgeModeActive && <MasterWaveformEditor onClose={() => setNudgeEditorOpen(false)} />}
                 {isSoundBrowserOpen && <SoundBrowser onSelectSound={handleSelectSound} onClose={() => setSoundBrowserOpen(false)} />}
             </SequencerLayoutContainer>
         </DndContext>

@@ -1,28 +1,22 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { useUIState } from '../../../contexts/UIStateContext';
+import { useUIState } from '../../../contexts/UIStateContext'; // Correct path
 
 const SelectorPanel = styled.div`
   display: flex;
   flex-direction: column;
   gap: 5px;
   padding: 10px;
-  background-color: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 8px;
+  background-color: var(--color-background-lighter);
+  border-radius: var(--border-radius-medium);
 `;
 
 const JointButton = styled.button`
   padding: 8px 12px;
-  /* --- FIX: Apply the digital font --- */
-  font-family: var(--font-digital-solid, 'Orbitron', monospace);
-  font-size: 1.1rem;
-  letter-spacing: 2px;
-  
-  background-color: ${({ $isActive }) => $isActive ? 'var(--color-accent-yellow, #FFD700)' : '#273142'};
-  color: ${({ $isActive }) => $isActive ? '#0f172a' : '#94a3b8'};
-  border: 1px solid #334155;
+  background-color: ${({ $isActive }) => $isActive ? 'var(--color-accent-yellow, #FFD700)' : 'var(--color-background-dark, #2a2a2a)'};
+  color: ${({ $isActive }) => $isActive ? '#000' : 'var(--color-text-muted, #aaa)'};
+  border: 1px solid var(--color-border, #444);
   border-radius: var(--border-radius-small);
   text-align: center;
   font-weight: bold;
@@ -31,7 +25,7 @@ const JointButton = styled.button`
 
   &:hover {
     border-color: var(--color-accent-light, #7FFFD4);
-    color: ${({ $isActive }) => $isActive ? '#0f172a' : '#e2e8f0'};
+    color: ${({ $isActive }) => $isActive ? '#000' : '#fff'};
   }
 `;
 
@@ -41,6 +35,7 @@ const JOINTS = {
 };
 
 const JointSelector = ({ side }) => {
+  // Get state and setter from the context
   const { selectedJoint, setSelectedJoint } = useUIState();
   const jointsForSide = JOINTS[side] || [];
 
@@ -49,7 +44,9 @@ const JointSelector = ({ side }) => {
       {jointsForSide.map((jointId) => (
         <JointButton
           key={jointId}
-          onClick={() => setSelectedJoint(jointId === selectedJoint ? null : jointId)} // Allow deselecting
+          // Set the selected joint on click
+          onClick={() => setSelectedJoint(jointId)}
+          // Check if this button's joint is the currently selected one
           $isActive={selectedJoint === jointId}
         >
           {jointId}

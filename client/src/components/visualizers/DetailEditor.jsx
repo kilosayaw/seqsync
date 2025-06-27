@@ -10,47 +10,73 @@ import { useSequence } from '../../contexts/SequenceContext';
 // --- COMPONENT IMPORTS ---
 import CoordinateGridEditor from './CoordinateGridEditor';
 import P5SkeletalVisualizer from '../core/pose_editor/P5SkeletalVisualizer';
-import JointSelector from '../core/studio/JointSelector';
+import JointSelector from '../core/studio/JointSelector'; 
 
-// A styled component for our new directional buttons
-const DirectionButton = styled.button`
-    background-color: #273142;
-    border: 1px solid #334155;
-    color: #94a3b8;
-    font-family: monospace;
-    font-size: 1.2rem;
-    &:hover { background-color: #334155; }
-    &.active { background-color: var(--color-accent-yellow); color: #0f172a; }
+// --- STYLED COMPONENTS ---
+const ModalBackdrop = styled.div`
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000; padding: 1rem;
+`;
+const ModalContainer = styled.div`
+  background-color: #1e293b; border: 1px solid #334155; border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5); width: 100%; max-width: 900px;
+  max-height: 95vh; display: flex; flex-direction: column;
+  color: #e2e8f0; overflow: hidden;
+`;
+const ModalHeader = styled.div`
+  padding: 1rem 1.5rem; border-bottom: 1px solid #334155; display: flex;
+  justify-content: space-between; align-items: center; flex-shrink: 0;
+`;
+const ModalTitle = styled.h2` font-size: 1.25rem; font-weight: bold; `;
+const CloseButton = styled.button`
+  background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.5rem;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  &:hover { background-color: #334155; color: white; }
+`;
+const ModalBody = styled.div`
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* Make the main area wider */
+  gap: 1.5rem;
+  overflow-y: auto;
+`;
+const MainColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+const SideColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+const ControlSection = styled.div`
+  background-color: #273142; border-radius: 6px; padding: 1rem;
+  display: flex; flex-direction: column; gap: 1rem;
+`;
+const SectionTitle = styled.h3`
+  font-weight: bold; color: #94a3b8; margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem; border-bottom: 1px solid #334155;
+  font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em;
+`;
+const Placeholder = styled.div`
+  background-color: #1e293b; border: 1px dashed #475569; border-radius: 4px;
+  min-height: 40px; display: flex; justify-content: center; align-items: center;
+  color: #64748b; font-size: 0.8rem;
+`;
+const InputGroup = styled.div`
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
 `;
 
-const DirectionalPad = ({ currentVector, onSelect }) => {
-    const directions = [
-        {sh: 'LS <^', gridArea: '1 / 1'}, {sh: 'LS ^', gridArea: '1 / 2'}, {sh: 'LS ^/>', gridArea: '1 / 3'},
-        {sh: 'LS <', gridArea: '2 / 1'}, {sh: 'LS 0', gridArea: '2 / 2'}, {sh: 'LS >', gridArea: '2 / 3'},
-        {sh: 'LS </', gridArea: '3 / 1'}, {sh: 'LS v', gridArea: '3 / 2'}, {sh: 'LS </v', gridArea: '3 / 3'} // Placeholder for down-back
-    ];
-
-    const currentShorthand = getShorthandFromVector('LS', currentVector);
-
-    return (
-        <div style={{ display: 'grid', gridTemplate: 'repeat(3, 40px) / repeat(3, 40px)', gap: '5px' }}>
-            {directions.map(({ sh, gridArea }) => {
-                const notationObj = Object.values(NOTATION_MAP).find(val => val.shorthand === sh);
-                if (!notationObj) return null;
-                return (
-                    <DirectionButton 
-                        key={sh} 
-                        style={{ gridArea }}
-                        className={currentShorthand === sh ? 'active' : ''}
-                        onClick={() => onSelect(notationObj.vector)}
-                    >
-                        {notationObj.symbol}
-                    </DirectionButton>
-                );
-            })}
-        </div>
-    );
-};
+const createEmptyPose = () => ({
+    jointInfo: {},
+    grounding: { L: null, R: null, L_weight: 50, R_weight: 50, },
+});
 
 // --- The Main Component ---
 const DetailEditor = ({ onClose }) => {
@@ -104,13 +130,12 @@ const DetailEditor = ({ onClose }) => {
                     <SideColumn>
                         {/* --- ADDED JOINT SELECTORS INSIDE MODAL --- */}
                         <ControlSection>
-                        <SectionTitle>Displacement</SectionTitle>
-                        {/* --- UPGRADE: Use the new DirectionalPad --- */}
-                        <DirectionalPad 
-                            currentVector={jointVector}
-                            onSelect={handleVectorChange}
-                        />
-                    </ControlSection>
+                            <SectionTitle>Select Joint</SectionTitle>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                                <JointSelector side="left" />
+                                <JointSelector side="right" />
+                            </div>
+                        </ControlSection>
 
                         <ControlSection>
                              <SectionTitle>Displacement: {selectedJoint || 'None'}</SectionTitle>

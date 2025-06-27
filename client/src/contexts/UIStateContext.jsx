@@ -9,7 +9,6 @@ export const UIStateProvider = ({ children }) => {
     // --- MODE SWITCHING & NUDGE STATE ---
     const [currentMode, setCurrentMode] = useState(MODES.SEQ);
     const [isNudgeModeActive, setNudgeModeActive] = useState(false);
-    const [is2dOverlayEnabled, set2dOverlayEnabled] = useState(true);
 
     // Existing state...
     const [selectedBeat, setSelectedBeat] = useState(0);
@@ -48,8 +47,7 @@ export const UIStateProvider = ({ children }) => {
         isMirrored, toggleMirror,
         isEditMode, toggleEditMode,
         editingBeatIndex, setEditingBeatIndex,
-        selectedJoint, setSelectedJoint, is2dOverlayEnabled,
-        set2dOverlayEnabled,
+        selectedJoint, setSelectedJoint,
     };
 
     return (

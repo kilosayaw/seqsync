@@ -1,107 +1,89 @@
-// /client/src/utils/audioManager.js
-
+// client/src/utils/audioManager.js
 let audioContext = null;
-const soundBuffers = new Map();
+let isAudioContextUnlocked = false;
+const audioBufferCache = new Map();
 
-// Initialize the global AudioContext
+const logAudio = (level, message, ...args) => {
+    const prefix = `[AudioManager|${level.toUpperCase()}]`;
+    if (process.env.NODE_ENV === 'development') {
+        console.log(prefix, message, ...args);
+    }
+};
+
+// This function can be called safely at any time.
 export const getAudioContext = () => {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioContext && typeof window !== 'undefined') {
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            logAudio('info', `AudioContext created in ${audioContext.state} state.`);
+        } catch (e) {
+            logAudio('error', 'Web Audio API is not supported.', e);
+            return null;
+        }
     }
     return audioContext;
 };
 
-// Resume the AudioContext if it's suspended (required by browsers)
+// This function MUST be called after a user interaction (e.g., a click).
 export const unlockAudioContext = () => {
     const context = getAudioContext();
-    if (context.state === 'suspended') {
-        context.resume();
+    if (context && context.state === 'suspended') {
+        context.resume().then(() => {
+            isAudioContextUnlocked = true;
+            logAudio('info', "AudioContext resumed successfully.");
+        });
+    } else if (context) {
+        isAudioContextUnlocked = true;
     }
 };
 
-// Preload sounds to avoid delays on first play
-export const preloadSounds = async (soundUrls) => {
+const loadSound = async (soundObject) => {
+    const { url, name } = soundObject;
+    if (!url) return Promise.reject(new Error(`URL missing for ${name}.`));
+    if (audioBufferCache.has(url)) return Promise.resolve(audioBufferCache.get(url));
+
     const context = getAudioContext();
-    const promises = soundUrls.map(async (url) => {
-        if (soundBuffers.has(url)) return;
-        try {
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await context.decodeAudioData(arrayBuffer);
-            soundBuffers.set(url, audioBuffer);
-        } catch (error) {
-            console.error(`Failed to load sound: ${url}`, error);
-        }
-    });
-    await Promise.all(promises);
+    if (!context) return Promise.reject(new Error("AudioContext not available."));
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await context.decodeAudioData(arrayBuffer);
+        audioBufferCache.set(url, audioBuffer);
+        return audioBuffer; // Return the buffer on success
+    } catch (error) {
+        logAudio('error', `Failed to load '${name}':`, error.message);
+        throw error;
+    }
 };
 
-// Play a preloaded sound
+export const preloadSounds = async (sounds) => {
+    if (!Array.isArray(sounds) || sounds.length === 0) return;
+    // Use Promise.allSettled to ensure all load attempts complete, even if some fail
+    const loadPromises = sounds.map(sound => loadSound(sound).catch(e => e));
+    await Promise.allSettled(loadPromises);
+    logAudio('info', `${sounds.length} sounds preloading process initiated.`);
+};
+
 export const playSound = (url) => {
     const context = getAudioContext();
-    const buffer = soundBuffers.get(url);
-    if (!buffer) {
-        console.warn(`Sound not preloaded or failed to load: ${url}`);
+    if (!context || !isAudioContextUnlocked) {
+        logAudio('warn', `Cannot play sound: AudioContext not unlocked for ${url}. Call unlockAudioContext() on user interaction.`);
         return;
     }
-    const source = context.createBufferSource();
-    source.buffer = buffer;
-    source.connect(context.destination);
-    source.start(0);
-};
-
-// --- THIS IS THE MISSING FUNCTION ---
-// Plays a small slice of a larger audio buffer
-export const playAudioSlice = (mainBuffer, bpm, gridOffset, barIndex, beatIndex) => {
-    if (!mainBuffer) return;
-    
-    const context = getAudioContext();
-    unlockAudioContext();
-
-    // Calculate the duration of one 16th note in seconds
-    const beatsPerBar = 16;
-    const secondsPerBeat = 60.0 / bpm;
-    const beatDuration = secondsPerBeat / 4; // Assuming 16th notes
-
-    // Calculate the start time of the slice in seconds
-    const startTime = gridOffset + ((barIndex * beatsPerBar + beatIndex) * beatDuration);
-
-    if (startTime >= mainBuffer.duration) {
-        return; // Don't play if the start time is past the end of the buffer
+    const audioBuffer = audioBufferCache.get(url);
+    if (!audioBuffer) {
+        logAudio('warn', `Sound not preloaded: ${url}.`);
+        return;
     }
 
-    const source = context.createBufferSource();
-    source.buffer = mainBuffer;
-    source.connect(context.destination);
-
-    // Play the slice: start at `startTime` for `beatDuration` seconds
-    source.start(0, startTime, beatDuration);
-};
-
-// This function is for generating the visual waveform, separate from playback
-export const generateWaveform = (url) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const context = getAudioContext();
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await context.decodeAudioData(arrayBuffer);
-            
-            const rawData = audioBuffer.getChannelData(0); // Get data from left channel
-            const samples = 200; // Number of data points for the waveform
-            const blockSize = Math.floor(rawData.length / samples);
-            const filteredData = [];
-            for (let i = 0; i < samples; i++) {
-                let blockStart = blockSize * i;
-                let sum = 0;
-                for (let j = 0; j < blockSize; j++) {
-                    sum = sum + Math.abs(rawData[blockStart + j]);
-                }
-                filteredData.push(sum / blockSize);
-            }
-            resolve(filteredData);
-        } catch (e) {
-            reject(e);
-        }
-    });
+    try {
+        const source = context.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(context.destination);
+        source.start(0);
+    } catch (error) {
+        logAudio('error', `Error playing sound '${url}':`, error);
+    }
 };
