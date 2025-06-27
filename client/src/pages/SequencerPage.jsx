@@ -1,32 +1,30 @@
 import React from 'react';
+import Studio from '../components/core/studio/Studio';
 
-// --- CONTEXT PROVIDERS ---
-import { SequencerSettingsProvider } from '../contexts/SequencerSettingsContext';
+// Import all the necessary providers
 import { SequenceProvider } from '../contexts/SequenceContext';
-import { PlaybackProvider } from '../contexts/PlaybackContext';
 import { UIStateProvider } from '../contexts/UIStateContext';
-import { MotionAnalysisProvider } from '../contexts/MotionAnalysisContext';
+import { PlaybackProvider } from '../contexts/PlaybackContext';
 import { MediaProvider } from '../contexts/MediaContext';
-
-// --- MAIN COMPONENT IMPORT ---
-import Sequencer from '../components/Sequencer';
+import { AnalysisProvider } from '../contexts/AnalysisContext';
 
 const SequencerPage = () => {
   return (
-    // --- THE DEFINITIVE, CORRECT NESTING ORDER ---
-    <SequencerSettingsProvider>
-      <SequenceProvider>
+    // Wrap the entire page content with the providers in the correct order.
+    // Outer providers can't depend on inner ones.
+    <SequenceProvider>
+      <UIStateProvider>
         <PlaybackProvider>
-          <UIStateProvider>
-            <MediaProvider>
-              <MotionAnalysisProvider>
-                <Sequencer />
-              </MotionAnalysisProvider>
-            </MediaProvider>
-          </UIStateProvider>
+          <MediaProvider>
+            <AnalysisProvider>
+              <div style={{ width: '100%', height: '100%' }}>
+                <Studio />
+              </div>
+            </AnalysisProvider>
+          </MediaProvider>
         </PlaybackProvider>
-      </SequenceProvider>
-    </SequencerSettingsProvider>
+      </UIStateProvider>
+    </SequenceProvider>
   );
 };
 

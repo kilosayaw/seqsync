@@ -1,56 +1,47 @@
-// /client/src/components/core/main/BeatGrid.jsx
 import React from 'react';
 import styled from 'styled-components';
-import { useSequence } from '../../../contexts/SequenceContext.jsx';
-import { useUIState } from '../../../contexts/UIStateContext.jsx';
-import { usePlayback } from '../../../contexts/PlaybackContext.jsx';
-import BeatButton from '../sequencer/BeatButton.jsx';
+import BeatButton from '../sequencer/BeatButton';
+import { useUIState } from '../../../contexts/UIStateContext';
+import { useSequence } from '../../../contexts/SequenceContext';
+import { usePlayback } from '../../../contexts/PlaybackContext';
 
 const GridContainer = styled.div`
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 8px;
-    width: 100%;
-    padding: 8px;
-    background-color: #1e293b;
-    border-radius: 8px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+  padding: 10px;
+  background-color: var(--color-background-deep, #222);
+  border-radius: var(--border-radius-medium, 8px);
+  width: 100%;
+  max-width: 800px;
+  box-sizing: border-box;
 `;
 
-// The rest of the component logic remains the same.
-const BeatGrid = ({ onBeatSelect, onAddSoundClick, onSoundDelete }) => {
-    const { songData } = useSequence();
-    const { selectedBar, isEditMode, editingBeatIndex } = useUIState();
-    // --- FIX: Get the currently PLAYING bar and step from the playback context ---
-    const { currentStep, currentBar, isPlaying } = usePlayback();
-    
-    // Use the bar that is currently selected in the UI for rendering the grid
-    const barToRender = songData.bars?.[selectedBar] || Array(16).fill({}).map((_, i) => ({ beatIndex: i }));
+const BeatGrid = () => {
+  const { selectedBar, selectedBeat, setSelectedBeat } = useUIState();
+  const { getBeatData } = useSequence();
+  const { currentStep } = usePlayback(); // Get the live playhead position
 
-    return (
-        <GridContainer>
-            {barToRender.map((beatData, index) => {
-                // --- FIX: Highlighting logic ---
-                // Light up if playback is running AND the playing bar is the one we are looking at AND the step matches.
-                const isCurrentPlaybackStep = isPlaying && currentBar === selectedBar && currentStep === index;
-                
-                const isSelectedForEditing = isEditMode && editingBeatIndex === index;
-                const beatHasContent = beatData?.sounds?.length > 0 || (beatData?.pose?.jointInfo && Object.keys(beatData.pose.jointInfo).length > 0);
+  return (
+    <GridContainer>
+      {Array.from({ length: 16 }).map((_, index) => {
+        const beatData = { 
+          ...getBeatData(selectedBar, index), 
+          beatIndex: index 
+        };
 
-                return (
-                    <BeatButton
-                        key={`${selectedBar}-${index}`}
-                        beatData={{ ...beatData, beatIndex: index }}
-                        onClick={() => onBeatSelect(selectedBar, index)}
-                        onAddSoundClick={() => onAddSoundClick(selectedBar, index)}
-                        onSoundDelete={(soundUrl) => onSoundDelete(selectedBar, index, soundUrl)}
-                        isActive={beatHasContent}
-                        isCurrentStep={isCurrentPlaybackStep} // Use the corrected value
-                        isSelectedForEdit={isSelectedForEditing}
-                    />
-                );
-            })}
-        </GridContainer>
-    );
+        return (
+          <BeatButton
+            key={`${selectedBar}-${index}`}
+            beatData={beatData}
+            onClick={() => setSelectedBeat(index)}
+            isActive={selectedBeat === index} 
+            isCurrentStep={currentStep === index} // Pass the playhead status
+          />
+        );
+      })}
+    </GridContainer>
+  );
 };
 
 export default BeatGrid;
