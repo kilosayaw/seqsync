@@ -1,214 +1,187 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import * as poseDetection from '@tensorflow-models/pose-detection';
-import * as tf from '@tensorflow/tfjs-core';
-import '@tensorflow/tfjs-backend-webgl';
 import { toast } from 'react-toastify';
+import { Pose, POSE_LANDMARKS } from '@mediapipe/pose';
+import { POSE_DEFAULT_VECTOR, DEFAULT_JOINT_ENERGY, DEFAULT_GENERAL_ORIENTATION, DEFAULT_INTENT } from '../utils/constants';
 
-// --- FIX: Import the main analysis function, NOT individual pieces ---
-import { analyzePoseDynamics } from '../utils/biomechanics';
-
-// Helper to transform TensorFlow's pose object into our app's format
-const transformTfPoseToSeqPose = (tfPose, videoElement) => {
-    if (!tfPose || !tfPose.keypoints) return null;
-    const { videoWidth, videoHeight } = videoElement;
-    if (videoWidth === 0 || videoHeight === 0) return null;
-
-    const jointInfo = {};
-    const jointMap = {
-        'nose': 'H', 'left_shoulder': 'LS', 'right_shoulder': 'RS', 'left_elbow': 'LE',
-        'right_elbow': 'RE', 'left_wrist': 'LW', 'right_wrist': 'RW', 'left_hip': 'LH',
-        'right_hip': 'RH', 'left_knee': 'LK', 'right_knee': 'RK', 'left_ankle': 'LA', 'right_ankle': 'RA'
-    };
-
-    tfPose.keypoints.forEach(keypoint => {
-        const abbrev = jointMap[keypoint.name];
-        if (abbrev && keypoint.score > 0.3) {
-            jointInfo[abbrev] = {
-                vector: {
-                    x: Number(((keypoint.x / videoWidth) * 2 - 1).toFixed(4)),
-                    y: Number(((keypoint.y / videoHeight) * -2 + 1).toFixed(4)),
-                    z: Number((keypoint.z ? (keypoint.z / videoWidth) * -1 : 0).toFixed(4)),
-                },
-                score: Number(keypoint.score.toFixed(4)),
-            };
-        }
-    });
-
-    const grounding = { L: null, R: null, L_weight: 50, R_weight: 50 };
-    if (jointInfo['LA']?.score > 0.5) grounding.L = 'L_FULL_PLANT';
-    if (jointInfo['RA']?.score > 0.5) grounding.R = 'R_FULL_PLANT';
-    
-    return { jointInfo, grounding };
+const MEDIAPIPE_TO_POSEQR_MAP = {
+  [POSE_LANDMARKS.LEFT_SHOULDER]: 'LS', [POSE_LANDMARKS.RIGHT_SHOULDER]: 'RS',
+  [POSE_LANDMARKS.LEFT_ELBOW]: 'LE', [POSE_LANDMARKS.RIGHT_ELBOW]: 'RE',
+  [POSE_LANDMARKS.LEFT_WRIST]: 'LW', [POSE_LANDMARKS.RIGHT_WRIST]: 'RW',
+  [POSE_LANDMARKS.LEFT_HIP]: 'LH', [POSE_LANDMARKS.RIGHT_HIP]: 'RH',
+  [POSE_LANDMARKS.LEFT_KNEE]: 'LK', [POSE_LANDMARKS.RIGHT_KNEE]: 'RK',
+  [POSE_LANDMARKS.LEFT_ANKLE]: 'LA', [POSE_LANDMARKS.RIGHT_ANKLE]: 'RA',
+  [POSE_LANDMARKS.LEFT_FOOT_INDEX]: 'LF', [POSE_LANDMARKS.RIGHT_FOOT_INDEX]: 'RF',
+  [POSE_LANDMARKS.NOSE]: 'H',
 };
 
+const landmarksToPoseQr = (landmarks) => {
+  if (!landmarks || landmarks.length === 0) return { jointInfo: {}, grounding: {} };
+  const poseQrData = { jointInfo: {}, grounding: { L: null, R: null, L_weight: 50 } };
+  const leftHip = landmarks[POSE_LANDMARKS.LEFT_HIP];
+  const rightHip = landmarks[POSE_LANDMARKS.RIGHT_HIP];
+  if (!leftHip || !rightHip) return poseQrData;
+  const comX = (leftHip.x + rightHip.x) / 2;
+  const comY = (leftHip.y + rightHip.y) / 2;
+  const shoulderDist = Math.sqrt(Math.pow((landmarks[POSE_LANDMARKS.LEFT_SHOULDER]?.x || 0) - (landmarks[POSE_LANDMARKS.RIGHT_SHOULDER]?.x || 0), 2));
+  const scale = shoulderDist > 0.01 ? shoulderDist : 1;
 
-export const useMotionAnalysis = ({ onPoseUpdate }) => {
-    const [detector, setDetector] = useState(null);
-    const [isInitializing, setIsInitializing] = useState(true);
-    const [livePoseData, setLivePoseData] = useState(null);
-    const [isTracking, setIsTracking] = useState(false);
-    
-    const rafIdRef = useRef(null);
-    const previousPoseRef = useRef(null);
+  for (const [mpIndex, jointAbbrev] of Object.entries(MEDIAPIPE_TO_POSEQR_MAP)) {
+    const landmark = landmarks[mpIndex];
+    if (!landmark) continue;
+    const vecX = (landmark.x - comX) / scale;
+    const vecY = -(landmark.y - comY) / scale;
+    const vecZ = landmark.z / scale;
+    poseQrData.jointInfo[jointAbbrev] = { vector: { x: vecX, y: vecY, z: vecZ }, rotation: 0, extension: 0, energy: DEFAULT_JOINT_ENERGY, orientation: DEFAULT_GENERAL_ORIENTATION, intent: DEFAULT_INTENT };
+  }
+  return poseQrData;
+};
 
-    // This ref ensures we always have the latest callback function without re-triggering effects
-    const callbacksRef = useRef({ onPoseUpdate });
-    useEffect(() => {
-        callbacksRef.current.onPoseUpdate = onPoseUpdate;
-    }, [onPoseUpdate]);
+export const useMotionAnalysis = ({ onPoseUpdate, onKeyframeData, logDebug }) => {
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const isCancelledRef = useRef(false);
+  const poseEstimatorRef = useRef(null);
+  const animationFrameIdRef = useRef(null);
+  const thumbnailCanvasRef = useRef(null);
 
-    useEffect(() => {
-        const init = async () => {
-            setIsInitializing(true);
-            try {
-                await tf.ready();
-                await tf.setBackend('webgl');
-                const model = poseDetection.SupportedModels.MoveNet;
-                const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
-                setDetector(await poseDetection.createDetector(model, detectorConfig));
-            } catch (err) {
-                console.error("Failed to initialize pose detector:", err);
-                toast.error('Failed to load analysis engine.');
-            } finally {
-                setIsInitializing(false);
-            }
-        };
-        init();
-    }, []);
+  useEffect(() => { thumbnailCanvasRef.current = document.createElement('canvas'); }, []);
 
-    const estimationLoop = useCallback(async (videoElement) => {
-        if (!detector || !videoElement || !document.contains(videoElement) || videoElement.readyState < 3) {
-             rafIdRef.current = requestAnimationFrame(() => estimationLoop(videoElement));
-             return;
-        }
+  const captureThumbnail = useCallback((videoElement) => {
+    const canvas = thumbnailCanvasRef.current;
+    if (!canvas || !videoElement) return null;
+    canvas.width = 128;
+    canvas.height = 72;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.7);
+  }, []);
 
-        const poses = await detector.estimatePoses(videoElement, { flipHorizontal: false });
-        if (poses && poses.length > 0) {
-            const currentPose = transformTfPoseToSeqPose(poses[0], videoElement);
-            if (currentPose) {
-                // --- FIX: Use the single, correct analysis function ---
-                const analysisResult = analyzePoseDynamics(currentPose, previousPoseRef.current);
-                
-                const fullPoseData = { ...currentPose, analysis: analysisResult };
-                
-                setLivePoseData(fullPoseData);
-                
-                if (callbacksRef.current.onPoseUpdate) {
-                    callbacksRef.current.onPoseUpdate(fullPoseData);
-                }
-                
-                previousPoseRef.current = currentPose;
-            }
-        }
-        rafIdRef.current = requestAnimationFrame(() => estimationLoop(videoElement));
-    }, [detector]);
+  const initializePoseEstimator = useCallback(async () => {
+    if (poseEstimatorRef.current) return poseEstimatorRef.current;
+    logDebug('info', '[MotionAnalysis] Initializing Pose Estimator...');
+    try {
+      const pose = new Pose({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` });
+      pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: false, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+      await pose.initialize();
+      poseEstimatorRef.current = pose;
+      logDebug('info', '[MotionAnalysis] Pose Estimator Initialized.');
+      return pose;
+    } catch (error) {
+      logDebug('error', '[MotionAnalysis] Failed to initialize MediaPipe Pose.', error);
+      toast.error('Failed to load motion analysis model.');
+      return null;
+    }
+  }, [logDebug]);
 
-    const startLiveTracking = useCallback((videoElement) => {
-        if (!detector || isInitializing) return;
-        if (videoElement && videoElement.videoWidth > 0) {
-            setIsTracking(true);
-            rafIdRef.current = requestAnimationFrame(() => estimationLoop(videoElement));
-        } else {
-            console.error("useMotionAnalysis: startLiveTracking called with invalid video element.");
-        }
-    }, [detector, isInitializing, estimationLoop]);
-    
-    const stopLiveTracking = useCallback(() => {
-        setIsTracking(false);
-        if (rafIdRef.current) {
-            cancelAnimationFrame(rafIdRef.current);
-            rafIdRef.current = null;
-        }
-        setLivePoseData(null);
-        previousPoseRef.current = null;
-    }, []);
-
-
-    useEffect(() => {
-        if (isTracking) {
-            console.log('[MotionAnalysis] Starting estimation loop.');
-            rafIdRef.current = requestAnimationFrame(estimationLoop);
-        } else {
-            if (rafIdRef.current) {
-                console.log('[MotionAnalysis] Stopping estimation loop.');
-                cancelAnimationFrame(rafIdRef.current);
-                rafIdRef.current = null;
-            }
-        }
-        return () => {
-            if (rafIdRef.current) {
-                cancelAnimationFrame(rafIdRef.current);
-            }
-        };
-    }, [isTracking, estimationLoop]);
-    
-
-    const startFullAnalysis = useCallback(async (videoElement, bpm, timeSignature, totalBars) => {
-        if (isAnalyzing || !detector) return;
-        
-        setIsAnalyzing(true);
-        setAnalysisProgress(0);
-        analysisControllerRef.current = new AbortController();
-        const { signal } = analysisControllerRef.current;
-        const results = [];
-        const totalSteps = totalBars * UI_PADS_PER_BAR;
-        const timePerStep = (60 / bpm) / (UI_PADS_PER_BAR / (timeSignature.beatsPerBar || 4));
-        const originalVideoTime = videoElement.currentTime;
-        videoElement.pause();
-
-        toast.info(`Starting analysis for ${totalSteps} beats...`);
-
-        try {
-            for (let i = 0; i < totalSteps; i++) {
-                if (signal.aborted) {
-                    toast.warn("Analysis cancelled.");
-                    break;
-                }
-                const timeTarget = i * timePerStep;
-                if (timeTarget > videoElement.duration) break;
-
-                videoElement.currentTime = timeTarget;
-                await new Promise(resolve => { videoElement.onseeked = resolve; });
-
-                const poses = await detector.estimatePoses(videoElement, { flipHorizontal: false });
-                if (poses && poses.length > 0) {
-                    const poseData = transformTfPoseToSeqPose(poses[0], videoElement, previousPoseRef.current);
-                    if (poseData) {
-                        results.push({
-                            bar: Math.floor(i / UI_PADS_PER_BAR),
-                            beat: i % UI_PADS_PER_BAR,
-                            poseData
-                        });
-                        previousPoseRef.current = { jointInfo: poseData.jointInfo };
-                    }
-                }
-                setAnalysisProgress(((i + 1) / totalSteps) * 100);
-            }
-            if (!signal.aborted && callbacksRef.current.onAnalysisComplete) {
-                callbacksRef.current.onAnalysisComplete(results);
-            }
-        } catch (err) {
-            toast.error("An error occurred during analysis.");
-            console.error("Full analysis error:", err);
-        } finally {
-            setIsAnalyzing(false);
-            setAnalysisProgress(0);
-            videoElement.currentTime = originalVideoTime;
-            analysisControllerRef.current = null;
-        }
-    }, [detector, isAnalyzing]);
-
-    const cancelFullAnalysis = useCallback(() => {
-        if (analysisControllerRef.current) {
-            analysisControllerRef.current.abort();
-        }
-    }, []);
-
-    return {
-        isInitializing,
-        isTracking,
-        livePoseData,
-        startLiveTracking,
-        stopLiveTracking,
+  const startLiveTracking = useCallback(async (videoElement) => {
+    const pose = await initializePoseEstimator();
+    if (!pose || !videoElement) return;
+    isCancelledRef.current = false;
+    pose.onResults(results => {
+      if (results.poseLandmarks && onPoseUpdate) {
+        const poseQr = landmarksToPoseQr(results.poseLandmarks);
+        onPoseUpdate(poseQr.jointInfo);
+      }
+    });
+    const onFrame = async () => {
+      if (videoElement.paused || videoElement.ended || isCancelledRef.current) {
+        stopLiveTracking();
+        return;
+      }
+      await pose.send({ image: videoElement });
+      animationFrameIdRef.current = requestAnimationFrame(onFrame);
     };
+    animationFrameIdRef.current = requestAnimationFrame(onFrame);
+  }, [initializePoseEstimator, onPoseUpdate]);
+
+  const stopLiveTracking = useCallback(() => {
+    isCancelledRef.current = true;
+    if (animationFrameIdRef.current) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+      animationFrameIdRef.current = null;
+    }
+  }, []);
+
+  const startAnalysis = useCallback(async (videoElement, bpm, timeSignature, captureResolution) => {
+    if (!videoElement || videoElement.readyState < 2) {
+      toast.error("Video is not ready for analysis.");
+      return;
+    }
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+    isCancelledRef.current = false;
+    toast.info(`Starting full analysis at 1/${captureResolution} note resolution...`);
+    const pose = await initializePoseEstimator();
+    if (!pose) {
+      setIsAnalyzing(false);
+      return;
+    }
+    const keyframes = [];
+    const duration = videoElement.duration;
+    const beatsPerBar = timeSignature.beatsPerBar || 4;
+    const stepsPerBar = 16;
+    const timePerBeat = 60 / bpm;
+    const timePerStep = timePerBeat * (beatsPerBar / captureResolution);
+
+    if (duration <= 0 || !isFinite(duration) || timePerStep <= 0 || !isFinite(timePerStep)) {
+        toast.error("Invalid video duration or timing parameters for analysis.");
+        setIsAnalyzing(false);
+        return;
+    }
+    const totalStepsToAnalyze = Math.floor(duration / timePerStep);
+    logDebug('info', `[Analysis] Total steps to analyze: ${totalStepsToAnalyze}`);
+    const originalVideoTime = videoElement.currentTime;
+    videoElement.pause();
+
+    // Use a separate onResults handler for the batch process
+    const processResults = (results) => {
+        if (results.poseLandmarks) {
+            const poseData = landmarksToPoseQr(results.poseLandmarks);
+            const thumbnail = captureThumbnail(videoElement);
+            poseData.thumbnail = thumbnail;
+            keyframes.push({ poseData }); // Temporarily store poseData
+        }
+    };
+    pose.onResults(processResults);
+
+    for (let i = 0; i < totalStepsToAnalyze; i++) {
+        if (isCancelledRef.current) {
+            logDebug('warn', '[Analysis] Loop cancelled by user.');
+            toast.warn("Motion analysis cancelled.");
+            break;
+        }
+        const currentTime = i * timePerStep;
+        videoElement.currentTime = currentTime;
+        await new Promise(resolve => {
+            const seekedHandler = () => {
+                videoElement.removeEventListener('seeked', seekedHandler);
+                resolve();
+            };
+            videoElement.addEventListener('seeked', seekedHandler);
+        });
+        await pose.send({ image: videoElement });
+        setAnalysisProgress(((i + 1) / totalStepsToAnalyze) * 100);
+    }
+    
+    // Remap keyframes to correct bar and beat after loop
+    const mappedKeyframes = keyframes.map((frame, i) => {
+        const absoluteStep = i * (stepsPerBar / captureResolution);
+        const bar = Math.floor(absoluteStep / stepsPerBar);
+        const beat = Math.floor(absoluteStep % stepsPerBar);
+        return { ...frame, bar, beat };
+    });
+
+    videoElement.currentTime = originalVideoTime;
+    setIsAnalyzing(false);
+    if (!isCancelledRef.current) {
+      onKeyframeData(mappedKeyframes);
+    }
+  }, [initializePoseEstimator, onKeyframeData, logDebug, captureThumbnail]);
+
+  const cancelAnalysis = useCallback(() => {
+    isCancelledRef.current = true;
+    logDebug('warn', '[MotionAnalysis] Analysis cancellation requested.');
+  }, [logDebug]);
+
+  return { isAnalyzing, analysisProgress, startAnalysis, cancelAnalysis, startLiveTracking, stopLiveTracking };
 };

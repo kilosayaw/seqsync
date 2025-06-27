@@ -1,104 +1,66 @@
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import { POSE_DEFAULT_VECTOR } from './constants';
-
 /**
- * A utility to conditionally join Tailwind CSS classes without style conflicts.
- * @param  {...any} inputs - Class names or conditional objects.
- * @returns {string} The final, merged class name string.
+ * Calculates a curved crossfader value. This function adjusts the response of a
+ * linear input (like a slider) to be either very sharp (quick change near the ends)
+ * or smoother (more linear).
+ * @param {number} linearValue - The raw fader value (0-100).
+ * @param {number} curve - The curve setting (0 for sharpest, 100 for smoothest/linear).
+ * @returns {number} The adjusted value after applying the curve.
  */
-export function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
+export const calculateCurvedValue = (linearValue, curve) => {
+  // Treat near-max curve values as perfectly linear to avoid floating point issues.
+  if (curve >= 98) {
+    return linearValue;
+  }
+
+  // Normalize inputs to a 0-1 range for mathematical operations.
+  const x = linearValue / 100;
+  // Map the curve setting (0-100) to a mathematical exponent.
+  // A low exponent (e.g., 0.1) creates a very sharp curve.
+  // An exponent of 1.0 creates a linear response.
+  const exponent = 0.1 + (curve / 100) * 0.9;
+
+  let curvedX;
+  if (x < 0.5) {
+    // Apply the power curve to the first half of the fader's travel.
+    curvedX = 0.5 * Math.pow(x * 2, exponent);
+  } else {
+    // Apply a mirrored power curve to the second half for symmetry.
+    curvedX = 1 - 0.5 * Math.pow((1 - x) * 2, exponent);
+  }
+  
+  // Convert the result back to the 0-100 range.
+  return curvedX * 100;
+};
+
 
 /**
- * Linearly interpolates between two numbers.
+ * Linearly interpolates between two numbers. This is a fundamental building block
+ * for creating smooth transitions.
  * @param {number} start - The starting value.
  * @param {number} end - The ending value.
- * @param {number} fraction - The interpolation fraction (0 to 1).
+ * @param {number} fraction - The fraction (0.0 to 1.0) to interpolate by.
  * @returns {number} The interpolated value.
  */
 export const lerp = (start, end, fraction) => {
-    const s = typeof start === 'number' ? start : 0;
-    const e = typeof end === 'number' ? end : 0;
-    return s + (e - s) * fraction;
+  return start + (end - start) * fraction;
 };
 
 /**
- * Linearly interpolates between two 3D vectors.
+ * Linearly interpolates between two 3D vectors by applying `lerp` to each axis.
+ * This is used to smoothly move a joint from one position to another over several beats.
  * @param {object} startVec - The starting vector {x, y, z}.
  * @param {object} endVec - The ending vector {x, y, z}.
- * @param {number} fraction - The interpolation fraction (0 to 1).
- * @returns {object} The interpolated vector.
+ * @param {number} fraction - The fraction (0.0 to 1.0) to interpolate by.
+ * @returns {object} The new interpolated vector {x, y, z}.
  */
 export const lerpVector = (startVec, endVec, fraction) => {
-    const safeStart = startVec || POSE_DEFAULT_VECTOR;
-    const safeEnd = endVec || POSE_DEFAULT_VECTOR;
-    
-    return {
-        x: lerp(safeStart.x, safeEnd.x, fraction),
-        y: lerp(safeStart.y, safeEnd.y, fraction),
-        z: lerp(safeStart.z, safeEnd.z, fraction),
-    };
+  // Provide default empty vectors to prevent errors if start/end are undefined.
+  const s = startVec || { x: 0, y: 0, z: 0 };
+  const e = endVec || { x: 0, y: 0, z: 0 };
+
+  return {
+    x: lerp(s.x, e.x, fraction),
+    y: lerp(s.y, e.y, fraction),
+    z: lerp(s.z, e.z, fraction),
+  };
 };
-
-/**
- * [NEW] Checks if a point is inside a convex polygon using the ray-casting algorithm.
- * @param {object} point - The point to check {x, y}.
- * @param {array} polygon - An array of {x, y} vertices of the polygon in order.
- * @returns {boolean} True if the point is inside.
- */
-export function isPointInPolygon(point, polygon) {
-    let inside = false;
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-        const xi = polygon[i].x, yi = polygon[i].y;
-        const xj = polygon[j].x, yj = polygon[j].y;
-
-        const intersect = ((yi > point.y) !== (yj > point.y))
-            && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-    }
-    return inside;
-}
-
-/**
- * [NEW] Finds the closest point on the boundary of a polygon to a given point.
- * If the point is inside the polygon, it returns the point itself.
- * @param {object} point - The point to constrain {x, y}.
- * @param {array} polygon - An array of {x, y} vertices of the polygon in order.
- * @returns {object} The constrained {x, y} point.
- */
-export function getVectorFromXY(point, polygon) {
-    if (isPointInPolygon(point, polygon)) {
-        return point;
-    }
-
-    let minDistanceSq = Infinity;
-    let closestPoint = { x: 0, y: 0 };
-
-    for (let i = 0; i < polygon.length; i++) {
-        const p1 = polygon[i];
-        const p2 = polygon[(i + 1) % polygon.length];
-
-        const dx = p2.x - p1.x;
-        const dy = p2.y - p1.y;
-
-        if (dx === 0 && dy === 0) continue;
-
-        const t = ((point.x - p1.x) * dx + (point.y - p1.y) * dy) / (dx * dx + dy * dy);
-        const clampedT = Math.max(0, Math.min(1, t));
-        
-        const projection = {
-            x: p1.x + clampedT * dx,
-            y: p1.y + clampedT * dy,
-        };
-        
-        const distSq = (point.x - projection.x)**2 + (point.y - projection.y)**2;
-        
-        if (distSq < minDistanceSq) {
-            minDistanceSq = distSq;
-            closestPoint = projection;
-        }
-    }
-    return closestPoint;
-}

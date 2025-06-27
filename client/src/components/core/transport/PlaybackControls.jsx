@@ -1,63 +1,68 @@
-import React from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faStop, faRecordVinyl, faUndo, faRedo, faCopy, faPaste } from '@fortawesome/free-solid-svg-icons';
-
-// COMMON & CORE COMPONENTS
+import React, { useMemo } from 'react';
+import PropTypes from 'prop-types';
 import Button from '../../common/Button';
-import Tooltip from '../../common/Tooltip';
-import TimecodeDisplay from './TimecodeDisplay';
-import BarDisplay from './BarDisplay';
+import Select from '../../common/Select';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUndo, faRedo, faSync, faPlay, faPause, faStop, faStepBackward, faStepForward, faMinus, faPlus, faTrash, faCopy, faPaste } from '@fortawesome/free-solid-svg-icons';
+import { SKIP_OPTIONS } from '../../../utils/constants';
 
-// CONTEXTS
-import { usePlayback } from '../../../contexts/PlaybackContext';
-import { useSequence } from '../../../contexts/SequenceContext';
-import { useUIState } from '../../../contexts/UIStateContext';
-
-const ControlGroup = ({ children, className }) => <div className={`flex items-center gap-1.5 bg-black/20 p-1 rounded-md ${className}`}>{children}</div>;
-
-const PlaybackControls = () => {
-  // --- This component now sources everything from contexts ---
-  // --- DEFINITIVE FIX: Added `handleStop` back to the destructuring ---
-  const { isPlaying, isRecording, handlePlayPause, handleRecord, handleStop } = usePlayback();
-  const { bpm, setBpm, handleTapTempo, handleUndo, handleRedo, history, historyIndex } = useSequence();
-  const { copyPose, pastePose, copiedPoseData, currentEditingBar, activeBeatIndex } = useUIState();
-
-  // --- DEFINITIVE FIX: Use the ref's current value for accurate boolean check ---
-  const canUndo = historyIndex.current > 0;
-  const canRedo = history.current.length > 1 && historyIndex.current < history.current.length - 1;
+const PlaybackControls = ({ onUndo, onRedo, canUndo, canRedo, onPlayPause, isPlaying, onStop, onTapTempo, onAddBar, onRemoveBar, onClearBar, onNextBar, onPrevBar, onCopyBar, onPasteBar, canPaste, onCopyPose, onPastePose, canPastePose, onSkipForward, onSkipBackward, onSkipIntervalChange, }) => {
+  const skipOptionsWithLabels = useMemo(() => SKIP_OPTIONS.map(opt => ({ value: opt.value, label: opt.value === '1' ? 'Bar' : `1/${opt.value}` })), []);
 
   return (
-    <div className="w-full bg-gray-800/60 rounded-lg px-2 py-1 flex items-center justify-between gap-3 flex-wrap">
-        <ControlGroup>
-            <Tooltip content="Undo (Ctrl+Z)"><Button onClick={handleUndo} disabled={!canUndo} size="sm" variant="secondary"><FontAwesomeIcon icon={faUndo} /></Button></Tooltip>
-            <Tooltip content="Redo (Ctrl+Y)"><Button onClick={handleRedo} disabled={!canRedo} size="sm" variant="secondary"><FontAwesomeIcon icon={faRedo} /></Button></Tooltip>
-        </ControlGroup>
-        
-        <ControlGroup>
-            <Tooltip content="Record Arm/Disarm"><Button onClick={handleRecord} size="lg" variant={isRecording ? 'danger' : 'secondary'}><FontAwesomeIcon icon={faRecordVinyl} className={isRecording ? 'animate-pulse' : ''}/></Button></Tooltip>
-            <Tooltip content="Play/Pause (Spacebar)"><Button onClick={handlePlayPause} size="lg" variant="primary"><FontAwesomeIcon icon={isPlaying ? faPause : faPlay} /></Button></Tooltip>
-            <Tooltip content="Stop (Enter)"><Button onClick={handleStop} size="lg" variant="secondary"><FontAwesomeIcon icon={faStop} /></Button></Tooltip>
-        </ControlGroup>
-      
-        <TimecodeDisplay />
-
-        <ControlGroup>
-            <div className="flex flex-col items-center">
-                <input type="number" value={bpm} onChange={(e) => setBpm(parseInt(e.target.value, 10))} className="w-20 bg-gray-900 text-center rounded p-1 text-2xl font-bold" />
-            </div>
-            <Button onClick={handleTapTempo} size="sm" variant="secondary" className="h-full">TAP</Button>
-        </ControlGroup>
-      
-        <ControlGroup>
-            <BarDisplay />
-        </ControlGroup>
-        
-        <ControlGroup>
-            <Tooltip content="Copy Pose Data"><Button onClick={() => copyPose(currentEditingBar, activeBeatIndex)} variant="secondary"><FontAwesomeIcon icon={faCopy} /></Button></Tooltip>
-            <Tooltip content="Paste Pose Data"><Button onClick={() => pastePose(currentEditingBar, activeBeatIndex)} disabled={!copiedPoseData} variant="secondary"><FontAwesomeIcon icon={faPaste} /></Button></Tooltip>
-        </ControlGroup>
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 p-2 bg-gray-800/80 rounded-lg shadow-lg backdrop-blur-sm">
+      <div className="flex items-center gap-2">
+        <Button onClick={onUndo} disabled={!canUndo} variant="secondary" title="Undo (Ctrl+Z)" iconLeft={faUndo} />
+        <Button onClick={onRedo} disabled={!canRedo} variant="secondary" title="Redo (Ctrl+Y)" iconLeft={faRedo} />
+      </div>
+      <div className="flex items-center gap-2">
+        <Button onClick={onTapTempo} variant="primary" className="!bg-purple-600 hover:!bg-purple-700" title="Tap Tempo" iconLeft={faSync} />
+        <Button onClick={onPlayPause} variant="primary" className={isPlaying ? "!bg-yellow-500" : "!bg-green-500"} iconLeft={isPlaying ? faPause : faPlay} />
+        <Button onClick={onStop} variant="danger" iconLeft={faStop} />
+      </div>
+      <div className="flex items-center gap-2">
+        <Button onClick={onSkipBackward} title="Skip Backward" iconLeft={faStepBackward} />
+        <Select options={skipOptionsWithLabels} defaultValue="16" onChange={(e) => onSkipIntervalChange(e.target.value)} className="w-20 text-center" />
+        <Button onClick={onSkipForward} title="Skip Forward" iconLeft={faStepForward} />
+      </div>
+      <div className="flex items-center gap-2">
+        <Button onClick={onPrevBar} title="Previous Bar" iconLeft={faMinus}>Bar</Button>
+        <Button onClick={onNextBar} title="Next Bar" iconLeft={faPlus}>Bar</Button>
+        <Button onClick={onClearBar} variant="secondary" title="Clear Bar" iconLeft={faTrash} />
+      </div>
+      <div className="flex items-center gap-2">
+        <Button onClick={onCopyBar} variant="secondary" title="Copy Bar" iconLeft={faCopy}>Bar</Button>
+        <Button onClick={onPasteBar} disabled={!canPaste} variant="secondary" title="Paste Bar" iconLeft={faPaste}>Bar</Button>
+        <Button onClick={onCopyPose} variant="secondary" title="Copy Pose" iconLeft={faCopy}>Pose</Button>
+        <Button onClick={onPastePose} disabled={!canPastePose} variant="secondary" title="Paste Pose" iconLeft={faPaste}>Pose</Button>
+      </div>
     </div>
   );
+};
+
+PlaybackControls.propTypes = {
+  onUndo: PropTypes.func.isRequired,
+  onRedo: PropTypes.func.isRequired,
+  canUndo: PropTypes.bool.isRequired,
+  canRedo: PropTypes.bool.isRequired,
+  onPlayPause: PropTypes.func.isRequired,
+  isPlaying: PropTypes.bool.isRequired,
+  onStop: PropTypes.func.isRequired,
+  onTapTempo: PropTypes.func.isRequired,
+  onNextBar: PropTypes.func.isRequired,
+  onPrevBar: PropTypes.func.isRequired,
+  onAddBar: PropTypes.func.isRequired,
+  onRemoveBar: PropTypes.func.isRequired,
+  onClearBar: PropTypes.func.isRequired,
+  onCopyBar: PropTypes.func.isRequired,
+  onPasteBar: PropTypes.func.isRequired,
+  canPaste: PropTypes.bool,
+  onCopyPose: PropTypes.func.isRequired,
+  onPastePose: PropTypes.func.isRequired,
+  canPastePose: PropTypes.bool,
+  onSkipForward: PropTypes.func.isRequired,
+  onSkipBackward: PropTypes.func.isRequired,
+  onSkipIntervalChange: PropTypes.func.isRequired,
 };
 
 export default PlaybackControls;

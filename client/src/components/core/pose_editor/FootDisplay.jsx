@@ -1,160 +1,97 @@
-import React, { useCallback, useRef, useState, useMemo } from 'react';
+import React, { useMemo, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { useActionLogger } from '../../../hooks/useActionLogger';
-import { FOOT_CONTACT_ZONES } from '../../../utils/constants';
+import { GROUNDING_POINT_COORDS, FOOT_JOYSTICK_ZONES } from '../../../utils/constants';
 
-const FootDisplay = ({ side, groundPoints, rotation, ankleRotation, onRotate, onGroundingChange, onAnkleRotationChange }) => {
-    const log = useActionLogger('FootDisplay');
-    const platterRef = useRef(null);
-    const [isInteracting, setIsInteracting] = useState(false);
+const FootDisplay = ({ side, groundPoints, rotation = 0, sizeClasses = "w-full", onRotate, onGroundingChange }) => {
+  const isGrounded = useMemo(() => Array.isArray(groundPoints) && groundPoints.length > 0, [groundPoints]);
+  const defaultImagePath = side === 'L' ? '/assets/ground/foot-left.png' : '/assets/ground/foot-right.png';
+  const groundedImagePath = side === 'L' ? '/assets/ground/L123T12345.png' : '/assets/ground/R123T12345.png';
+  const wheelImagePath = '/assets/ground/foot-wheel.png';
+  const imageSrc = isGrounded ? groundedImagePath : defaultImagePath;
+
+  const containerRef = useRef(null);
+  const dragInfo = useRef({ mode: null, startAngle: 0, startRotation: 0 });
+
+  const getZoneFromAngle = useCallback((angle) => {
+    const zones = FOOT_JOYSTICK_ZONES[side];
+    const firstZone = zones[0];
+    if (angle >= firstZone.minAngle && angle <= 360) return firstZone;
+    for (const zone of zones) {
+      if (angle >= zone.minAngle && angle < zone.maxAngle) return zone;
+    }
+    return null;
+  }, [side]);
+
+  const handlePointerDown = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const clickX = e.clientX - centerX;
+    const clickY = e.clientY - centerY;
+    const distance = Math.sqrt(clickX * clickX + clickY * clickY);
+    const radius = rect.width / 2;
     
-    // The inner circle for grounding interaction.
-    const interactionRef = useRef(null); 
-    const contactZones = useMemo(() => FOOT_CONTACT_ZONES[side], [side]);
+    const rotationZoneStartRadius = radius * 0.75;
 
-    const getZoneFromPosition = useCallback((x, y, rect) => {
-        const normX = (x - rect.left) / rect.width;
-        const normY = (y - rect.top) / rect.height;
-        for (const zone of contactZones) {
-            const dx = normX - zone.cx;
-            const dy = normY - zone.cy;
-            if (dx * dx + dy * dy < zone.radius * zone.radius) {
-                return zone.notation;
-            }
-        }
-        return null;
-    }, [contactZones]);
+    if (distance > rotationZoneStartRadius) {
+      const angle = Math.atan2(clickY, clickX) * (180 / Math.PI);
+      dragInfo.current = { mode: 'rotate', startAngle: angle, startRotation: rotation };
+      document.addEventListener('pointermove', handlePointerMove);
+      document.addEventListener('pointerup', handlePointerUp);
+    } else {
+      let angle = Math.atan2(-clickY, clickX) * (180 / Math.PI);
+      if (angle < 0) angle += 360;
+      const zone = getZoneFromAngle(angle);
+      onGroundingChange(side, zone ? zone.notation : null);
+    }
+  }, [rotation, onRotate, onGroundingChange, side, getZoneFromAngle]);
+
+  const handlePointerMove = useCallback((e) => {
+    if (dragInfo.current.mode !== 'rotate' || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
     
-    // --- Grounding Interaction (Inner Circle) ---
-    const handleGroundingInteraction = useCallback((e) => {
-        if (!interactionRef.current) return;
-        const rect = interactionRef.current.getBoundingClientRect();
-        // Default to a full plant if no specific zone is hit, providing tactile feedback
-        const zoneNotation = getZoneFromPosition(e.clientX, e.clientY, rect) || `${side}123T12345`;
-        
-        if (zoneNotation !== groundPoints) {
-            onGroundingChange(side, zoneNotation);
-        }
-    }, [getZoneFromPosition, onGroundingChange, side, groundPoints]);
+    const angleDelta = currentAngle - dragInfo.current.startAngle;
+    let newRotation = dragInfo.current.startRotation + angleDelta;
     
-    const handlePointerDown = useCallback((e) => {
-        e.preventDefault();
-        setIsInteracting(true);
-        // On initial press, register a full grounding contact
-        const fullPlantNotation = `${side}123T12345`;
-        log('GroundingEngaged', { side, initialContact: fullPlantNotation });
-        onGroundingChange(side, fullPlantNotation);
-        document.addEventListener('pointermove', handleGroundingInteraction);
-        document.addEventListener('pointerup', handlePointerUp);
-    }, [side, onGroundingChange, handleGroundingInteraction, log]);
-    
-    const handlePointerUp = useCallback(() => {
-        setIsInteracting(false);
-        log('GroundingReleased', { side });
-        onGroundingChange(side, null); // Set grounding to null when released
-        document.removeEventListener('pointermove', handleGroundingInteraction);
-        document.removeEventListener('pointerup', handlePointerUp);
-    }, [side, onGroundingChange, log, handleGroundingInteraction]);
+    const BIOMECHANICAL_LIMIT = 45;
+    newRotation = Math.max(-BIOMECHANICAL_LIMIT, Math.min(BIOMECHANICAL_LIMIT, newRotation));
 
-    // --- Platter Rotation (Outer Wheel) ---
-    const handlePlatterDrag = useCallback((e) => {
-        if (!platterRef.current) return;
-        e.preventDefault();
-        const platter = platterRef.current;
-        const rect = platter.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        
-        // Calculate the angle of the initial click
-        const startAngleRad = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-        const startRotation = rotation;
+    onRotate(side, newRotation);
+  }, [onRotate, side]);
 
-        const handleMove = (moveEvent) => {
-            const currentAngleRad = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX);
-            const angleDiff = (currentAngleRad - startAngleRad) * (180 / Math.PI); // Convert radians to degrees
-            onRotate(side, startRotation + angleDiff);
-        };
+  const handlePointerUp = useCallback(() => {
+    dragInfo.current.mode = null;
+    document.removeEventListener('pointermove', handlePointerMove);
+    document.removeEventListener('pointerup', handlePointerUp);
+  }, [handlePointerMove]);
 
-        const handleUp = () => {
-            document.removeEventListener('mousemove', handleMove);
-            document.removeEventListener('mouseup', handleUp);
-            document.removeEventListener('touchmove', handleMove);
-            document.removeEventListener('touchend', handleUp);
-        };
-
-        document.addEventListener('mousemove', handleMove);
-        document.addEventListener('mouseup', handleUp);
-        document.addEventListener('touchmove', handleMove);
-        document.addEventListener('touchend', handleUp);
-    }, [rotation, side, onRotate]);
-
-    const baseFootImage = `/assets/ground/foot-${side.toLowerCase()}.png`;
-    const activeGroundingImage = groundPoints ? `/assets/ground/${groundPoints}.png` : baseFootImage;
-
-    return (
-        <div className="relative w-[250px] h-[250px] flex flex-col items-center justify-center select-none">
-            {/* The Draggable Outer Wheel for Rotation */}
-            <div
-                ref={platterRef}
-                className="absolute inset-0 bg-contain bg-center bg-no-repeat cursor-grab active:cursor-grabbing z-10"
-                style={{ 
-                    backgroundImage: `url(/assets/ground/foot-wheel.png)`, 
-                    transform: `rotate(${rotation}deg)`,
-                    transition: 'transform 0.05s linear' // Add a slight smoothing
-                }}
-                onMouseDown={handlePlatterDrag}
-                onTouchStart={handlePlatterDrag}
-                role="slider"
-                aria-label={`${side} foot rotation`}
-                aria-valuenow={Math.round(rotation)}
-            />
-
-            {/* The Grounding Interaction Pad */}
-            <div
-                ref={interactionRef}
-                className="absolute w-[65%] h-[65%] rounded-full cursor-pointer z-20"
-                onPointerDown={handlePointerDown}
-            >
-                <img src={baseFootImage} alt={`${side} Foot Outline`} className="w-full h-full object-contain pointer-events-none opacity-20" draggable="false" />
-                <img
-                    src={activeGroundingImage}
-                    alt={groundPoints || `${side} Foot Lifted`}
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-100"
-                    style={{ opacity: isInteracting ? 1 : 0.2 }}
-                    draggable="false"
-                />
-            </div>
-
-            {/* --- DEFINITIVE FIX: Ankle Slider and Rotation Readout are kept and cleanly separated --- */}
-            <div className="absolute -bottom-12 text-center w-full z-30 space-y-2">
-                <div className="w-4/5 mx-auto">
-                    <label htmlFor={`${side}-ankle-in-ex`} className="text-xs text-text-muted block mb-1">Ankle In/Ex</label>
-                    <input
-                        id={`${side}-ankle-in-ex`}
-                        type="range"
-                        min="-30" max="30" step="1"
-                        value={ankleRotation || 0}
-                        onChange={(e) => onAnkleRotationChange(side, Number(e.target.value))}
-                        className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-pos-yellow"
-                    />
-                    <span className="text-xs font-mono text-text-secondary">{ankleRotation || 0}°</span>
-                </div>
-                <div>
-                    <p className="text-sm text-text-muted uppercase font-semibold">FOOT ROT: <span className="font-mono text-text-primary">{Math.round(rotation)}°</span></p>
-                </div>
-            </div>
+  return (
+    <div
+      ref={containerRef}
+      className={`relative flex items-center justify-center bg-no-repeat bg-center bg-contain cursor-grab active:cursor-grabbing ${sizeClasses}`}
+      style={{ backgroundImage: `url(${wheelImagePath})` }}
+      onPointerDown={handlePointerDown}
+    >
+      <div className="absolute w-[60%] h-[60%]" style={{ transform: `rotate(${rotation}deg)` }}>
+        <img src={imageSrc} alt={`${side} foot diagram`} className="w-full h-full object-contain pointer-events-none" />
+        {Object.entries(GROUNDING_POINT_COORDS[side]).map(([pointKey, coords]) => (
+          <div key={pointKey} className={`absolute w-3 h-3 rounded-full transition-all duration-200 border-2 ${isGrounded && groundPoints.includes(pointKey) ? 'bg-green-400 border-green-200' : 'bg-gray-600 border-gray-500 opacity-60'}`} style={{ left: `calc(${coords.x}% - 6px)`, top: `calc(${coords.y}% - 6px)`}} />
+        ))}
+      </div>
+       <div className="absolute top-full mt-2 text-center pointer-events-none">
+            <span className="text-lg font-bold text-white">{rotation.toFixed(0)}°</span>
+            <span className="block text-xs text-gray-400">ROT</span>
         </div>
-    );
+    </div>
+  );
 };
 
-FootDisplay.propTypes = {
-  side: PropTypes.oneOf(['L', 'R']).isRequired,
-  groundPoints: PropTypes.string,
-  rotation: PropTypes.number,
-  ankleRotation: PropTypes.number,
-  onRotate: PropTypes.func.isRequired,
-  onGroundingChange: PropTypes.func.isRequired,
-  onAnkleRotationChange: PropTypes.func.isRequired,
-};
-
+FootDisplay.propTypes = { side: PropTypes.oneOf(['L', 'R']).isRequired, groundPoints: PropTypes.arrayOf(PropTypes.string), rotation: PropTypes.number, sizeClasses: PropTypes.string, onRotate: PropTypes.func.isRequired, onGroundingChange: PropTypes.func.isRequired };
 export default FootDisplay;

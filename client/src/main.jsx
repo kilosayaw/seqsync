@@ -7,7 +7,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SequencerSettingsProvider } from './contexts/SequencerSettingsContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import './icons.js'; 
+import './icons.js';
 import './index.css'; 
 import ErrorBoundary from './components/common/ErrorBoundary';
 
