@@ -1,119 +1,96 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'styled-components';
+import { toast } from 'react-toastify';
 import LoadSave from '../../common/LoadSave';
-import { usePlayback } from '../../../contexts/PlaybackContext';
-import { useSequence } from '../../../contexts/SequenceContext';
-import { useUIState } from '../../../contexts/UIStateContext';
+import Button from '../../common/Button';
+import SoundBank from '../sequencer/SoundBank';
+import { MODES } from '../../../utils/constants';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMicrochip, faSpinner, faTimes, faVideo } from '@fortawesome/free-solid-svg-icons';
 
-const HeaderContainer = styled.header`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background-color: var(--color-background-darker, #1a1a1a);
-  border-bottom: 1px solid var(--color-border, #333);
-  flex-shrink: 0; /* Prevent header from shrinking */
-`;
-
-const ControlGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0.75rem; /* 12px */
-`;
-
-const Button = styled.button`
-    padding: 8px 12px;
-    background-color: ${({ $active }) => ($active ? 'var(--color-accent, #00AACC)' : '#444')};
-    border: 1px solid ${({ $active }) => ($active ? 'var(--color-accent-light, #00FFFF)' : '#666')};
-    color: white;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 0.875rem;
-    transition: all 0.2s ease-in-out;
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+const TopHeader = ({
+  onSave, onLoad, onFileSelected, setMediaStream,
+  isAnalyzing, progress, cancelFullAnalysis,
+  viewMode, setViewMode,
+  selectedKitName, setSelectedKitName,
+  currentSoundInBank, setCurrentSoundInBank,
+  soundKitsObject
+}) => {
+  const handleActivateCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      if (stream) setMediaStream(stream);
+    } catch (err) {
+      toast.error("Could not access camera.");
     }
-    &:hover:not(:disabled) {
-        border-color: var(--color-accent-light, #7FFFD4);
-    }
-`;
+  };
 
-const RecordButton = styled(Button)`
-    background-color: ${({ $active }) => ($active ? '#FF0000' : '#444')};
-    border-color: ${({ $active }) => ($active ? '#FF6666' : '#666')};
-`;
+  return (
+    <header className="mb-2 p-2 bg-gray-800/60 rounded-lg shadow-md flex flex-wrap items-center justify-between gap-x-4 gap-y-2 flex-shrink-0 z-30">
+      <div className="flex items-center gap-2 flex-wrap">
+        <LoadSave onLoad={onLoad} onFileSelected={onFileSelected} onSave={onSave} />
+        <Button onClick={handleActivateCamera} variant="secondary" size="sm" title="Activate Live Camera">
+            <FontAwesomeIcon icon={faVideo} className="mr-2" />
+            Live Cam
+        </Button>
+      </div>
 
-const BPMDisplay = styled.div`
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.5rem;
-    color: var(--color-text, #FFF);
-    padding: 8px 12px;
-    background-color: #222;
-    border-radius: 4px;
-    min-width: 80px;
-    text-align: center;
-`;
+      <div className="flex items-center gap-2 flex-wrap">
+        {isAnalyzing ? (
+          <div className="flex items-center gap-3 text-sm text-pos-yellow font-semibold">
+            <FontAwesomeIcon icon={faSpinner} spin />
+            <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-full bg-pos-yellow transition-all duration-300" style={{ width: `${progress}%` }} />
+            </div>
+            <span>{progress.toFixed(0)}%</span>
+            <Button onClick={cancelFullAnalysis} variant="danger" size="xs">
+              <FontAwesomeIcon icon={faTimes} />
+            </Button>
+          </div>
+        ) : (
+            // The "Analyze Media" button is now conceptually tied to thumbnail generation,
+            // which we haven't built yet. We can hide it or give it a placeholder function.
+            // For now, let's keep it but make it clear it's for post-analysis.
+           <Button variant="primary" size="sm" disabled={true} title="Analyze video frames (future feature)">
+            <FontAwesomeIcon icon={faMicrochip} className="mr-2" />
+            Analyze Frames
+           </Button>
+        )}
+      </div>
 
-const TimecodeDisplay = styled(BPMDisplay)`
-    font-size: 1.2rem;
-    min-width: 100px;
-    letter-spacing: 2px;
-`;
-
-const TopHeader = ({ onSave, onLoad, onFileSelected, onOpenPoseEditor }) => {
-    const { undo, redo, canUndo, canRedo } = useSequence();
-    const { 
-        isPlaying, togglePlay, 
-        isRecording, toggleRecord, 
-        isMetronomeEnabled, toggleMetronome,
-        bpm, tapTempo, currentStep
-    } = usePlayback();
-    const { 
-        isLiveCamActive, toggleLiveCam,
-        isMirrored, toggleMirror,
-        selectedBar
-    } = useUIState();
-
-    return (
-        <HeaderContainer>
-            <ControlGroup>
-                <h1>SĒQsync</h1>
-                <LoadSave
-                    onSave={onSave}
-                    onLoad={onLoad}
-                    onFileSelected={onFileSelected}
-                />
-            </ControlGroup>
-            <ControlGroup>
-                <Button onClick={toggleLiveCam} $active={isLiveCamActive}>Live Cam</Button>
-                <Button onClick={toggleMirror} $active={isMirrored} disabled={!isLiveCamActive}>Mirror</Button>
-                <RecordButton onClick={toggleRecord} $active={isRecording} disabled={!isLiveCamActive}>Record</RecordButton>
-                
-                <TimecodeDisplay>
-                    {String(selectedBar + 1).padStart(2, '0')}:
-                    {/* Display 00 if playback is stopped, otherwise show the current beat */}
-                    {isPlaying ? String(currentStep + 1).padStart(2, '0') : '00'}
-                </TimecodeDisplay>
-                <BPMDisplay>{bpm.toFixed(0)}</BPMDisplay>
-                <Button onClick={tapTempo}>Tap</Button>
-                <Button onClick={toggleMetronome} $active={isMetronomeEnabled}>Metronome</Button>
-                <Button onClick={togglePlay}>{isPlaying ? 'Stop' : 'Play'}</Button>
-
-                <Button onClick={undo} disabled={!canUndo}>Undo</Button>
-                <Button onClick={redo} disabled={!canRedo}>Redo</Button>
-                <Button onClick={onOpenPoseEditor}>Pose Editor</Button>
-            </ControlGroup>
-        </HeaderContainer>
-    );
+      <div className="flex items-center gap-4">
+        <SoundBank
+          soundKits={soundKitsObject}
+          selectedKitName={selectedKitName}
+          onKitSelect={setSelectedKitName}
+          currentSoundInKit={currentSoundInBank}
+          onSoundInKitSelect={setCurrentSoundInBank}
+        />
+        <div className="flex items-center gap-1 bg-black/20 p-1 rounded-md">
+          <Button onClick={() => setViewMode(MODES.POS)} variant={viewMode === MODES.POS ? "custom" : "secondary"} className={`!px-4 h-8 ${viewMode === MODES.POS && '!bg-pos-yellow !text-black font-semibold'}`}>POS</Button>
+          <Button onClick={() => setViewMode(MODES.SEQ)} variant={viewMode === MODES.SEQ ? "custom" : "secondary"} className={`!px-4 h-8 ${viewMode === MODES.SEQ && '!bg-brand-seq !text-white font-semibold'}`}>SEQ</Button>
+        </div>
+      </div>
+    </header>
+  );
 };
 
+// PropTypes updated to reflect the new state flow
 TopHeader.propTypes = {
-    onSave: PropTypes.func.isRequired,
-    onLoad: PropTypes.func.isRequired,
-    onFileSelected: PropTypes.func.isRequired,
-    onOpenPoseEditor: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+  onLoad: PropTypes.func.isRequired,
+  onFileSelected: PropTypes.func.isRequired,
+  setMediaStream: PropTypes.func.isRequired,
+  isAnalyzing: PropTypes.bool.isRequired,
+  progress: PropTypes.number.isRequired,
+  cancelFullAnalysis: PropTypes.func.isRequired,
+  viewMode: PropTypes.string.isRequired,
+  setViewMode: PropTypes.func.isRequired,
+  selectedKitName: PropTypes.string.isRequired,
+  setSelectedKitName: PropTypes.func.isRequired,
+  currentSoundInBank: PropTypes.string,
+  setCurrentSoundInBank: PropTypes.func.isRequired,
+  soundKitsObject: PropTypes.object.isRequired,
 };
 
 export default TopHeader;

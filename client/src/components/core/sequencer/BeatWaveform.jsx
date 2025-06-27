@@ -1,50 +1,42 @@
-import React, { useRef, useEffect } from 'react';
+// /client/src/components/core/sequencer/BeatWaveform.jsx
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import styled from 'styled-components';
 
-const Canvas = styled.canvas`
-  width: 100%;
-  height: 100%;
-`;
-
-const BeatWaveform = ({ waveformPoints, color = 'var(--color-accent, #00AACC)' }) => {
-    const canvasRef = useRef(null);
-
-    useEffect(() => {
-        if (!waveformPoints || waveformPoints.length === 0) return;
-
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-
-        ctx.clearRect(0, 0, width, height);
-        ctx.beginPath();
+const BeatWaveform = ({ points }) => {
+    const pathData = useMemo(() => {
+        if (!points || points.length === 0) return '';
+        const width = 100;
+        const height = 50;
+        const step = width / (points.length - 1);
         
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        
-        const step = width / waveformPoints.length;
-        const halfHeight = height / 2;
-
-        waveformPoints.forEach((val, i) => {
+        let path = `M 0,${height / 2}`;
+        points.forEach((point, i) => {
             const x = i * step;
-            const y = val * halfHeight; // Scale amplitude to canvas height
-            
-            ctx.moveTo(x, halfHeight - y);
-            ctx.lineTo(x, halfHeight + y);
+            const y = (point * (height / 2));
+            path += ` L ${x},${(height / 2) - y}`;
+        });
+        
+        let lowerPath = ` L ${width},${height / 2}`;
+        [...points].reverse().forEach((point, i) => {
+            const x = (points.length - 1 - i) * step;
+            const y = (point * (height / 2));
+            lowerPath += ` L ${x},${(height / 2) + y}`;
         });
 
-        ctx.stroke();
+        return path + lowerPath + ' Z';
+    }, [points]);
 
-    }, [waveformPoints, color]);
+    if (!pathData) return null;
 
-    return <Canvas ref={canvasRef} width="100" height="100" />;
+    return (
+        <svg viewBox="0 0 100 50" className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+            <path d={pathData} className="fill-brand-seq/70" />
+        </svg>
+    );
 };
 
 BeatWaveform.propTypes = {
-    waveformPoints: PropTypes.arrayOf(PropTypes.number).isRequired,
-    color: PropTypes.string,
+    points: PropTypes.arrayOf(PropTypes.number),
 };
 
 export default React.memo(BeatWaveform);

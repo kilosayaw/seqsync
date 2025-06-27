@@ -1,159 +1,92 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'styled-components';
+import { toast } from 'react-toastify';
+import LoadSave from '../../common/LoadSave';
+import Button from '../../common/Button';
+import SoundBank from '../sequencer/SoundBank';
+import { MODES } from '../../../utils/constants';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMicrochip, faSpinner, faTimes, faVideo } from '@fortawesome/free-solid-svg-icons';
 
-// --- CONTEXT HOOKS ---
-import { usePlayback } from '../../../contexts/PlaybackContext';
-import { useSequence } from '../../../contexts/SequenceContext';
-import { useUIState, MODES } from '../../../contexts/UIStateContext';
-import { useSequencerSettings } from '../../../contexts/SequencerSettingsContext';
-
-// --- STYLED COMPONENTS ---
-const HeaderContainer = styled.header`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background-color: #1e293b;
-  border-bottom: 1px solid #334155;
-  flex-shrink: 0;
-  user-select: none;
-`;
-
-const ControlGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-`;
-
-const Button = styled.button`
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    background-color: ${({ $active }) => ($active ? '#38bdf8' : '#334155')};
-    border: 1px solid ${({ $active }) => ($active ? '#7dd3fc' : '#475569')};
-    color: white;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.2s ease-in-out;
-    white-space: nowrap;
-    &:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-        background-color: #334155;
-        border-color: #475569;
+const TopHeader = ({
+  onSave, onLoad, onFileSelected, setMediaStream,
+  isAnalyzing, progress, cancelFullAnalysis,
+  viewMode, setViewMode,
+  selectedKitName, setSelectedKitName,
+  currentSoundInBank, setCurrentSoundInBank,
+  soundKitsObject
+}) => {
+  const handleActivateCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      if (stream) setMediaStream(stream);
+    } catch (err) {
+      toast.error("Could not access camera.");
     }
-    &:hover:not(:disabled) {
-        border-color: #7dd3fc;
-    }
-`;
+  };
 
-const RecordButton = styled(Button)`
-    background-color: ${({ $active }) => ($active ? '#f43f5e' : '#334155')};
-    border-color: ${({ $active }) => ($active ? '#fb7185' : '#475569')};
-    &:hover:not(:disabled) {
-        background-color: ${({ $active }) => ($active ? '#fb7185' : '#475569')};
-    }
-`;
+  return (
+    <header className="mb-2 p-2 bg-gray-800/60 rounded-lg shadow-md flex flex-wrap items-center justify-between gap-x-4 gap-y-2 flex-shrink-0 z-30">
+      <div className="flex items-center gap-2 flex-wrap">
+        <LoadSave onLoad={onLoad} onFileSelected={onFileSelected} onSave={onSave} />
+        <Button onClick={handleActivateCamera} variant="secondary" size="sm" title="Activate Live Camera">
+            <FontAwesomeIcon icon={faVideo} className="mr-2" />
+            Live Cam
+        </Button>
+      </div>
 
-const Display = styled.div`
-    font-family: var(--font-digital-solid, 'Orbitron', monospace);
-    color: #e2e8f0;
-    background-color: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 1.25rem;
-    text-align: center;
-    line-height: 1;
-`;
+      <div className="flex items-center gap-2 flex-wrap">
+        {isAnalyzing ? (
+          <div className="flex items-center gap-3 text-sm text-pos-yellow font-semibold">
+            <FontAwesomeIcon icon={faSpinner} spin />
+            <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-full bg-pos-yellow transition-all duration-300" style={{ width: `${progress}%` }} />
+            </div>
+            <span>{progress.toFixed(0)}%</span>
+            <Button onClick={cancelFullAnalysis} variant="danger" size="xs">
+              <FontAwesomeIcon icon={faTimes} />
+            </Button>
+          </div>
+        ) : (
+           <Button variant="primary" size="sm" disabled={true} title="Analyze video frames (future feature)">
+            <FontAwesomeIcon icon={faMicrochip} className="mr-2" />
+            Analyze Frames
+           </Button>
+        )}
+      </div>
 
-const BPMDisplay = styled(Display)`
-    min-width: 80px;
-    color: #67e8f9;
-`;
-
-const BarBeatDisplay = styled(Display)`
-    min-width: 120px;
-    color: #fef08a;
-`;
-
-// --- The Main Header Component ---
-// FIX: The onToggleLiveCam prop is no longer needed, as this logic is handled by the UI context.
-const TopHeader = ({ onSave, onLoad, onLoadAudio }) => {
-    const { undo, redo, canUndo, canRedo } = useSequence();
-    const { 
-        isPlaying, togglePlay, 
-        isRecording, toggleRecord, 
-        isMetronomeEnabled, toggleMetronome, 
-        tapTempo,
-        currentBar,
-    } = usePlayback();
-    const { bpm } = useSequencerSettings();
-    const { 
-        isLiveCamActive, toggleLiveCam, // We get the function directly from the context
-        isMirrored, toggleMirror,
-        selectedBar, setSelectedBar,
-        isEditMode, toggleEditMode,
-        currentMode, setCurrentMode, 
-        isNudgeModeActive, setNudgeModeActive,
-        is2dOverlayEnabled, set2dOverlayEnabled 
-    } = useUIState();
-
-    const goToNextBar = () => setSelectedBar(prev => Math.min(3, prev + 1));
-    const goToPrevBar = () => setSelectedBar(prev => Math.max(0, prev - 1));
-    const displayBar = isPlaying ? currentBar + 1 : selectedBar + 1;
-
-    return (
-        <HeaderContainer>
-            <ControlGroup>
-                <Button onClick={onSave}>Save</Button>
-                <Button onClick={onLoad}>Load Seq</Button>
-                <Button onClick={onLoadAudio}>Load Audio</Button>
-            </ControlGroup>
-            
-            <ControlGroup>
-                 <Button onClick={goToPrevBar}>{'<'}</Button>
-                 <BarBeatDisplay>
-                    BAR {String(displayBar).padStart(2, '0')}
-                 </BarBeatDisplay>
-                 <Button onClick={goToNextBar}>{'>'}</Button>
-            </ControlGroup>
-
-            <ControlGroup>
-                <BPMDisplay>{bpm.toFixed(0)}</BPMDisplay>
-                <Button onClick={tapTempo}>Tap</Button>
-                <Button onClick={() => setNudgeModeActive(true)} $active={isNudgeModeActive}>
-                    Nudge
-                </Button>
-            </ControlGroup>
-
-            <ControlGroup>
-                <Button onClick={() => setCurrentMode(MODES.SEQ)} $active={currentMode === MODES.SEQ}>SEQ</Button>
-                <Button onClick={() => setCurrentMode(MODES.POS)} $active={currentMode === MODES.POS}>POS</Button>
-            </ControlGroup>
-
-            <ControlGroup>
-                {/* FIX: The onClick now uses the function from the context */}
-                <Button onClick={toggleLiveCam} $active={isLiveCamActive}>Live</Button>
-                <Button onClick={() => set2dOverlayEnabled(prev => !prev)} $active={is2dOverlayEnabled} disabled={!isLiveCamActive}>2D</Button>
-                <Button onClick={toggleMirror} $active={isMirrored} disabled={!isLiveCamActive}>Mirror</Button>
-                <RecordButton onClick={toggleRecord} $active={isRecording} disabled={!isLiveCamActive}>Rec</RecordButton>
-                <Button onClick={togglePlay}>{isPlaying ? 'Stop' : 'Play'}</Button>
-                <Button onClick={toggleMetronome} $active={isMetronomeEnabled}>Click</Button>
-                <Button onClick={undo} disabled={!canUndo}>Undo</Button>
-                <Button onClick={redo} disabled={!canRedo}>Redo</Button>
-                <Button onClick={toggleEditMode} $active={isEditMode}>Edit</Button>
-            </ControlGroup>
-        </HeaderContainer>
-    );
+      <div className="flex items-center gap-4">
+        <SoundBank
+          soundKits={soundKitsObject}
+          selectedKitName={selectedKitName}
+          onKitSelect={setSelectedKitName}
+          currentSoundInKit={currentSoundInBank}
+          onSoundInKitSelect={setCurrentSoundInBank}
+        />
+        <div className="flex items-center gap-1 bg-black/20 p-1 rounded-md">
+          <Button onClick={() => setViewMode(MODES.POS)} variant={viewMode === MODES.POS ? "custom" : "secondary"} className={`!px-4 h-8 ${viewMode === MODES.POS && '!bg-pos-yellow !text-black font-semibold'}`}>POS</Button>
+          <Button onClick={() => setViewMode(MODES.SEQ)} variant={viewMode === MODES.SEQ ? "custom" : "secondary"} className={`!px-4 h-8 ${viewMode === MODES.SEQ && '!bg-brand-seq !text-white font-semibold'}`}>SEQ</Button>
+        </div>
+      </div>
+    </header>
+  );
 };
 
-// FIX: Removed the unnecessary onToggleLiveCam from propTypes
 TopHeader.propTypes = {
-    onSave: PropTypes.func.isRequired,
-    onLoad: PropTypes.func.isRequired,
-    onLoadAudio: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+  onLoad: PropTypes.func.isRequired,
+  onFileSelected: PropTypes.func.isRequired,
+  setMediaStream: PropTypes.func.isRequired,
+  isAnalyzing: PropTypes.bool.isRequired,
+  progress: PropTypes.number.isRequired,
+  cancelFullAnalysis: PropTypes.func.isRequired,
+  viewMode: PropTypes.string.isRequired,
+  setViewMode: PropTypes.func.isRequired,
+  selectedKitName: PropTypes.string.isRequired,
+  setSelectedKitName: PropTypes.func.isRequired,
+  currentSoundInBank: PropTypes.string,
+  setCurrentSoundInBank: PropTypes.func.isRequired,
+  soundKitsObject: PropTypes.object.isRequired,
 };
 
 export default TopHeader;

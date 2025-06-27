@@ -1,55 +1,76 @@
-// /client/src/components/core/main/BeatGrid.jsx
-import React from 'react';
-import styled from 'styled-components';
-import { useSequence } from '../../../contexts/SequenceContext.jsx';
-import { useUIState } from '../../../contexts/UIStateContext.jsx';
-import { usePlayback } from '../../../contexts/PlaybackContext.jsx';
-import BeatButton from '../sequencer/BeatButton.jsx';
+import React, { useCallback, useMemo } from 'react';
+import { useUIState } from '../../../contexts/UIStateContext';
+import { useSequence } from '../../../contexts/SequenceContext';
+import { usePlayback } from '../../../contexts/PlaybackContext';
+import BeatButton from '../sequencer/BeatButton';
+import { UI_PADS_PER_BAR } from '../../../utils/constants';
+import { useActionLogger } from '../../../hooks/useActionLogger';
 
-const GridContainer = styled.div`
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 8px;
-    width: 100%;
-    padding: 8px;
-    background-color: #1e293b;
-    border-radius: 8px;
-`;
+const BeatGrid = () => {
+    const { currentEditingBar, activeBeatIndex, viewMode, currentSoundInBank, handleBeatClick } = useUIState();
+    const { songData, updateStateAndHistory } = useSequence();
+    const { isPlaying, isRecording, currentStep, currentBar } = usePlayback();
+    const log = useActionLogger('BeatGrid');
 
-// The rest of the component logic remains the same.
-const BeatGrid = ({ onBeatSelect, onAddSoundClick, onSoundDelete }) => {
-    const { songData } = useSequence();
-    const { selectedBar, isEditMode, editingBeatIndex } = useUIState();
-    // --- FIX: Get the currently PLAYING bar and step from the playback context ---
-    const { currentStep, currentBar, isPlaying } = usePlayback();
+    const currentBarBeats = useMemo(() => {
+        const beats = songData[currentEditingBar]?.beats || [];
+        return Array.from({ length: UI_PADS_PER_BAR }, (_, i) => beats[i] || { id: `${currentEditingBar}-${i}`, sounds: [], jointInfo: {}, grounding: {} });
+    }, [songData, currentEditingBar]);
+
+    const handleAddSound = useCallback((barIdx, beatIdx) => {
+        if (!currentSoundInBank) return;
+        updateStateAndHistory(d => {
+            const beat = d[barIdx].beats[beatIdx];
+            if (!beat.sounds) beat.sounds = [];
+            if (!beat.sounds.includes(currentSoundInBank) && beat.sounds.length < 4) {
+                beat.sounds.push(currentSoundInBank);
+            }
+        }, `Add Sound: ${currentSoundInBank}`);
+    }, [updateStateAndHistory, currentSoundInBank]);
+
+    const handleDeleteSound = useCallback((barIdx, beatIdx, soundName) => {
+        updateStateAndHistory(d => {
+            if (d[barIdx]?.beats[beatIdx]?.sounds) {
+                d[barIdx].beats[beatIdx].sounds = d[barIdx].beats[beatIdx].sounds.filter(s => s !== soundName);
+            }
+        }, `Delete Sound: ${soundName}`);
+    }, [updateStateAndHistory]);
     
-    // Use the bar that is currently selected in the UI for rendering the grid
-    const barToRender = songData.bars?.[selectedBar] || Array(16).fill({}).map((_, i) => ({ beatIndex: i }));
+    const handleClearPoseData = useCallback((barIdx, beatIdx) => {
+        updateStateAndHistory(d => {
+            const beat = d[barIdx].beats[beatIdx];
+            if (beat) {
+                beat.jointInfo = {};
+                beat.grounding = { L: null, R: null, L_weight: 50 };
+                beat.thumbnail = null;
+            }
+        }, 'Clear Pose Data');
+    }, [updateStateAndHistory]);
 
     return (
-        <GridContainer>
-            {barToRender.map((beatData, index) => {
-                // --- FIX: Highlighting logic ---
-                // Light up if playback is running AND the playing bar is the one we are looking at AND the step matches.
-                const isCurrentPlaybackStep = isPlaying && currentBar === selectedBar && currentStep === index;
-                
-                const isSelectedForEditing = isEditMode && editingBeatIndex === index;
-                const beatHasContent = beatData?.sounds?.length > 0 || (beatData?.pose?.jointInfo && Object.keys(beatData.pose.jointInfo).length > 0);
-
-                return (
+        <section aria-label="Beat Sequencer Grid" className="w-full relative flex-shrink-0">
+            {/* --- DEFINITIVE FIX: Reduced padding and gap to shrink buttons proportionally --- */}
+            {/* You can adjust `p-1` and `gap-1` to fine-tune the size. */}
+            <div className="w-full bg-gray-800/30 p-1 rounded-lg grid grid-cols-8 grid-rows-2 gap-1">
+                {currentBarBeats.map((beat, index) => (
                     <BeatButton
-                        key={`${selectedBar}-${index}`}
-                        beatData={{ ...beatData, beatIndex: index }}
-                        onClick={() => onBeatSelect(selectedBar, index)}
-                        onAddSoundClick={() => onAddSoundClick(selectedBar, index)}
-                        onSoundDelete={(soundUrl) => onSoundDelete(selectedBar, index, soundUrl)}
-                        isActive={beatHasContent}
-                        isCurrentStep={isCurrentPlaybackStep} // Use the corrected value
-                        isSelectedForEdit={isSelectedForEditing}
+                        key={`beat-btn-${index}`}
+                        beatData={beat}
+                        barIndex={currentEditingBar}
+                        beatIndex={index}
+                        isActive={activeBeatIndex === index}
+                        isCurrentStep={isPlaying && currentBar === currentEditingBar && currentStep === index}
+                        isRecording={isRecording}
+                        viewMode={viewMode}
+                        onClick={handleBeatClick}
+                        onAddSound={() => handleAddSound(currentEditingBar, index)}
+                        onDeleteSound={handleDeleteSound}
+                        onClearPoseData={handleClearPoseData}
+                        currentSoundInBank={currentSoundInBank}
                     />
-                );
-            })}
-        </GridContainer>
+                ))}
+            </div>
+        </section>
     );
 };
 
