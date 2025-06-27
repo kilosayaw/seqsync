@@ -1,107 +1,165 @@
-// /client/src/utils/audioManager.js
+// src/utils/audioManager.js
 
 let audioContext = null;
-const soundBuffers = new Map();
+const audioBuffers = new Map(); // Stores preloaded AudioBuffers: { url: AudioBuffer }
 
-// Initialize the global AudioContext
+const logAudio = (level, message, ...args) => {
+  const prefix = `[AudioManager|${level.toUpperCase()}]`;
+  if (level === 'error') console.error(prefix, message, ...args);
+  else if (level === 'warn') console.warn(prefix, message, ...args);
+};
+
+// [FIXED] Added the 'export' keyword to make this function available to other modules.
 export const getAudioContext = () => {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioContext) {
+    try {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      logAudio('info', `AudioContext ${audioContext.state}.`);
+      if (audioContext.state === 'suspended') {
+        logAudio('warn', 'AudioContext is suspended. User interaction is required to resume.');
+      }
+    } catch (e) {
+      logAudio('error', 'Web Audio API is not supported.', e);
+      return null;
     }
-    return audioContext;
+  }
+  if (audioContext && audioContext.state === 'suspended') {
+    logAudio('warn', 'AudioContext is suspended. Attempting to resume on next interaction or playSound.');
+  }
+  return audioContext;
 };
 
-// Resume the AudioContext if it's suspended (required by browsers)
-export const unlockAudioContext = () => {
-    const context = getAudioContext();
-    if (context.state === 'suspended') {
-        context.resume();
+export const resumeAudioContext = async () => {
+  const context = getAudioContext();
+  if (context && context.state === 'suspended') {
+    try {
+      await context.resume();
+      logAudio('info', 'AudioContext resumed successfully via resumeAudioContext().');
+    } catch (e) {
+      logAudio('error', 'Error resuming AudioContext:', e);
     }
+  } else if (context) {
+    logAudio('debug', `AudioContext already in state: ${context.state}`);
+  }
 };
 
-// Preload sounds to avoid delays on first play
-export const preloadSounds = async (soundUrls) => {
-    const context = getAudioContext();
-    const promises = soundUrls.map(async (url) => {
-        if (soundBuffers.has(url)) return;
-        try {
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await context.decodeAudioData(arrayBuffer);
-            soundBuffers.set(url, audioBuffer);
-        } catch (error) {
-            console.error(`Failed to load sound: ${url}`, error);
-        }
-    });
-    await Promise.all(promises);
+const loadSound = async (soundObject) => {
+  const { url, name } = soundObject;
+  if (!url) {
+    logAudio('warn', `loadSound: URL is missing for sound '${name}'.`);
+    return Promise.reject(new Error(`URL is missing for sound '${name}'.`));
+  }
+  if (audioBuffers.has(url)) {
+    logAudio('debug', `loadSound: Sound '${name}' (${url}) already cached.`);
+    return Promise.resolve({ url, name, status: 'cached', buffer: audioBuffers.get(url) });
+  }
+
+  const context = getAudioContext();
+  if (!context) {
+    return Promise.reject(new Error("AudioContext not available for loading sounds."));
+  }
+
+  logAudio('debug', `loadSound: Fetching '${name}' from ${url}`);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => `Status: ${response.status}`);
+      logAudio('error', `loadSound: HTTP error ${response.status} for '${name}' (${url}). Response: ${errorText.substring(0,100)}`);
+      throw new Error(`HTTP error ${response.status} for ${url}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    logAudio('debug', `loadSound: Decoding '${name}' (${url})`);
+    const audioBuffer = await context.decodeAudioData(arrayBuffer);
+    audioBuffers.set(url, audioBuffer);
+    logAudio('info', `loadSound: Sound '${name}' (${url}) DECODED & CACHED.`);
+    return { url, name, status: 'loaded', buffer: audioBuffer };
+  } catch (error) {
+    logAudio('error', `loadSound: Error loading/decoding '${name}' (${url}):`, error.message);
+    audioBuffers.delete(url);
+    return Promise.reject({ url, name, status: 'failed', error });
+  }
 };
 
-// Play a preloaded sound
-export const playSound = (url) => {
-    const context = getAudioContext();
-    const buffer = soundBuffers.get(url);
-    if (!buffer) {
-        console.warn(`Sound not preloaded or failed to load: ${url}`);
-        return;
+export const preloadSounds = async (sounds) => {
+  if (!Array.isArray(sounds)) {
+    logAudio('warn', 'preloadSounds: Invalid input - sounds is not an array.');
+    return Promise.resolve({ loadedCount: 0, failedCount: 0, totalToLoad: 0 });
+  }
+  const soundsToLoad = sounds.filter(sound => sound && sound.url && !audioBuffers.has(sound.url));
+
+  if (soundsToLoad.length === 0) {
+    logAudio('info', 'preloadSounds: No new sounds to load or all requested sounds already cached.');
+    const cachedCount = sounds.filter(s => s && s.url && audioBuffers.has(s.url)).length;
+    return Promise.resolve({ loadedCount: cachedCount, failedCount: 0, totalToLoad: sounds.length });
+  }
+
+  logAudio('info', `preloadSounds: Starting batch preload for ${soundsToLoad.length} new sounds (out of ${sounds.length} requested).`);
+
+  const loadPromises = soundsToLoad.map(sound =>
+    loadSound(sound)
+      .then(result => ({ ...result, outcome: 'fulfilled' }))
+      .catch(errorResult => ({ ...errorResult, outcome: 'rejected' }))
+  );
+
+  const results = await Promise.allSettled(loadPromises);
+  
+  let loadedCount = 0;
+  let failedCount = 0;
+
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      logAudio('debug', `Preload success (from allSettled): ${result.value.name}`);
+      loadedCount++;
+    } else {
+      logAudio('warn', `Preload failure (from allSettled): ${result.reason.name}`, result.reason.error?.message);
+      failedCount++;
     }
+  });
+  
+  const initiallyCachedCount = sounds.length - soundsToLoad.length;
+  loadedCount += initiallyCachedCount;
+
+  logAudio('info', `preloadSounds: Batch COMPLETE. Total Attempted in Batch: ${soundsToLoad.length}. Successfully Loaded/Cached in Batch: ${loadedCount - initiallyCachedCount}. Failed in Batch: ${failedCount}.`);
+  return { loadedCount, failedCount, totalToLoad: sounds.length };
+};
+
+export const playSound = (url, volume = 1, playbackRate = 1, startTime = 0) => {
+  const context = getAudioContext();
+  if (!context) return null;
+  
+  if (context.state === 'suspended') {
+    context.resume();
+  }
+
+  const audioBuffer = audioBuffers.get(url);
+  if (!audioBuffer) {
+    console.warn(`Sound not preloaded: ${url}`);
+    return null; // Don't attempt on-the-fly loading during performance-critical playback
+  }
+
+  try {
     const source = context.createBufferSource();
-    source.buffer = buffer;
-    source.connect(context.destination);
-    source.start(0);
+    source.buffer = audioBuffer;
+    const gainNode = context.createGain();
+    gainNode.gain.setValueAtTime(volume, context.currentTime);
+    source.playbackRate.value = playbackRate;
+    source.connect(gainNode);
+    gainNode.connect(context.destination);
+    source.start(0, startTime);
+    return source;
+  } catch (error) {
+    console.error(`Error playing sound '${url}':`, error);
+    return null;
+  }
 };
 
-// --- THIS IS THE MISSING FUNCTION ---
-// Plays a small slice of a larger audio buffer
-export const playAudioSlice = (mainBuffer, bpm, gridOffset, barIndex, beatIndex) => {
-    if (!mainBuffer) return;
-    
-    const context = getAudioContext();
-    unlockAudioContext();
-
-    // Calculate the duration of one 16th note in seconds
-    const beatsPerBar = 16;
-    const secondsPerBeat = 60.0 / bpm;
-    const beatDuration = secondsPerBeat / 4; // Assuming 16th notes
-
-    // Calculate the start time of the slice in seconds
-    const startTime = gridOffset + ((barIndex * beatsPerBar + beatIndex) * beatDuration);
-
-    if (startTime >= mainBuffer.duration) {
-        return; // Don't play if the start time is past the end of the buffer
-    }
-
-    const source = context.createBufferSource();
-    source.buffer = mainBuffer;
-    source.connect(context.destination);
-
-    // Play the slice: start at `startTime` for `beatDuration` seconds
-    source.start(0, startTime, beatDuration);
+export const stopAllSounds = () => {
+  logAudio('warn', 'stopAllSounds: Functionality is complex and requires tracking active sources. Not fully implemented for global stop.');
 };
 
-// This function is for generating the visual waveform, separate from playback
-export const generateWaveform = (url) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const context = getAudioContext();
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await context.decodeAudioData(arrayBuffer);
-            
-            const rawData = audioBuffer.getChannelData(0); // Get data from left channel
-            const samples = 200; // Number of data points for the waveform
-            const blockSize = Math.floor(rawData.length / samples);
-            const filteredData = [];
-            for (let i = 0; i < samples; i++) {
-                let blockStart = blockSize * i;
-                let sum = 0;
-                for (let j = 0; j < blockSize; j++) {
-                    sum = sum + Math.abs(rawData[blockStart + j]);
-                }
-                filteredData.push(sum / blockSize);
-            }
-            resolve(filteredData);
-        } catch (e) {
-            reject(e);
-        }
-    });
+export const clearSoundCache = () => {
+  audioBuffers.clear();
+  logAudio('info', 'All cached audio buffers cleared.');
 };
+
+getAudioContext();

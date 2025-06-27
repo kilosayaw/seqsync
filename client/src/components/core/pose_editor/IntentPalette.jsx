@@ -1,74 +1,62 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+import Button from '../../common/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-    faFistRaised, faShieldAlt, faRunning, faCompressArrowsAlt, 
-    faExpandArrowsAlt, faRandom, faDotCircle, faHandSparkles
-} from '@fortawesome/free-solid-svg-icons';
+import { faBolt, faShieldAlt, faRunning, faHandPaper, faFistRaised } from '@fortawesome/free-solid-svg-icons';
 import { INTENT_OPTIONS } from '../../../utils/constants';
-import Tooltip from '../../common/Tooltip';
 
-// A single clickable card for an intent.
-const IntentCard = ({ intent, onSelect, isActive }) => {
+const IntentCard = ({ intent, onSelect }) => {
   const ICONS = {
     StrikeRelease: faFistRaised,
     BlockImpact: faShieldAlt,
     Evasion: faRunning,
-    Coil: faCompressArrowsAlt,
-    ReleasePwr: faExpandArrowsAlt,
-    PassThrough: faRandom,
-    Stabilize: faDotCircle,
-    Recover: faHandSparkles,
+    Default: faHandPaper,
   };
-  const icon = ICONS[intent.value] || faDotCircle;
+  const icon = ICONS[intent.value] || ICONS.Default;
 
   return (
-    <Tooltip content={intent.label} placement="top">
-        <div
-            onClick={() => onSelect(intent.value)}
-            className={`
-                flex flex-col items-center justify-center gap-1 p-2 rounded-lg cursor-pointer 
-                transition-all duration-150 shadow-md aspect-square
-                ${isActive 
-                    ? 'bg-pos-yellow text-black scale-105 ring-2 ring-white' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
-                }
-            `}
-        >
-            <FontAwesomeIcon icon={icon} className="text-lg" />
-            <span className="text-[0.6rem] font-semibold tracking-wide uppercase">{intent.label}</span>
-        </div>
-    </Tooltip>
+    <div
+      onClick={() => onSelect(intent.value)}
+      className="flex flex-col items-center justify-center gap-2 p-3 bg-gray-800 rounded-lg cursor-pointer transition-all duration-150 hover:bg-yellow-400 hover:text-black hover:scale-105"
+      draggable="true"
+      onDragStart={(e) => {
+        e.dataTransfer.setData("application/intent-id", intent.value);
+        e.dataTransfer.effectAllowed = "copy";
+      }}
+    >
+      <FontAwesomeIcon icon={icon} className="text-2xl" />
+      <span className="text-xs font-semibold tracking-wide">{intent.label}</span>
+    </div>
   );
 };
-IntentCard.propTypes = { 
-    intent: PropTypes.object.isRequired, 
-    onSelect: PropTypes.func.isRequired,
-    isActive: PropTypes.bool.isRequired,
-};
 
-// The main palette component that displays all the intent cards.
-const IntentPalette = ({ onIntentSelect, activeIntent }) => {
+const IntentPalette = ({ onIntentSelect }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <div className="w-full mt-4 p-3 bg-gray-900/70 backdrop-blur-sm rounded-lg border border-gray-700">
-      <h3 className="text-sm font-bold text-center mb-3 text-pos-yellow uppercase tracking-wider">Joint Intent</h3>
-      <div className="grid grid-cols-4 gap-2">
-        {INTENT_OPTIONS.map(intent => (
-          <IntentCard 
-            key={intent.value} 
-            intent={intent} 
-            onSelect={onIntentSelect}
-            isActive={activeIntent === intent.value}
-          />
-        ))}
-      </div>
+    <div className="w-full flex flex-col items-center">
+      <Button 
+        onClick={() => setIsOpen(prev => !prev)} 
+        variant="secondary" 
+        className="w-full"
+      >
+        {isOpen ? 'Close' : 'Open'} Intent Palette
+      </Button>
+      {isOpen && (
+        <div className="w-full mt-2 p-4 bg-gray-900/70 backdrop-blur-sm rounded-lg border border-gray-700">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
+            {INTENT_OPTIONS.map(intent => (
+              <IntentCard key={intent.value} intent={intent} onSelect={onIntentSelect} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 IntentPalette.propTypes = {
   onIntentSelect: PropTypes.func.isRequired,
-  activeIntent: PropTypes.string,
 };
 
 export default IntentPalette;

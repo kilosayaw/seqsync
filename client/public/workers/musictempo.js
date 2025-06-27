@@ -1,3 +1,5 @@
+// public/workers/musictempo.js
+
 class MusicTempo {
     constructor(audioData, options = {}) {
         this.audioData = audioData.getChannelData(0);
@@ -52,6 +54,7 @@ class MusicTempo {
         intervals.forEach(interval => {
             if (interval > 0) {
                 let theoreticalTempo = 60000 / interval;
+                // Clamp to a reasonable range
                 while (theoreticalTempo < 70) theoreticalTempo *= 2;
                 while (theoreticalTempo > 140) theoreticalTempo /= 2;
 
@@ -67,7 +70,7 @@ class MusicTempo {
     }
 
     temposMatch(a, b) {
-        return Math.abs(a - b) < 10;
+        return Math.abs(a - b) < 10; // 10 BPM tolerance
     }
 
     getTopTempo(tempos) {
@@ -78,6 +81,10 @@ class MusicTempo {
 
     getBeats(tempo) {
         if (!tempo) return [];
+        // Beat calculation logic can be added here if needed
         return [];
     }
 }
+
+// Export the class as the default export of this module
+export { MusicTempo };

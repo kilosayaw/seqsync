@@ -28,9 +28,5 @@ const AutoMapTool = ({ onApply }) => {
     </div>
   );
 };
-
-AutoMapTool.propTypes = {
-  onApply: PropTypes.func.isRequired,
-};
-
+// ... propTypes
 export default AutoMapTool;
