@@ -1,63 +1,70 @@
+/* ========================================================================== */
+/* 1. TAILWIND DIRECTIVES (THIS FIXES THE "Unknown at rule" ERRORS)          */
+/*    These MUST be at the top of the file.                                   */
+/* ========================================================================== */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ==========================================================================
-   Font Definitions
-   ========================================================================== */
 
-@font-face {
-  font-family: 'Digital Play';
-  src: url('/assets/fonts/Digital Play St.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Digital Play';
-  src: url('/assets/fonts/Digital Play Italic St.ttf') format('truetype');
-  font-weight: normal;
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Digital Play Hollow';
-  src: url('/assets/fonts/Digital Play Hollow St.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Orbitron';
-  src: url('/assets/fonts/Orbitron-Regular.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Share Tech Mono';
-  src: url('/assets/fonts/ShareTechMono-Regular.ttf') format('truetype');
-}
+/* ========================================================================== */
+/* 2. CUSTOM FONT LOADING (@font-face)                                        */
+/*    Place your font files (e.g., .ttf, .woff2) in the /public directory.    */
+/*    For example: /public/assets/fonts/Digital-Play-St.ttf                   */
+/* ========================================================================== */
 
-
-/* ==========================================================================
-   Global Styles & CSS Variables
-   ========================================================================== */
-
-:root {
-  /* Default font for the entire application */
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-
-  /* --- Font Family Variables --- */
-  --font-body: 'Inter', sans-serif;
-  --font-digital-solid: 'Digital Play', 'Orbitron', monospace;
-  --font-digital-hollow: 'Digital Play Hollow', monospace;
-  --font-mono: 'Share Tech Mono', monospace;
-}
-
-/* Optional: Utility classes if you prefer to use them with Tailwind */
-@layer utilities {
-  .font-digital {
-    font-family: var(--font-digital-solid);
+@layer base {
+  @font-face {
+    font-family: 'Digital Play';
+    /* The path is relative to the /public folder */
+    src: url('/assets/fonts/Digital-Play-St.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap; /* Improves performance */
   }
-  .font-digital-hollow {
-    font-family: var(--font-digital-hollow);
+
+  @font-face {
+    font-family: 'Digital Play Hollow';
+    src: url('/assets/fonts/Digital-Play-Hollow-St.ttf') format('truetype'); /* Assumed filename */
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
   }
-  .font-mono-tech {
-    font-family: var(--font-mono);
+  
+  @font-face {
+    font-family: 'Orbitron';
+    src: url('/assets/fonts/Orbitron-Regular.ttf') format('truetype'); /* Assumed filename */
+    font-weight: 400; /* Regular weight */
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Share Tech Mono';
+    src: url('/assets/fonts/ShareTechMono-Regular.ttf') format('truetype'); /* Assumed filename */
+    font-weight: 400;
+    font-display: swap;
+  }
+}
+
+
+/* ========================================================================== */
+/* 3. GLOBAL BASE STYLES & CUSTOM UTILITIES                                   */
+/*    We use @layer base to apply styles to base HTML elements.               */
+/* ========================================================================== */
+
+@layer base {
+  body {
+    /* Apply the default dark background and text color from your config */
+    @apply bg-dark-bg text-text-primary;
+    
+    /* Improve font rendering across browsers */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Style scrollbars globally using the tailwind-scrollbar plugin */
+  html {
+    @apply scrollbar-thin scrollbar-thumb-element-bg scrollbar-track-dark-bg;
   }
 }

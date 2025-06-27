@@ -1,155 +1,156 @@
-import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useState, useCallback, useMemo, useContext, useRef, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { useSequence } from './SequenceContext';
-import { useSequencerSettings } from './SequencerSettingsContext';
-import { playSound, preloadSounds, unlockAudioContext } from '../utils/audioManager';
-import { playAudioSlice as playAudioSliceUtil } from '../utils/audioUtils';
+import { useUIState } from './UIStateContext';
+import { playSound, preloadSounds } from '../utils/audioManager';
+import { UI_PADS_PER_BAR, DEFAULT_TIME_SIGNATURE, TAP_TEMPO_MIN_TAPS, TAP_TEMPO_MAX_INTERVAL_MS } from '../utils/constants';
 
 const PlaybackContext = createContext(null);
-export const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
 export const PlaybackProvider = ({ children }) => {
-    // --- STATE & REFS ---
-    
+    // --- State ---
     const [isPlaying, setIsPlaying] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
+    const [skipInterval, setSkipInterval] = useState(16);
     const [currentStep, setCurrentStep] = useState(0);
     const [currentBar, setCurrentBar] = useState(0);
-    const [isMetronomeEnabled, setIsMetronomeEnabled] = useState(true);
+    const tapTempoDataRef = useRef({ timestamps: [], timer: null });
 
-    const startTimeRef = useRef(0);
-    const totalBeatsElapsedRef = useRef(0);
-    const animationFrameId = useRef(null);
-    const livePoseRef = useRef(null);
-    const tapTimestamps = useRef([]);
-    const tapTimeoutRef = useRef(null);
-    
-    // --- HOOKS ---
-    const { songData, setPoseForBeat, triggerBeat } = useSequence();
-    const { bpm, setBpm } = useSequencerSettings();
+    // --- CONSUME from other contexts ---
+    const { songData, bpm, setBpm, timeSignature } = useSequence();
+    const { currentSelectedKitObject } = useUIState();
 
-    // --- FUNCTION DEFINITIONS ---
-    const getLivePose = useCallback(() => livePoseRef.current, []);
-    const updateLivePose = (pose) => {
-        livePoseRef.current = pose;
-    };
-
-    const togglePlay = useCallback(() => {
-        unlockAudioContext();
-        setIsPlaying(prev => {
-            const nextIsPlaying = !prev;
-            if (nextIsPlaying) {
-                startTimeRef.current = audioContext.currentTime;
-                totalBeatsElapsedRef.current = -1;
-            } else {
-                setIsRecording(false);
-            }
-            return nextIsPlaying;
-        });
-    }, []);
-
-    const toggleRecord = useCallback(() => {
-        setIsRecording(prev => {
-            if (!prev && !isPlaying) {
-                togglePlay();
-            }
-            return !prev;
-        });
-    }, [isPlaying, togglePlay]);
-
-    const tapTempo = useCallback(() => {
-        unlockAudioContext();
-        const now = Date.now();
-        const timestamps = tapTimestamps.current;
-        timestamps.push(now);
-        if (timestamps.length > 4) timestamps.shift();
-        if (timestamps.length > 1) {
-            const intervals = [];
-            for (let i = 1; i < timestamps.length; i++) {
-                intervals.push(timestamps[i] - timestamps[i-1]);
-            }
-            const averageInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-            if (averageInterval > 0) {
-                const calculatedBpm = 60000 / averageInterval;
-                setBpm(Math.max(40, Math.min(240, calculatedBpm)));
-            }
-        }
-        if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
-        tapTimeoutRef.current = setTimeout(() => { tapTimestamps.current = []; }, 2000);
-    }, [setBpm]);
-
-    const toggleMetronome = () => setIsMetronomeEnabled(p => !p);
-
-    // --- EFFECTS ---
+    // Preload sounds whenever the selected kit changes
     useEffect(() => {
-        preloadSounds([{ name: 'metronome', url: '/assets/sounds/metronome.wav' }]);
-    }, []);
-
-    // --- FULL IMPLEMENTATION of Main Playback & Recording Loop ---
-    useEffect(() => {
-        if (!isPlaying) {
-            cancelAnimationFrame(animationFrameId.current);
-            return;
+        if (currentSelectedKitObject?.sounds) {
+            // Assuming preloadSounds takes an array of URLs
+            preloadSounds(currentSelectedKitObject.sounds.map(s => s.url));
         }
+    }, [currentSelectedKitObject]);
 
-        const tick = () => {
-            const currentElapsedTime = audioContext.currentTime - startTimeRef.current;
-            const secondsPerBeat = 60.0 / bpm;
+    // --- MAIN PLAYBACK LOOP ---
+    useEffect(() => {
+        if (!isPlaying) return;
+
+        const sig = timeSignature || DEFAULT_TIME_SIGNATURE;
+        const timePerStep = (60 / bpm) / (UI_PADS_PER_BAR / sig.beatsPerBar);
+        if (timePerStep <= 0 || !isFinite(timePerStep)) return;
+
+        const interval = setInterval(() => {
+            const soundsToPlay = songData[currentBar]?.beats[currentStep]?.sounds || [];
+            if (soundsToPlay.length > 0 && currentSelectedKitObject?.sounds) {
+                const kitSounds = currentSelectedKitObject.sounds;
+                soundsToPlay.forEach(soundName => {
+                    const sound = kitSounds.find(s => s.name === soundName);
+                    if (sound?.url) {
+                        playSound(sound.url);
+                    }
+                });
+            }
             
-            if (secondsPerBeat > 0) {
-                const beatsNow = Math.floor(currentElapsedTime / secondsPerBeat);
-                if (beatsNow > totalBeatsElapsedRef.current) {
-                    totalBeatsElapsedRef.current = beatsNow;
-                    
-                    const totalBars = Object.keys(songData.bars).length || 1;
-                    const newCurrentStep = beatsNow % 16;
-                    const newCurrentBar = Math.floor(beatsNow / 16) % totalBars;
-                    
-                    setCurrentBar(newCurrentBar);
-                    setCurrentStep(newCurrentStep);
+            setCurrentStep(prevStep => {
+                const nextStep = (prevStep + 1) % UI_PADS_PER_BAR;
+                if (nextStep === 0) {
+                    setCurrentBar(prevBar => (prevBar + 1) % songData.length);
+                }
+                return nextStep;
+            });
 
-                    // --- FIX: This single call now handles all sound playback ---
-                    triggerBeat(newCurrentBar, newCurrentStep);
+        }, timePerStep * 1000);
 
-                    if (isMetronomeEnabled) {
-                        playSound('/assets/sounds/metronome.wav');
-                    }
-                    
-                    if (isRecording) {
-                        const poseToRecord = getLivePose();
-                        if (poseToRecord) {
-                            setPoseForBeat(newCurrentBar, newCurrentStep, poseToRecord);
-                        }
-                    }
+        return () => clearInterval(interval);
+    }, [isPlaying, bpm, timeSignature, currentStep, currentBar, songData, currentSelectedKitObject]);
+
+    // --- Handlers ---
+    const handlePlayPause = useCallback(() => setIsPlaying(prev => !prev), []);
+    const handleStop = useCallback(() => {
+        setIsPlaying(false);
+        setIsRecording(false);
+        setCurrentStep(0);
+        setCurrentBar(0);
+    }, []);
+    const handleRecord = useCallback(() => {
+        setIsRecording(prev => !prev);
+        if (!isPlaying) {
+            setIsPlaying(true);
+        }
+    }, [isPlaying]);
+    
+    const handleSkipIntervalChange = useCallback((newInterval) => setSkipInterval(parseInt(newInterval, 10)), []);
+    
+    const handleTapTempo = useCallback(() => {
+        const now = performance.now();
+        const currentTaps = tapTempoDataRef.current.timestamps;
+        if (tapTempoDataRef.current.timer) clearTimeout(tapTempoDataRef.current.timer);
+        
+        currentTaps.push(now);
+        
+        const processTaps = () => {
+            const ts = tapTempoDataRef.current.timestamps;
+            if (ts.length >= TAP_TEMPO_MIN_TAPS) {
+                const intervals = [];
+                for (let i = 1; i < ts.length; i++) intervals.push(ts[i] - ts[i - 1]);
+                
+                const avgInterval = intervals.reduce((sum, int) => sum + int, 0) / intervals.length;
+                if (avgInterval > 50 && avgInterval < TAP_TEMPO_MAX_INTERVAL_MS) {
+                    const newBPM = Math.round(60000 / avgInterval);
+                    setBpm(newBPM);
+                    toast.info(`Tempo set to ~${newBPM} BPM`);
+                } else {
+                    toast.warn("Tap tempo intervals too erratic.");
                 }
             }
-            animationFrameId.current = requestAnimationFrame(tick);
+            tapTempoDataRef.current.timestamps = [];
+            tapTempoDataRef.current.timer = null;
         };
+        
+        tapTempoDataRef.current.timer = setTimeout(processTaps, TAP_TEMPO_MAX_INTERVAL_MS);
+    }, [setBpm]);
 
-        animationFrameId.current = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(animationFrameId.current);
-    }, [isPlaying, isRecording, bpm, isMetronomeEnabled, songData.bars, triggerBeat]);
-    
-    // --- CONTEXT VALUE ---
-    const value = {
-        isPlaying, isRecording, currentStep, currentBar,
-        isMetronomeEnabled,
-        togglePlay,
-        toggleRecord,
-        toggleMetronome,
-        updateLivePose,
-        getLivePose,
-        tapTempo,
-    };
+    // CORRECTED: The `totalBars` parameter has been removed.
+    const handleSkip = useCallback((direction) => {
+        const totalBars = songData.length;
+        const wasPlaying = isPlaying;
+        if (wasPlaying) setIsPlaying(false);
 
-    return (
-        <PlaybackContext.Provider value={value}>
-            {children}
-        </PlaybackContext.Provider>
-    );
+        let numStepsToSkip;
+        if (skipInterval === 1) {
+            numStepsToSkip = direction > 0 ? (UI_PADS_PER_BAR - currentStep) || UI_PADS_PER_BAR : currentStep > 0 ? currentStep : UI_PADS_PER_BAR;
+        } else {
+            numStepsToSkip = UI_PADS_PER_BAR / skipInterval;
+        }
+
+        let totalCurrentStep = (currentBar * UI_PADS_PER_BAR) + currentStep;
+        let totalNewStep = totalCurrentStep + (direction * numStepsToSkip);
+        const totalSequenceSteps = totalBars * UI_PADS_PER_BAR;
+
+        totalNewStep = (totalNewStep + totalSequenceSteps) % totalSequenceSteps;
+        
+        const newBar = Math.floor(totalNewStep / UI_PADS_PER_BAR);
+        const newStep = totalNewStep % UI_PADS_PER_BAR;
+
+        setCurrentBar(newBar);
+        setCurrentStep(newStep);
+        
+        document.dispatchEvent(new CustomEvent('playbackSkip', { detail: { newBar, newStep }}));
+
+        if (wasPlaying) setTimeout(() => setIsPlaying(true), 50);
+
+    }, [isPlaying, currentBar, currentStep, skipInterval, songData]);
+
+    // --- Value Object ---
+    const value = useMemo(() => ({
+        isPlaying, isRecording, skipInterval, currentStep, currentBar,
+        handlePlayPause, handleStop, handleRecord,
+        handleTapTempo, handleSkip, handleSkipIntervalChange,
+        setCurrentStep, setCurrentBar
+    }), [isPlaying, isRecording, skipInterval, currentStep, currentBar, handlePlayPause, handleStop, handleRecord, handleTapTempo, handleSkip, handleSkipIntervalChange]);
+
+    return <PlaybackContext.Provider value={value}>{children}</PlaybackContext.Provider>;
 };
 
 export const usePlayback = () => {
     const context = useContext(PlaybackContext);
-    if (!context) throw new Error('usePlayback must be used within a PlaybackProvider');
+    if (context === undefined) throw new Error('usePlayback must be used within a PlaybackProvider');
     return context;
 };

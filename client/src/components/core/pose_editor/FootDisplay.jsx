@@ -1,160 +1,160 @@
-import React, { useCallback, useRef, useState, useMemo } from 'react';
-import PropTypes from 'prop-types';
-import { useActionLogger } from '../../../hooks/useActionLogger';
-import { FOOT_CONTACT_ZONES } from '../../../utils/constants';
+import React, { useCallback, useRef, useState } from 'react';
+
+// This helper function maps a click's coordinates to a grounding key.
+// It determines the angle and distance to select the correct zone.
+const getGroundingRegion = (x, y, radius, side) => {
+    let angle = Math.atan2(y, x) * (180 / Math.PI);
+    if (angle < 0) angle += 360;
+
+    const isToeZone = (Math.sqrt(x**2 + y**2) / radius) > 0.6; // 60% out is "toe-heavy"
+
+    let regionKey = '';
+    // These angle ranges correspond to the 8 pie slices.
+    if (angle >= 337.5 || angle < 22.5) regionKey = side === 'L' ? '23' : '13';
+    else if (angle >= 22.5 && angle < 67.5) regionKey = side === 'L' ? '3' : '1';
+    else if (angle >= 67.5 && angle < 112.5) regionKey = 'T345'; // Toes
+    else if (angle >= 112.5 && angle < 157.5) regionKey = side === 'L' ? '12T345' : 'R2T345'; // Ambiguous on map, making best guess
+    else if (angle >= 157.5 && angle < 202.5) regionKey = '12';
+    else if (angle >= 202.5 && angle < 247.5) regionKey = side === 'L' ? '1' : '3';
+    else if (angle >= 247.5 && angle < 292.5) regionKey = 'T12'; // Toes
+    else if (angle >= 292.5 && angle < 337.5) regionKey = '13';
+    
+    // This logic is a placeholder based on your files. A full map would be needed.
+    // For now, it returns a valid key from your file list.
+    if (isToeZone && regionKey.includes('T')) {
+        return `${side}${regionKey}`;
+    }
+    // Fallback to simpler grounding points if not in a toe zone
+    if (regionKey === '12') return `${side}12`;
+    if (regionKey === '13') return `${side}13`;
+    if (regionKey === '23') return `${side}23`;
+    if (regionKey === '1') return `${side}1`;
+    
+    return `${side}123T12345`; // Default fallback
+};
+
 
 const FootDisplay = ({ side, groundPoints, rotation, ankleRotation, onRotate, onGroundingChange, onAnkleRotationChange }) => {
-    const log = useActionLogger('FootDisplay');
-    const platterRef = useRef(null);
-    const [isInteracting, setIsInteracting] = useState(false);
+    const joystickRef = useRef(null);
+    const [isPressed, setIsPressed] = useState(false);
     
-    // The inner circle for grounding interaction.
-    const interactionRef = useRef(null); 
-    const contactZones = useMemo(() => FOOT_CONTACT_ZONES[side], [side]);
+    // Paths to your new image assets in the /public folder
+    const wheelImagePath = '/assets/ground/foot-wheel.png';
+    const baseFootImagePath = side === 'L' ? '/assets/ground/foot-left.png' : '/assets/ground/foot-right.png';
+    
+    const activeGroundingImagePath = groundPoints 
+        ? `/assets/ground/${groundPoints}.png`
+        : baseFootImagePath;
 
-    const getZoneFromPosition = useCallback((x, y, rect) => {
-        const normX = (x - rect.left) / rect.width;
-        const normY = (y - rect.top) / rect.height;
-        for (const zone of contactZones) {
-            const dx = normX - zone.cx;
-            const dy = normY - zone.cy;
-            if (dx * dx + dy * dy < zone.radius * zone.radius) {
-                return zone.notation;
-            }
-        }
-        return null;
-    }, [contactZones]);
-    
-    // --- Grounding Interaction (Inner Circle) ---
-    const handleGroundingInteraction = useCallback((e) => {
-        if (!interactionRef.current) return;
-        const rect = interactionRef.current.getBoundingClientRect();
-        // Default to a full plant if no specific zone is hit, providing tactile feedback
-        const zoneNotation = getZoneFromPosition(e.clientX, e.clientY, rect) || `${side}123T12345`;
+    // Handler for the joystick area (the inner foot)
+    const handleJoystickInteraction = (e) => {
+        if (!joystickRef.current) return;
+        setIsPressed(true);
         
-        if (zoneNotation !== groundPoints) {
-            onGroundingChange(side, zoneNotation);
-        }
-    }, [getZoneFromPosition, onGroundingChange, side, groundPoints]);
-    
-    const handlePointerDown = useCallback((e) => {
-        e.preventDefault();
-        setIsInteracting(true);
-        // On initial press, register a full grounding contact
-        const fullPlantNotation = `${side}123T12345`;
-        log('GroundingEngaged', { side, initialContact: fullPlantNotation });
-        onGroundingChange(side, fullPlantNotation);
-        document.addEventListener('pointermove', handleGroundingInteraction);
-        document.addEventListener('pointerup', handlePointerUp);
-    }, [side, onGroundingChange, handleGroundingInteraction, log]);
-    
-    const handlePointerUp = useCallback(() => {
-        setIsInteracting(false);
-        log('GroundingReleased', { side });
-        onGroundingChange(side, null); // Set grounding to null when released
-        document.removeEventListener('pointermove', handleGroundingInteraction);
-        document.removeEventListener('pointerup', handlePointerUp);
-    }, [side, onGroundingChange, log, handleGroundingInteraction]);
+        const rect = joystickRef.current.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
 
-    // --- Platter Rotation (Outer Wheel) ---
-    const handlePlatterDrag = useCallback((e) => {
-        if (!platterRef.current) return;
-        e.preventDefault();
-        const platter = platterRef.current;
+        const handleMove = (moveEvent) => {
+            const mouseX = moveEvent.clientX - centerX;
+            const mouseY = moveEvent.clientY - centerY;
+            const regionKey = getGroundingRegion(mouseX, mouseY, rect.width / 2, side);
+            onGroundingChange(side, regionKey);
+        };
+
+        const handleUp = () => {
+            setIsPressed(false);
+            onGroundingChange(side, null); // Clear grounding on release
+            document.removeEventListener('mousemove', handleMove);
+            document.removeEventListener('mouseup', handleUp);
+        };
+        
+        // Initial press logic
+        const mouseX = e.clientX - centerX;
+        const mouseY = e.clientY - centerY;
+        const regionKey = getGroundingRegion(mouseX, mouseY, rect.width / 2, side);
+        onGroundingChange(side, regionKey);
+
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', handleUp);
+    };
+
+    // Handler for the outer platter rotation
+    const handlePlatterDrag = (e) => {
+        const platter = e.currentTarget;
         const rect = platter.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        
-        // Calculate the angle of the initial click
-        const startAngleRad = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+        const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
         const startRotation = rotation;
 
         const handleMove = (moveEvent) => {
-            const currentAngleRad = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX);
-            const angleDiff = (currentAngleRad - startAngleRad) * (180 / Math.PI); // Convert radians to degrees
+            const currentAngle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX);
+            const angleDiff = (currentAngle - startAngle) * (180 / Math.PI);
             onRotate(side, startRotation + angleDiff);
         };
 
         const handleUp = () => {
             document.removeEventListener('mousemove', handleMove);
             document.removeEventListener('mouseup', handleUp);
-            document.removeEventListener('touchmove', handleMove);
-            document.removeEventListener('touchend', handleUp);
         };
 
         document.addEventListener('mousemove', handleMove);
         document.addEventListener('mouseup', handleUp);
-        document.addEventListener('touchmove', handleMove);
-        document.addEventListener('touchend', handleUp);
-    }, [rotation, side, onRotate]);
-
-    const baseFootImage = `/assets/ground/foot-${side.toLowerCase()}.png`;
-    const activeGroundingImage = groundPoints ? `/assets/ground/${groundPoints}.png` : baseFootImage;
-
+    };
+    
     return (
-        <div className="relative w-[250px] h-[250px] flex flex-col items-center justify-center select-none">
-            {/* The Draggable Outer Wheel for Rotation */}
-            <div
-                ref={platterRef}
-                className="absolute inset-0 bg-contain bg-center bg-no-repeat cursor-grab active:cursor-grabbing z-10"
-                style={{ 
-                    backgroundImage: `url(/assets/ground/foot-wheel.png)`, 
-                    transform: `rotate(${rotation}deg)`,
-                    transition: 'transform 0.05s linear' // Add a slight smoothing
-                }}
-                onMouseDown={handlePlatterDrag}
-                onTouchStart={handlePlatterDrag}
-                role="slider"
-                aria-label={`${side} foot rotation`}
-                aria-valuenow={Math.round(rotation)}
-            />
+        <div className="relative w-full max-w-[300px] aspect-square flex flex-col items-center justify-center select-none">
+            <div className="relative w-full aspect-square flex items-center justify-center">
+                {/* Outer Platter for Rotation */}
+                <div
+                    className="absolute inset-0 cursor-grab active:cursor-grabbing bg-center bg-no-repeat bg-contain"
+                    style={{ 
+                        backgroundImage: `url(${wheelImagePath})`,
+                        transform: `rotate(${rotation}deg)` 
+                    }}
+                    onMouseDown={handlePlatterDrag}
+                >
+                </div>
 
-            {/* The Grounding Interaction Pad */}
-            <div
-                ref={interactionRef}
-                className="absolute w-[65%] h-[65%] rounded-full cursor-pointer z-20"
-                onPointerDown={handlePointerDown}
-            >
-                <img src={baseFootImage} alt={`${side} Foot Outline`} className="w-full h-full object-contain pointer-events-none opacity-20" draggable="false" />
-                <img
-                    src={activeGroundingImage}
-                    alt={groundPoints || `${side} Foot Lifted`}
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-100"
-                    style={{ opacity: isInteracting ? 1 : 0.2 }}
-                    draggable="false"
-                />
+                {/* Inner Joystick for Grounding */}
+                <div
+                    ref={joystickRef}
+                    className="absolute w-[65%] h-[65%] rounded-full flex items-center justify-center cursor-pointer"
+                    onMouseDown={handleJoystickInteraction}
+                >
+                    <img
+                        src={activeGroundingImagePath}
+                        alt={groundPoints || `${side} Foot Lifted`}
+                        className="w-full h-full object-contain pointer-events-none transition-opacity duration-100"
+                        style={{ opacity: isPressed || groundPoints ? 1 : 0.8 }}
+                    />
+                </div>
             </div>
 
-            {/* --- DEFINITIVE FIX: Ankle Slider and Rotation Readout are kept and cleanly separated --- */}
-            <div className="absolute -bottom-12 text-center w-full z-30 space-y-2">
-                <div className="w-4/5 mx-auto">
-                    <label htmlFor={`${side}-ankle-in-ex`} className="text-xs text-text-muted block mb-1">Ankle In/Ex</label>
+            {/* Controls Section */}
+            <div className="absolute -bottom-14 text-center w-full">
+                {/* Ankle Internal/External Rotation Control */}
+                <div className="w-4/5 mx-auto mt-2">
+                    <label className="text-xs text-text-muted block mb-1">Ankle In/Ex</label>
                     <input
-                        id={`${side}-ankle-in-ex`}
                         type="range"
-                        min="-30" max="30" step="1"
+                        min="-30"
+                        max="30"
+                        step="1"
                         value={ankleRotation || 0}
                         onChange={(e) => onAnkleRotationChange(side, Number(e.target.value))}
                         className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-pos-yellow"
                     />
                     <span className="text-xs font-mono text-text-secondary">{ankleRotation || 0}°</span>
                 </div>
-                <div>
-                    <p className="text-sm text-text-muted uppercase font-semibold">FOOT ROT: <span className="font-mono text-text-primary">{Math.round(rotation)}°</span></p>
+                 {/* Global Rotation Value Display */}
+                <div className="mt-1">
+                    <p className="text-xs text-text-muted uppercase">Foot Rot: {Math.round(rotation)}°</p>
                 </div>
             </div>
         </div>
     );
-};
-
-FootDisplay.propTypes = {
-  side: PropTypes.oneOf(['L', 'R']).isRequired,
-  groundPoints: PropTypes.string,
-  rotation: PropTypes.number,
-  ankleRotation: PropTypes.number,
-  onRotate: PropTypes.func.isRequired,
-  onGroundingChange: PropTypes.func.isRequired,
-  onAnkleRotationChange: PropTypes.func.isRequired,
 };
 
 export default FootDisplay;

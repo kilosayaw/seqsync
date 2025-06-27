@@ -1,7 +1,7 @@
 // ===================================================================================
 // SECTION 1: COMPLETE SOUND DEFINITIONS (TR-808 Kit)
 // ===================================================================================
-export const DEFAULT_SOUND_PATH_PREFIX = '/assets/sounds/fixed-sounds/tr808/';
+export const DEFAULT_SOUND_PATH_PREFIX = '/assets/sounds/kits/tr808/';
 
 export const tr808SoundFilePaths = {
   // --- Bass Drum (BD) - 25 Variations ---

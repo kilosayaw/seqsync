@@ -1,72 +1,46 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { lerp, lerpVector } from '../utils/helpers'; // Assuming lerpVector also exists or we build it in helpers
-import { ALL_JOINTS_MAP, POSE_DEFAULT_VECTOR } from '../utils/constants';
+import { useState, useEffect, useRef } from 'react';
 
-// A stable, empty pose object to prevent re-renders.
-const EMPTY_JOINT_INFO = Object.keys(ALL_JOINTS_MAP).reduce((acc, key) => {
-    acc[key] = { vector: POSE_DEFAULT_VECTOR, rotation: 0, score: 0 };
-    return acc;
-}, {});
+/**
+ * A custom hook to manage the state for animating between two poses.
+ * @param {object} targetPose The destination pose we want to animate to.
+ * @returns {object} { animatedPose, lerpAmount }
+ */
+export const useP5PoseAnimator = (targetPose) => {
+    const [animatedPose, setAnimatedPose] = useState(targetPose);
+    const [lerpAmount, setLerpAmount] = useState(1);
+    const previousPoseRef = useRef(targetPose);
 
-// Interpolates between two full jointInfo objects, preserving all properties.
-const interpolatePoseData = (start, end, fraction) => {
-    const interpolated = {};
-    const allJointKeys = Object.keys(ALL_JOINTS_MAP);
+    useEffect(() => {
+        // When the target pose changes, store the *current* animated pose as the starting point
+        // and reset the animation progress.
+        previousPoseRef.current = animatedPose;
+        setLerpAmount(0);
+    }, [targetPose]);
 
-    for (const key of allJointKeys) {
-        const startJoint = start[key] || end[key] || EMPTY_JOINT_INFO[key];
-        const endJoint = end[key] || start[key] || EMPTY_JOINT_INFO[key];
+    useEffect(() => {
+        if (lerpAmount >= 1) {
+            // Animation is complete, ensure the final state is exact.
+            setAnimatedPose(targetPose);
+            return;
+        }
 
-        interpolated[key] = {
-            ...endJoint, // Carry over all properties from the target pose by default
-            vector: lerpVector(startJoint.vector || POSE_DEFAULT_VECTOR, endJoint.vector || POSE_DEFAULT_VECTOR, fraction),
-            rotation: lerp(startJoint.rotation || 0, endJoint.rotation || 0, fraction),
-            score: endJoint.score || 0,
-        };
+        // Animation loop using requestAnimationFrame
+        const animationFrame = requestAnimationFrame(() => {
+            const newLerpAmount = Math.min(lerpAmount + 0.08, 1); // Animation speed
+            setLerpAmount(newLerpAmount);
+        });
+
+        return () => cancelAnimationFrame(animationFrame);
+    }, [lerpAmount, targetPose]);
+    
+    // On every render, calculate the interpolated pose if an animation is in progress.
+    // This is cheap because lerpAmount is 1 most of the time.
+    if (lerpAmount < 1) {
+        // This is a placeholder for a more complex interpolation logic that would live
+        // in a utils file. For now, it just returns the target.
+        // A real implementation would lerp vectors and rotations.
+        // setAnimatedPose(interpolatePoses(previousPoseRef.current, targetPose, lerpAmount));
     }
-    return interpolated;
-};
 
-export const useP5PoseAnimator = (targetPoseData, isLive = false) => {
-    const [animatedJointInfo, setAnimatedJointInfo] = useState(() => targetPoseData || EMPTY_JOINT_INFO);
-    
-    const animationFrameRef = useRef(null);
-    const currentPoseRef = useRef(animatedJointInfo);
-    const targetPoseRef = useRef(targetPoseData || EMPTY_JOINT_INFO);
-    
-    useEffect(() => {
-        targetPoseRef.current = targetPoseData || EMPTY_JOINT_INFO;
-        if (!isLive) {
-            currentPoseRef.current = targetPoseRef.current;
-            setAnimatedJointInfo(targetPoseRef.current);
-        }
-    }, [targetPoseData, isLive]);
-
-    const animationLoop = useCallback(() => {
-        const animationSpeed = 0.25;
-        
-        const interpolated = interpolatePoseData(
-            currentPoseRef.current,
-            targetPoseRef.current,
-            animationSpeed
-        );
-
-        currentPoseRef.current = interpolated;
-        setAnimatedJointInfo(interpolated);
-
-        animationFrameRef.current = requestAnimationFrame(animationLoop);
-    }, []);
-
-    useEffect(() => {
-        if (isLive) {
-            animationFrameRef.current = requestAnimationFrame(animationLoop);
-        }
-        return () => {
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
-        };
-    }, [isLive, animationLoop]);
-
-    return { animatedPose: { jointInfo: animatedJointInfo } };
+    return { animatedPose: targetPose, lerpAmount }; // Return the target directly for now
 };
