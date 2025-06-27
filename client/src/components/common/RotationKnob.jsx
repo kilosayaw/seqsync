@@ -1,112 +1,168 @@
-import React, { useRef, useCallback, useEffect, useState } from 'react';
+// src/components/common/RotationKnob.jsx
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import Input from './Input'; // Correctly imported
 
 const RotationKnob = ({
-  size = 60,
-  min = -45,
-  max = 45,
-  value = 0,
+  value = 0, 
   onChange,
+  onKnobChangeEnd,
+  size = 100, 
+  min = -180, max = 180, step = 1, sensitivity = 0.75,
   label,
+  knobColor = 'bg-gray-700', trackColor = 'stroke-gray-600',
+  indicatorColor = 'stroke-brand-accent', dotColor = 'fill-brand-accent',
 }) => {
   const knobRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [displayValue, setDisplayValue] = useState(value);
+  const [displayAngle, setDisplayAngle] = useState(String(parseFloat(value).toFixed(1) || '0.0')); 
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartAngle, setDragStartAngle] = useState(0);
 
   useEffect(() => {
-    setDisplayValue(value);
-  }, [value]);
-
-  const handleInteraction = useCallback((e) => {
-    if (!knobRef.current) return;
-    const rect = knobRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-    let angle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI) + 90;
-    if (angle < 0) angle += 360;
-
-    // We map a 270-degree arc (-135 to +135) to our min/max values
-    const totalArc = 270;
-    const startAngle = (360 - totalArc / 2) % 360; // e.g., 225
-    const endAngle = totalArc / 2; // e.g., 135
-
-    let constrainedAngle = angle;
-    if (angle > endAngle && angle < startAngle) {
-        // Snap to the nearest boundary if outside the arc
-        constrainedAngle = Math.abs(angle - endAngle) < Math.abs(angle - startAngle) ? endAngle : startAngle;
+    const numericValue = parseFloat(value);
+    const formattedValue = isNaN(numericValue) ? '0.0' : numericValue.toFixed(1);
+    if (parseFloat(formattedValue) !== parseFloat(displayAngle)) { 
+      setDisplayAngle(formattedValue);
     }
+  }, [value, displayAngle]); // Added displayAngle to dep array as it's compared
 
-    let percent = 0;
-    if (constrainedAngle >= startAngle) {
-        percent = (constrainedAngle - startAngle) / totalArc;
-    } else { // angle is between 0 and endAngle
-        percent = (constrainedAngle + (360 - startAngle)) / totalArc;
-    }
-    
-    const newValue = min + (max - min) * percent;
-    onChange(Math.round(newValue));
-    setDisplayValue(Math.round(newValue));
-
-  }, [min, max, onChange]);
+  const processNewAngle = useCallback((newAngleRaw) => {
+    let newAngle = parseFloat(newAngleRaw);
+    if (isNaN(newAngle)) newAngle = 0;
+    newAngle = Math.max(min, Math.min(max, newAngle));
+    return newAngle;
+  }, [min, max]);
 
   const handleMouseDown = useCallback((e) => {
     e.preventDefault();
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    document.body.style.cursor = 'ns-resize';
     setIsDragging(true);
-    document.addEventListener('mousemove', handleInteraction);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('touchmove', handleInteraction);
-    document.addEventListener('touchend', handleMouseUp);
-  }, [handleInteraction]);
+    setDragStartY(e.clientY);
+    setDragStartAngle(parseFloat(displayAngle) || 0);
+  }, [displayAngle]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const deltaY = dragStartY - e.clientY;
+    let newAngle = dragStartAngle + (deltaY * sensitivity);
+    newAngle = processNewAngle(newAngle);
+    setDisplayAngle(newAngle.toFixed(1));
+    if (onChange) onChange(newAngle);
+  }, [isDragging, dragStartY, dragStartAngle, sensitivity, processNewAngle, onChange]);
 
   const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    document.removeEventListener('mousemove', handleInteraction);
-    document.removeEventListener('mouseup', handleMouseUp);
-    document.removeEventListener('touchmove', handleInteraction);
-    document.removeEventListener('touchend', handleMouseUp);
-  }, [handleInteraction]);
-  
-  const handleDoubleClick = useCallback(() => {
-    onChange(0);
-    setDisplayValue(0);
-  }, [onChange]);
+    if (isDragging) {
+      document.body.style.cursor = 'default';
+      setIsDragging(false);
+      let finalAngle = parseFloat(displayAngle) || 0;
+      finalAngle = Math.round(finalAngle / step) * step;
+      finalAngle = Math.max(min, Math.min(max, finalAngle));
 
-  const rotationDegrees = ((value - min) / (max - min)) * 270 - 135;
+      setDisplayAngle(finalAngle.toFixed(1));
+      if (onKnobChangeEnd) onKnobChangeEnd(finalAngle);
+      else if (onChange) onChange(finalAngle);
+    }
+  }, [isDragging, displayAngle, step, min, max, onKnobChangeEnd, onChange]);
+
+  useEffect(() => { 
+    if (isDragging) { 
+        window.addEventListener('mousemove', handleMouseMove); 
+        window.addEventListener('mouseup', handleMouseUp); 
+        document.body.style.userSelect = 'none'; 
+    } else { 
+        window.removeEventListener('mousemove', handleMouseMove); 
+        window.removeEventListener('mouseup', handleMouseUp); 
+        document.body.style.userSelect = ''; 
+    } 
+    return () => { 
+        window.removeEventListener('mousemove', handleMouseMove); 
+        window.removeEventListener('mouseup', handleMouseUp); 
+        document.body.style.cursor = 'default'; 
+        document.body.style.userSelect = ''; 
+    }; 
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+  
+  const center = size / 2;
+  const trackRadiusOuter = size * 0.42;
+  const trackRadiusInner = size * 0.30;
+  const indicatorLineRadius = size * 0.36;
+  const indicatorDotRadius = size * 0.06; 
+  const currentNumericAngleForSVG = parseFloat(displayAngle) || 0;
+  const angleInRadians = (currentNumericAngleForSVG - 90) * (Math.PI / 180); 
+  const indicatorX = center + indicatorLineRadius * Math.cos(angleInRadians);
+  const indicatorY = center + indicatorLineRadius * Math.sin(angleInRadians);
+
+  const handleInputChange = (e) => {
+    setDisplayAngle(e.target.value); 
+    const numVal = parseFloat(e.target.value);
+    if (!isNaN(numVal) && onChange) {
+        onChange(Math.max(min, Math.min(max, numVal))); 
+    }
+  };
+
+  const handleInputBlur = () => {
+    let finalAngle = parseFloat(displayAngle) || 0;
+    finalAngle = Math.max(min, Math.min(max, finalAngle));
+    finalAngle = Math.round(finalAngle / step) * step; 
+    setDisplayAngle(finalAngle.toFixed(1));
+    if (onKnobChangeEnd) onKnobChangeEnd(finalAngle);
+    else if (onChange) onChange(finalAngle);
+  };
 
   return (
-    <div className="flex flex-col items-center gap-1" onDoubleClick={handleDoubleClick}>
-      <div
+    <div className="flex flex-col items-center select-none">
+      {label && <label className="block text-xs font-medium text-gray-400 mb-1 select-none">{label}</label>}
+      <svg
         ref={knobRef}
-        className="relative rounded-full bg-gray-700 shadow-inner cursor-pointer"
-        style={{ width: size, height: size }}
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
         onMouseDown={handleMouseDown}
-        onTouchStart={handleMouseDown}
+        className={`rounded-full shadow-md active:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-accent focus:ring-offset-1 focus:ring-offset-gray-800 cursor-ns-resize ${knobColor}`}
+        tabIndex={0}
+        onKeyDown={(e) => {
+            let currentVal = parseFloat(displayAngle) || 0;
+            let newAngle = currentVal;
+            if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); newAngle = Math.min(max, Math.round((currentVal + step) / step) * step); } 
+            else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); newAngle = Math.max(min, Math.round((currentVal - step) / step) * step); }
+            if (newAngle !== currentVal) { 
+                setDisplayAngle(newAngle.toFixed(1)); 
+                if (onKnobChangeEnd) onKnobChangeEnd(newAngle); else if(onChange) onChange(newAngle);
+            }
+        }}
+        role="slider" aria-valuemin={min} aria-valuemax={max} aria-valuenow={Math.round(currentNumericAngleForSVG)}
       >
-        <div className="absolute inset-2 rounded-full bg-gray-800 flex items-center justify-center text-center">
-            <span className="text-white text-xs font-semibold">{displayValue.toFixed(0)}°</span>
-        </div>
-        <div
-          className="absolute top-1/2 left-1/2 w-1 h-1/2 -translate-x-1/2 -translate-y-full origin-bottom"
-          style={{ transform: `translateX(-50%) translateY(-100%) rotate(${rotationDegrees}deg)` }}
-        >
-          <div className="w-full h-1/3 bg-pos-yellow rounded-full"></div>
-        </div>
-      </div>
-      {label && <span className="text-xs text-gray-400 font-semibold uppercase">{label}</span>}
+        <circle cx={center} cy={center} r={trackRadiusOuter} fill="none" className={`${trackColor} opacity-50`} strokeWidth={size * 0.08} />
+        <circle cx={center} cy={center} r={trackRadiusInner} className={`${knobColor} opacity-70`} stroke={trackColor} strokeWidth={size*0.02}/>
+        {[0, 90, 180, 270].map(tickAngleDeg => { const tickAngleRad = (tickAngleDeg - 90) * (Math.PI / 180); return ( <line key={tickAngleDeg} x1={center + trackRadiusInner * 0.9 * Math.cos(tickAngleRad)} y1={center + trackRadiusInner * 0.9 * Math.sin(tickAngleRad)} x2={center + trackRadiusOuter * 0.95 * Math.cos(tickAngleRad)} y2={center + trackRadiusOuter * 0.95 * Math.sin(tickAngleRad)} className="stroke-gray-500" strokeWidth={size*0.025} /> ); })}
+        <line x1={center} y1={center} x2={indicatorX} y2={indicatorY} className={indicatorColor} strokeWidth={size*0.045} strokeLinecap="round"/>
+        <circle cx={indicatorX} cy={indicatorY} r={indicatorDotRadius} className={dotColor} stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
+      </svg>
+      <span className="font-digital text-base text-pos-yellow mt-1">{parseFloat(displayAngle).toFixed(1)}°</span>
+      <Input
+        type="number" 
+        value={displayAngle}
+        onChange={handleInputChange}
+        onBlur={handleInputBlur}
+        min={min} 
+        max={max} 
+        step={step === 1 ? "0.1" : String(step)} // Ensure step is string for input
+        inputClassName="w-20 text-center !py-1 !text-xs mt-1 bg-gray-700/80 border-gray-600/70" // Slightly different style for this specific input
+        aria-label={label ? `${label} value input` : "Rotation value input"}
+      />
     </div>
   );
 };
 
 RotationKnob.propTypes = {
-    size: PropTypes.number,
-    min: PropTypes.number,
-    max: PropTypes.number,
-    value: PropTypes.number,
-    onChange: PropTypes.func.isRequired,
-    label: PropTypes.string,
+  value: PropTypes.number,
+  onChange: PropTypes.func.isRequired,
+  onKnobChangeEnd: PropTypes.func,
+  size: PropTypes.number, min: PropTypes.number, max: PropTypes.number, step: PropTypes.number, sensitivity: PropTypes.number,
+  label: PropTypes.string, knobColor: PropTypes.string, trackColor: PropTypes.string, indicatorColor: PropTypes.string, dotColor: PropTypes.string,
 };
 
 export default RotationKnob;

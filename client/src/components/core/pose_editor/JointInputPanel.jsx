@@ -1,96 +1,118 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// [UPGRADED] src/components/core/pose_editor/JointInputPanel.jsx
+
+import React, { useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faLock, faLockOpen } from '@fortawesome/free-solid-svg-icons';
-import { useUIState } from '../../../contexts/UIStateContext';
-import { useSequence } from '../../../contexts/SequenceContext';
-import VectorInputGrid from '../../common/VectorInputGrid';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import KneeJoystick from './KneeJoystick';
 import RotationKnob from '../../common/RotationKnob';
-import Input from '../../common/Input';
 import Button from '../../common/Button';
-import ToggleButton from '../../common/ToggleButton';
+import { calculateKneeBounds } from '../../../utils/biomechanics';
+import { BIOMECHANICAL_CONSTANTS, POSE_DEFAULT_VECTOR, ENERGY_LEVEL_LABELS } from '../../../utils/constants';
 
-// Use a standard component declaration
-const JointInputPanel = ({ jointAbbrev, onClose }) => {
-    const { activeBeatData, currentEditingBar, activeBeatIndex } = useUIState();
-    const { updateBeatDynamics, setJointLock } = useSequence();
+export const JointInputPanel = ({
+  jointAbbrev,
+  jointData = {},
+  footGrounding = null,
+  onClose,
+  onUpdate,
+  liveRotation,
+  onLiveRotationChange,
+}) => {
+  const { 
+    vector = POSE_DEFAULT_VECTOR, 
+    rotation = 0, 
+    extension = 0,
+    energy = 50 // Default to 50 if not present
+  } = jointData || {};
+  
+  const isKneeJoint = jointAbbrev === 'LK' || jointAbbrev === 'RK';
+  const isFootJoint = jointAbbrev === 'LF' || jointAbbrev === 'RF';
 
-    const jointData = activeBeatData?.jointInfo?.[jointAbbrev] || {};
-    const [lockDuration, setLockDuration] = useState(jointData.lockDuration || 1);
+  const bounds = useMemo(() => {
+    if (isKneeJoint) return calculateKneeBounds(footGrounding);
+    return BIOMECHANICAL_CONSTANTS.KNEE_BOUNDS.DEFAULT;
+  }, [isKneeJoint, footGrounding]);
 
-    useEffect(() => {
-        setLockDuration(activeBeatData?.jointInfo?.[jointAbbrev]?.lockDuration || 1);
-    }, [activeBeatData, jointAbbrev]);
-
-    const handleVectorChange = useCallback((newVector) => {
-        updateBeatDynamics(currentEditingBar, activeBeatIndex, {
-            jointInfo: { [jointAbbrev]: { vector: newVector } },
-        });
-    }, [currentEditingBar, activeBeatIndex, jointAbbrev, updateBeatDynamics]);
-
-    const handleRotationChange = useCallback((newRotation) => {
-        updateBeatDynamics(currentEditingBar, activeBeatIndex, {
-            jointInfo: { [jointAbbrev]: { rotation: newRotation } },
-        });
-    }, [currentEditingBar, activeBeatIndex, jointAbbrev, updateBeatDynamics]);
-    
-    const handleLockToggle = useCallback(() => {
-        const currentLock = jointData.lockDuration;
-        if (currentLock) {
-            setJointLock(currentEditingBar, activeBeatIndex, jointAbbrev, 0);
-        } else {
-            setJointLock(currentEditingBar, activeBeatIndex, jointAbbrev, lockDuration);
-        }
-    }, [jointData.lockDuration, currentEditingBar, activeBeatIndex, jointAbbrev, lockDuration, setJointLock]);
-
-    const handleDurationChange = (e) => {
-        const newDuration = parseInt(e.target.value, 10);
-        setLockDuration(newDuration > 0 ? newDuration : 1);
-        if (jointData.lockDuration) {
-            setJointLock(currentEditingBar, activeBeatIndex, jointAbbrev, newDuration);
-        }
+  useEffect(() => {
+    if (isFootJoint) {
+      onLiveRotationChange({ jointAbbrev, value: rotation });
+    }
+    return () => {
+      if (isFootJoint && liveRotation) {
+        onUpdate(jointAbbrev, 'rotation', liveRotation.value);
+      }
+      onLiveRotationChange(null);
     };
-    
-    return (
-        <div className="bg-gray-800/80 backdrop-blur-sm p-3 rounded-lg border border-gray-700 w-full animate-fade-in-fast">
-            <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-lg text-pos-yellow">{jointAbbrev} Control</h3>
-                <Button onClick={onClose} variant="icon" size="sm" title="Close Panel"><FontAwesomeIcon icon={faTimes} /></Button>
-            </div>
-            <div className="flex flex-col items-center gap-4">
-                <VectorInputGrid vector={jointData.vector} onVectorChange={handleVectorChange} />
-                <RotationKnob value={jointData.rotation || 0} onChange={handleRotationChange} label="ROTATION" min={-180} max={180} />
-                
-                <div className="w-full space-y-2 pt-2 border-t border-gray-700">
-                    <ToggleButton
-                        onClick={handleLockToggle}
-                        isActive={!!jointData.lockDuration}
-                        activeClassName="bg-blue-600 text-white"
-                        inactiveClassName="bg-gray-600 text-gray-300"
-                        className="w-full"
-                    >
-                        <FontAwesomeIcon icon={jointData.lockDuration ? faLock : faLockOpen} className="mr-2" />
-                        {jointData.lockDuration ? `Locked for ${jointData.lockDuration} beats` : 'Lock Joint'}
-                    </ToggleButton>
-                    <Input
-                        type="number"
-                        label="Lock Duration (beats)"
-                        value={lockDuration}
-                        onChange={handleDurationChange}
-                        min="1"
-                        disabled={!jointData.lockDuration}
-                        inputClassName="text-center"
-                    />
-                </div>
-            </div>
+  }, []);
+
+  const handleVectorChange = (newVector) => onUpdate(jointAbbrev, 'vector', newVector);
+  
+  const handleRotationChange = (newRotation) => {
+    if (isFootJoint) {
+      onLiveRotationChange({ jointAbbrev, value: newRotation });
+    } else {
+      onUpdate(jointAbbrev, 'rotation', newRotation);
+    }
+  };
+
+  const handleFlexionChange = (e) => onUpdate(jointAbbrev, 'extension', parseFloat(e.target.value));
+  const handleEnergyChange = (e) => onUpdate(jointAbbrev, 'energy', parseInt(e.target.value, 10));
+
+  const setMaxInternalRotation = () => handleRotationChange(BIOMECHANICAL_CONSTANTS.HIP_ROTATION.DEFAULT_MIN);
+  const setMaxExternalRotation = () => handleRotationChange(BIOMECHANICAL_CONSTANTS.HIP_ROTATION.DEFAULT_MAX);
+
+  const knobValue = (isFootJoint && liveRotation?.jointAbbrev === jointAbbrev) ? liveRotation.value : rotation;
+  
+  const energyLabel = energy <= 33 ? ENERGY_LEVEL_LABELS.LOW : (energy <= 66 ? ENERGY_LEVEL_LABELS.MEDIUM : ENERGY_LEVEL_LABELS.HIGH);
+
+  return (
+    <div className="w-full bg-gray-900/80 border border-yellow-500/50 rounded-lg p-3 space-y-4 mt-4 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-lg text-pos-yellow">Edit: {jointAbbrev}</h3>
+        <button onClick={onClose} className="text-gray-400 hover:text-white"><FontAwesomeIcon icon={faTimes} /></button>
+      </div>
+
+      {isKneeJoint ? ( <KneeJoystick initialVector={vector} onVectorChange={handleVectorChange} bounds={bounds} /> ) : (
+        <div className="space-y-2 text-center text-gray-400 p-4 bg-gray-800/50 rounded-md">
+          <p className="text-sm">Standard Joint Controls</p>
         </div>
-    );
+      )}
+
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 flex flex-col items-center space-y-2">
+           <label className="text-sm font-semibold text-gray-300">Rotation</label>
+           <RotationKnob value={knobValue} onChange={handleRotationChange} size={64} />
+           <div className="flex items-center gap-2">
+             <Button onClick={setMaxInternalRotation} variant="secondary" size="xs">IN</Button>
+             <Button onClick={setMaxExternalRotation} variant="secondary" size="xs">OUT</Button>
+           </div>
+        </div>
+        <div className="flex-1 space-y-2">
+           <label htmlFor="flexion-slider" className="text-sm font-semibold text-gray-300">Flexion/Ext</label>
+           <input id="flexion-slider" type="range" min="0" max="1" step="0.01" value={extension} onChange={handleFlexionChange} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" />
+           <div className="text-center text-xs text-gray-400">{(extension * 100).toFixed(0)}%</div>
+        </div>
+      </div>
+      
+      {/* [NEW] Energy Slider */}
+      <div className="space-y-2">
+        <label htmlFor="energy-slider" className="text-sm font-semibold text-gray-300">Energy/Involvement</label>
+        <input id="energy-slider" type="range" min="0" max="100" step="1" value={energy} onChange={handleEnergyChange} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" />
+        <div className="text-center text-xs text-gray-400">{energyLabel} ({energy}%)</div>
+      </div>
+    </div>
+  );
 };
 
 JointInputPanel.propTypes = {
-    jointAbbrev: PropTypes.string.isRequired,
-    onClose: PropTypes.func.isRequired,
+  jointAbbrev: PropTypes.string.isRequired,
+  jointData: PropTypes.object,
+  footGrounding: PropTypes.array,
+  onClose: PropTypes.func.isRequired,
+  onUpdate: PropTypes.func.isRequired,
+  liveRotation: PropTypes.object,
+  onLiveRotationChange: PropTypes.func,
 };
 
-// --- DEFINITIVE FIX: Use a default export ---
-export default JointInputPanel; 
+export default JointInputPanel;
