@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ESNext", // Target modern JavaScript features
+    "module": "ESNext", // Use ES modules
+    "moduleResolution": "node", // How modules are found
+    "jsx": "react-jsx", // Specifies JSX factory (e.g., React.createElement or automatic runtime)
+    "allowSyntheticDefaultImports": true, // Allows default imports from modules with no default export
+    "esModuleInterop": true, // Enables compatibility between CommonJS and ES Modules
+    "resolveJsonModule": true, // Allows importing .json files
+    "isolatedModules": true, // Ensures each file can be transpiled separately (good with bundlers)
+    "noEmit": true, // Important: jsconfig.json is for editor intellisense, Vite handles transpiling/bundling
+
+    // --- Path Aliasing ---
+    "baseUrl": "./src", // Base for module resolution (paths will be relative to src)
+    "paths": {
+      "@/*": ["./*"] // Defines "@/" to map to "src/"
+                     // e.g., import Button from '@/components/common/Button'
+                     // will resolve to src/components/common/Button
+    },
+
+    // --- Strictness & Checks (Optional but Recommended) ---
+    "strict": true, // Enables all strict type-checking options (if you were using TS, less impactful for JS)
+    "skipLibCheck": true, // Skip type checking of declaration files (speeds up editor)
+    "forceConsistentCasingInFileNames": true, // Enforces case-sensitive file naming
+
+    // --- For better editor support ---
+    "checkJs": false, // Set to true if you want basic type checking in .js files (requires careful JSDoc or will be noisy)
+    "allowJs": true   // Allow JavaScript files to be compiled (relevant if mixed with TS, standard for JS-only)
+  },
+  "include": [
+    "src/**/*.js",    // Include all .js files in src and subdirectories
+    "src/**/*.jsx",   // Include all .jsx files in src and subdirectories
+    "vite.config.js"  // Include Vite config for better editor understanding
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",           // Your Vite build output directory
+    "public"          // Static assets, usually not part of compilation context
+  ]
+}
