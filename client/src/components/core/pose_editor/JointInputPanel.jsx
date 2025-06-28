@@ -1,14 +1,12 @@
-// [UPGRADED] src/components/core/pose_editor/JointInputPanel.jsx
-import React, { useMemo } from 'react'; // Added useMemo
+// src/components/studio/pose_editor/JointInputPanel.jsx
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import KneeJoystick from './KneeJoystick';
 import RotationKnob from '../../common/RotationKnob';
-// This component should be used for non-knee joints
-// import FootJoystickOverlay from '../../common/FootJoystickOverlay'; 
 import { calculateKneeBounds } from '../../../utils/biomechanics';
-import { BIOMECHANICAL_CONSTANTS } from '../../../utils/constants'; // Import constants for default bounds
+import { BIOMECHANICAL_CONSTANTS } from '../../../utils/constants';
 
 export const JointInputPanel = ({
   jointAbbrev,
@@ -21,16 +19,12 @@ export const JointInputPanel = ({
   
   const isKneeJoint = jointAbbrev === 'LK' || jointAbbrev === 'RK';
 
-  // [FIX] Memoize the bounds calculation and provide a default.
-  // This ensures `bounds` is never undefined.
   const bounds = useMemo(() => {
     if (isKneeJoint) {
       return calculateKneeBounds(footGrounding);
     }
-    // For non-knee joints, provide a default, unconstrained boundary.
     return BIOMECHANICAL_CONSTANTS.KNEE_BOUNDS.DEFAULT; 
   }, [isKneeJoint, footGrounding]);
-
 
   const handleVectorChange = (newVector) => {
     onUpdate(jointAbbrev, 'vector', newVector);
@@ -53,12 +47,11 @@ export const JointInputPanel = ({
         </button>
       </div>
 
-      {/* [FIX] The logic now correctly shows the KneeJoystick ONLY for knee joints */}
       {isKneeJoint ? (
         <KneeJoystick 
           initialVector={vector}
           onVectorChange={handleVectorChange}
-          bounds={bounds} // This is now guaranteed to be a valid object
+          bounds={bounds}
         />
       ) : (
         <div className="space-y-2 text-center text-gray-400 p-4 bg-gray-800/50 rounded-md">
@@ -94,7 +87,11 @@ export const JointInputPanel = ({
 JointInputPanel.propTypes = {
   jointAbbrev: PropTypes.string.isRequired,
   jointData: PropTypes.object,
-  footGrounding: PropTypes.array, // Can be null or array
+  footGrounding: PropTypes.array,
   onClose: PropTypes.func.isRequired,
   onUpdate: PropTypes.func.isRequired,
 };
+
+// Assuming KneeJoystick is a valid component. You might need to create a placeholder if it doesn't exist.
+// For example:
+// const KneeJoystick = ({ initialVector, onVectorChange, bounds }) => <div>Knee Joystick Placeholder</div>;

@@ -178,6 +178,13 @@ export const BIOMECHANICAL_CONSTANTS = {
   }
 };
 
+export const TRANSITION_CURVES = {
+    LINEAR: { label: 'Linear', function: (t) => t },
+    EASE_IN: { label: 'Ease In', function: (t) => t * t },
+    EASE_OUT: { label: 'Ease Out', function: (t) => t * (2 - t) },
+    EASE_IN_OUT: { label: 'Ease In-Out', function: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t) },
+};
+
 
 // --- Skeletal Visualizer ---
 export const SVG_WIDTH_DEFAULT=220; export const SVG_HEIGHT_DEFAULT=300;

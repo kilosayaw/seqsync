@@ -1,12 +1,9 @@
-// src/components/core/sequencer/BeatButton.jsx
-
 import React from 'react';
 import PropTypes from 'prop-types';
 import { MODES } from '../../../utils/constants';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
-import VectorDisplay from '../pose_editor/VectorDisplay';
-import MiniStickFigure from '../../common/MiniStickFigure';
+import { faTimes, faTrashAlt, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import VectorToChevron from '../pose_editor/VectorToChevron';
 
 const BeatButton = ({
   barIndex,
@@ -14,17 +11,22 @@ const BeatButton = ({
   isActive,
   isCurrentStep,
   onClick,
-  sounds = [],
-  viewMode,
-  hasPoseData,
-  poseData,
-  grounding,
-  thumbnail,
-  isDetectedBeat, // <-- [NEW PROP] For showing auto/manual keyframe markers
-  mediaCuePoint,  // <-- [NEW PROP] For tooltip on keyframe markers
   onDeleteSound,
   onClearPoseData,
+  beatData, // Use the full beat object as the primary prop for data
+  viewMode,
 }) => {
+
+  // Destructure all needed properties from beatData with safe fallbacks
+  const {
+    sounds = [],
+    jointInfo,
+    grounding,
+    thumbnail,
+    transition
+  } = beatData || {};
+
+  const hasPoseData = jointInfo && Object.keys(jointInfo).length > 0;
 
   const handleClick = () => onClick(barIndex, beatIndex);
 
@@ -40,7 +42,7 @@ const BeatButton = ({
 
   const beatNumber = beatIndex + 1;
 
-  const baseClasses = 'relative aspect-square w-full rounded-md border-2 p-1 flex flex-col justify-between items-center transition-all duration-100 ease-in-out select-none group';
+  const baseClasses = 'relative aspect-square w-full rounded-md border-2 p-1.5 flex flex-col justify-between items-center transition-all duration-100 ease-in-out select-none group';
   const activeClasses = isActive ? 'border-yellow-400 ring-2 ring-yellow-400/50 shadow-lg shadow-yellow-500/30' : 'border-gray-600';
   const playingClasses = isCurrentStep ? 'bg-green-500 scale-105' : (hasPoseData ? 'bg-blue-900/50' : 'bg-gray-800/50');
   const hoverClasses = 'hover:border-yellow-600';
@@ -55,7 +57,8 @@ const BeatButton = ({
             <span className="text-xs font-semibold text-brand-seq-light truncate">{soundName}</span>
             <span
               onClick={(e) => handleDeleteSound(e, soundName)}
-              role="button" tabIndex="0"
+              role="button"
+              tabIndex="0"
               className="absolute -top-1 -right-1 p-1 text-red-500 hover:text-red-300 opacity-0 group-hover/sound:opacity-100 transition-opacity cursor-pointer"
               aria-label={`Delete ${soundName}`}
             >
@@ -68,49 +71,49 @@ const BeatButton = ({
   );
 
   const renderPOSMode = () => {
-    const jointKeys = poseData ? Object.keys(poseData) : [];
+    const jointKeys = jointInfo ? Object.keys(jointInfo) : [];
     const primaryJointKey = jointKeys.length > 0 ? jointKeys[0] : null;
-    const representativeVector = primaryJointKey && poseData[primaryJointKey]?.vector
-      ? poseData[primaryJointKey].vector
-      : { x: 0, y: 0, z: 0 };
-    
-    const backgroundStyle = thumbnail 
-      ? {
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${thumbnail})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }
-      : {};
+    const representativeVector = (primaryJointKey && jointInfo[primaryJointKey]?.vector) ? jointInfo[primaryJointKey].vector : { x: 0, y: 0, z: 0 };
+    const backgroundStyle = thumbnail ? { backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {};
+    const hasTransition = transition?.poseCurve;
 
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center text-pos-yellow-light" style={backgroundStyle}>
+      <div 
+        className="w-full h-full flex flex-col items-center justify-center text-pos-yellow-light"
+        style={backgroundStyle}
+      >
         <span className="absolute top-1 left-2 text-xs text-gray-400 filter drop-shadow-md">{beatNumber}</span>
         
         {hasPoseData && (
-          <span onClick={handleDeletePose} role="button" tabIndex="0" className="absolute top-0 right-0 p-1.5 text-red-500 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10" aria-label="Clear Pose Data">
+          <span
+            onClick={handleDeletePose}
+            role="button"
+            tabIndex="0"
+            className="absolute top-0 right-0 p-1.5 text-red-500 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
+            aria-label="Clear Pose Data"
+          >
             <FontAwesomeIcon icon={faTrashAlt} size="sm" />
           </span>
         )}
-        
-        {/* [NEW] Detected Beat Marker */}
-        {isDetectedBeat && (
-          <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-brand-accent rounded-full border-2 border-black/50" title={`Keyframe @ ${mediaCuePoint?.toFixed(2)}s`}></div>
-        )}
 
-        {hasPoseData ? (
-          <>
-            {!thumbnail && <MiniStickFigure pose={poseData} />}
-            <div className="absolute inset-x-0 bottom-1 flex flex-col items-center text-center filter drop-shadow-lg">
-                <span className="font-bold text-xs text-white bg-black/30 px-1 rounded">{primaryJointKey}</span>
-                <VectorDisplay vector={representativeVector} className="w-4 h-4 text-white" />
-            </div>
-          </>
+        {hasPoseData && primaryJointKey ? (
+          <div className="flex flex-col items-center justify-center text-center filter drop-shadow-lg">
+            <span className="font-bold text-lg text-white">{primaryJointKey}</span>
+            <VectorToChevron vector={representativeVector} className="w-6 h-6 text-white" />
+          </div>
         ) : (
           <div className="w-2 h-2 rounded-full bg-gray-600"></div>
         )}
 
         {grounding && (grounding.L || grounding.R) && (
-            <div className="absolute bottom-1 left-1 w-2 h-2 rounded-full bg-cyan-400 border border-black/50" title="Grounded"></div>
+            <div className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-cyan-400 border border-black/50" title="Grounded"></div>
+        )}
+        
+        {/* [SURGICAL ENHANCEMENT] */}
+        {hasTransition && (
+            <div className="absolute bottom-1 left-1 text-white/50" title={`Transition: ${hasTransition}`}>
+                <FontAwesomeIcon icon={faChevronRight} size="xs" />
+            </div>
         )}
       </div>
     );
@@ -129,16 +132,18 @@ BeatButton.propTypes = {
   isActive: PropTypes.bool.isRequired,
   isCurrentStep: PropTypes.bool.isRequired,
   onClick: PropTypes.func.isRequired,
-  sounds: PropTypes.arrayOf(PropTypes.string),
   viewMode: PropTypes.string.isRequired,
-  hasPoseData: PropTypes.bool,
-  poseData: PropTypes.object,
-  grounding: PropTypes.object,
-  thumbnail: PropTypes.string,
-  isDetectedBeat: PropTypes.bool,
-  mediaCuePoint: PropTypes.number,
   onDeleteSound: PropTypes.func.isRequired,
-  onClearPoseData: PropTypes.func.isRequired, // Added from component usage
+  onClearPoseData: PropTypes.func.isRequired,
+  beatData: PropTypes.shape({
+    sounds: PropTypes.arrayOf(PropTypes.string),
+    jointInfo: PropTypes.object,
+    grounding: PropTypes.object,
+    thumbnail: PropTypes.string,
+    transition: PropTypes.object, // Now part of beatData
+    isDetectedBeat: PropTypes.bool,
+    mediaCuePoint: PropTypes.number,
+  }),
 };
 
 export default BeatButton;
