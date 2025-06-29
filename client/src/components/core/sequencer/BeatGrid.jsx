@@ -1,5 +1,5 @@
 // src/components/studio/sequencer/BeatGrid.jsx
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useSequence } from '../../../contexts/SequenceContext';
 import { useUIState } from '../../../contexts/UIStateContext';
 import BeatButton from './BeatButton';
@@ -7,9 +7,26 @@ import TransitionIndicator from './TransitionIndicator';
 
 const BeatGrid = () => {
     const { songData, addSoundToBeat, removeSoundFromBeat, clearPoseData } = useSequence();
-    const { currentEditingBar, activeBeatIndex, setActiveBeatIndex, viewMode } = useUIState();
+    const { 
+        currentEditingBar, 
+        activeBeatIndex, 
+        setActiveBeatIndex, 
+        viewMode,
+        currentSoundInBank // <-- Get selected sound from context
+    } = useUIState();
 
     const currentBarBeats = songData[currentEditingBar]?.beats || [];
+
+    const handleBeatClick = useCallback((barIndex, beatIndex) => {
+        setActiveBeatIndex(beatIndex);
+        // [LOGIC RESTORED] If in SEQ mode and a sound is selected, add it to the beat.
+        if (viewMode === 'SEQ' && currentSoundInBank) {
+            const currentBeatSounds = songData[barIndex]?.beats[beatIndex]?.sounds || [];
+            if (!currentBeatSounds.includes(currentSoundInBank)) {
+                addSoundToBeat(barIndex, beatIndex, currentSoundInBank);
+            }
+        }
+    }, [viewMode, currentSoundInBank, setActiveBeatIndex, addSoundToBeat, songData]);
 
     return (
         <div className="w-full bg-gray-800/30 p-3 rounded-lg">
@@ -20,16 +37,9 @@ const BeatGrid = () => {
                             barIndex={currentEditingBar}
                             beatIndex={beatIdx}
                             isActive={activeBeatIndex === beatIdx}
-                            isCurrentStep={false} // This needs to come from PlaybackContext if needed
-                            onClick={() => setActiveBeatIndex(beatIdx)}
-                            // Pass all data and handlers from the beat object
-                            sounds={beat.sounds}
+                            onClick={handleBeatClick} // <-- Use the new enhanced handler
+                            beatData={beat}
                             viewMode={viewMode}
-                            hasPoseData={beat.jointInfo && Object.keys(beat.jointInfo).length > 0}
-                            poseData={beat.jointInfo}
-                            grounding={beat.grounding}
-                            thumbnail={beat.thumbnail}
-                            transition={beat.transition} // Pass transition data
                             onDeleteSound={removeSoundFromBeat}
                             onClearPoseData={clearPoseData}
                         />
@@ -38,7 +48,7 @@ const BeatGrid = () => {
                         {beatIdx < currentBarBeats.length - 1 && (
                             <TransitionIndicator
                                 beatIndex={beatIdx}
-                                isVertical={beatIdx === 7} // Handle wrap from row 1 to 2
+                                isVertical={beatIdx === 7} 
                             />
                         )}
                     </div>

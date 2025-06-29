@@ -10,10 +10,10 @@ import { faEye, faEyeSlash, faArrowsSpin } from '@fortawesome/free-solid-svg-ico
 import Button from '../../common/Button';
 import FootControl from '../grounding/FootControl';
 import Crossfader from '../../common/Crossfader';
-import SkeletalPoseVisualizer2D from './SkeletalPoseVisualizer2D';
-import CoreDynamicsVisualizer from './CoreDynamicsVisualizer';
+import SkeletalPoseVisualizer2D from '../pose_editor/SkeletalPoseVisualizer2D';
+import CoreDynamicsVisualizer from '../pose_editor/CoreDynamicsVisualizer';
 import VideoMediaPlayer from '../media/VideoMediaPlayer';
-import RotationKnob from '../../common/RotationKnob'; // Import RotationKnob for the "Curve" control
+import RotationKnob from '../../common/RotationKnob';
 
 const VisualizerDeck = () => {
     // --- STATE ---
@@ -29,7 +29,6 @@ const VisualizerDeck = () => {
     // --- ANIMATION ---
     const targetPose = activeBeatData;
     const { animatedPose } = useP5PoseAnimator(targetPose, isPlaying);
-    // Destructure with fallbacks to ensure no "undefined" errors
     const { jointInfo = {}, grounding = {}, rotation = {} } = animatedPose || targetPose || {};
     
     // --- DERIVED STATE ---
@@ -37,27 +36,23 @@ const VisualizerDeck = () => {
     const crossfaderValueForUI = 100 - (grounding.L_weight ?? 50);
     const weightShiftCurveForUI = jointInfo?.SPIN_L?.rotation ?? 0;
 
-    // --- HANDLERS (Corrected for Data Integrity) ---
+    // --- HANDLERS ---
     const handleGroundingChange = useCallback((side, groundingKey) => {
-        // [FIX] Preserve existing grounding data when updating one side
         const newGrounding = { ...grounding, [side]: groundingKey };
         updateBeatDynamics(currentEditingBar, activeBeatIndex, { grounding: newGrounding });
     }, [currentEditingBar, activeBeatIndex, updateBeatDynamics, grounding]);
 
     const handleRotationChange = useCallback((side, newRotation) => {
-        // [FIX] Preserve existing rotation data when updating one side
         const newRotationState = { ...rotation, [side]: newRotation };
         updateBeatDynamics(currentEditingBar, activeBeatIndex, { rotation: newRotationState });
     }, [currentEditingBar, activeBeatIndex, updateBeatDynamics, rotation]);
 
     const handleCrossfaderChange = useCallback((newValue) => {
-        // [FIX] Preserve existing grounding data when updating weight
         const newGrounding = { ...grounding, L_weight: 100 - newValue };
         updateBeatDynamics(currentEditingBar, activeBeatIndex, { grounding: newGrounding });
     }, [currentEditingBar, activeBeatIndex, updateBeatDynamics, grounding]);
 
     const handleCoreInputChange = useCallback((joint, prop, value) => {
-        // [FIX] Preserve existing joint data and other joints when updating one property
         const newJointData = { ...jointInfo[joint], [prop]: value };
         const newJointInfo = { ...jointInfo, [joint]: newJointData };
         updateBeatDynamics(currentEditingBar, activeBeatIndex, { jointInfo: newJointInfo });

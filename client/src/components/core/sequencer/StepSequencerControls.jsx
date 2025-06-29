@@ -3,8 +3,6 @@ import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMicrochip, faTimes, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-
-// All child component imports are verified to be correct
 import BeatButton from './BeatButton';
 import SoundBank from './SoundBank';
 import PlaybackControls from '../transport/PlaybackControls';
@@ -21,8 +19,6 @@ import Crossfader from '../../common/Crossfader';
 import RotationKnob from '../../common/RotationKnob';
 import Button from '../../common/Button';
 import FootJoystickOverlay from '../../common/FootJoystickOverlay';
-
-// All utils, contexts, and constants
 import * as audioManager from '../../../utils/audioManager';
 import { useAuth } from '../../../hooks/useAuth';
 import { useSequencerSettings } from '../../../contexts/SequencerSettingsContext';
@@ -39,7 +35,6 @@ import {
 const logDebug = (level, ...args) => console[level] ? console[level](...args) : console.log(...args);
 
 const StepSequencerControls = () => {
-  // --- STATE (Unabridged and Fully Corrected) ---
   const [songData, setSongData] = useState(() => JSON.parse(JSON.stringify(INITIAL_SONG_DATA)));
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -79,7 +74,6 @@ const StepSequencerControls = () => {
   const [history, setHistory] = useState(() => [JSON.stringify(INITIAL_SONG_DATA)]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
-  // --- REFS ---
   const videoPlayerRef = useRef(null);
   const songDataRef = useRef(songData);
   const isPlayingRef = useRef(isPlaying);
@@ -93,28 +87,31 @@ const StepSequencerControls = () => {
   const loopStartPointRef = useRef(loopStartPoint);
   const loopEndPointRef = useRef(loopEndPoint);
   
-  // --- MEMOS ---
   const musicalBeatsPerBar = useMemo(() => contextTimeSignature?.beatsPerBar || DEFAULT_TIME_SIGNATURE.beatsPerBar, [contextTimeSignature]);
   const totalBarsInSequence = useMemo(() => songData.length, [songData]);
   const uiPadsToRender = useMemo(() => DEFAULT_NUM_BEATS_PER_BAR_CONST, []);
   const soundKitsObject = useMemo(() => AVAILABLE_KITS.reduce((acc, kit) => { acc[kit.name] = kit; return acc; }, {}), []);
   const currentSelectedKitObject = useMemo(() => soundKitsObject[selectedKitName] || soundKitsObject[DEFAULT_SOUND_KIT.name], [soundKitsObject, selectedKitName]);
   const currentBarBeatsForUI = useMemo(() => (songData[currentEditingBar]?.beats) || [], [songData, currentEditingBar]);
-  const beatDataForActiveSelection = useMemo(() => currentBarBeatsForUI[activeBeatIndex] || createDefaultBeatObject(activeBeatIndex), [currentBarBeatsForUI, activeBeatIndex]);
-  const mainLeftGrounding = useMemo(() => beatDataForActiveSelection.grounding?.L ?? null, [beatDataForActiveSelection]);
-  const mainRightGrounding = useMemo(() => beatDataForActiveSelection.grounding?.R ?? null, [beatDataForActiveSelection]);
   const mediaType = useMemo(() => { if (!loadedMediaFile) return null; if (loadedMediaFile.type.startsWith('video/')) return 'video'; if (loadedMediaFile.type.startsWith('audio/')) return 'audio'; return 'unsupported'; }, [loadedMediaFile]);
+  const beatDataForActiveSelection = useMemo(() => currentBarBeatsForUI[activeBeatIndex] || createDefaultBeatObject(activeBeatIndex), [currentBarBeatsForUI, activeBeatIndex]);
   const activePoseData = useMemo(() => isPlaying ? songDataRef.current[currentBar]?.beats[currentStep] : beatDataForActiveSelection, [isPlaying, currentBar, currentStep, beatDataForActiveSelection]);
+  const mainLeftGrounding = useMemo(() => activePoseData.grounding?.L ?? null, [activePoseData]);
+  const mainRightGrounding = useMemo(() => activePoseData.grounding?.R ?? null, [activePoseData]);
+  const { isAnalyzing, analysisProgress, startAnalysis, cancelAnalysis } = useMotionAnalysis({ videoRef: videoPlayerRef, bpm, timeSignature: contextTimeSignature, onKeyframeData: () => {}, logDebug });
 
-  // --- MOTION ANALYSIS ---
-  const { isAnalyzing, analysisProgress, startAnalysis, cancelAnalysis } = useMotionAnalysis({
-   videoRef: videoPlayerRef, bpm, timeSignature: contextTimeSignature,
-   onKeyframeData: (keyframeData) => { /* ... */ }, logDebug,
-  });
+  useEffect(() => { currentStepRef.current = currentStep; }, [currentStep]);
+  useEffect(() => { currentBarRef.current = currentBar; }, [currentBar]);
+  useEffect(() => { songDataRef.current = songData; }, [songData]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => { isLoopingRef.current = isLooping; }, [isLooping]);
+  useEffect(() => { loopStartPointRef.current = loopStartPoint; }, [loopStartPoint]);
+  useEffect(() => { loopEndPointRef.current = loopEndPoint; }, [loopEndPoint]);
+  useEffect(() => { bpmRef.current = bpm; }, [bpm]);
   
-  // --- HANDLERS (Unabridged and Corrected) ---
+
   const makeDeepCopy = useCallback((data) => JSON.parse(JSON.stringify(data)), []);
-  
+
   const updateSongDataAndHistory = useCallback((newSongData) => {
     setSongData(newSongData);
     const newHistory = history.slice(0, historyIndex + 1);
@@ -123,15 +120,14 @@ const StepSequencerControls = () => {
     setHistoryIndex(newHistory.length - 1);
   }, [history, historyIndex]);
 
-   const handleFootRotation = useCallback((side, newRotation) => {
-    const ROTATION_LIMIT = 45;
-    const clampedRotation = Math.max(-ROTATION_LIMIT, Math.min(ROTATION_LIMIT, newRotation));
-    if (side === 'L') {
-      setLeftFootRotation(clampedRotation);
-    } else {
-      setRightFootRotation(clampedRotation);
+  const coreHandleBpmChange = useCallback((val) => {
+    const parsedBpm = parseInt(val, 10);
+    if (!isNaN(parsedBpm) && parsedBpm >= BPM_MIN && parsedBpm <= BPM_MAX) {
+      const clampedBpm = Math.max(BPM_MIN, Math.min(BPM_MAX, parsedBpm));
+      setBpm(clampedBpm);
+      if (setContextBpm) setContextBpm(clampedBpm);
     }
-  }, []);
+  }, [setContextBpm]);
 
   const coreHandleClearPoseData = useCallback((barIdx, beatIdx) => {
     const newSongData = makeDeepCopy(songDataRef.current);
@@ -153,7 +149,6 @@ const StepSequencerControls = () => {
     toast.info(`Bar ${currentEditingBar + 1} cleared.`);
   }, [currentEditingBar, makeDeepCopy, uiPadsToRender, updateSongDataAndHistory]);
 
-  // [CRITICAL FIX] The missing handler is now defined.
   const coreHandleRemoveBar = useCallback(() => {
     if (totalBarsInSequence <= 1) {
       coreHandleClearBar();
@@ -169,34 +164,24 @@ const StepSequencerControls = () => {
     toast.success(`Last bar removed.`);
   }, [totalBarsInSequence, currentEditingBar, coreHandleClearBar, updateSongDataAndHistory]);
 
-
-
-  const coreHandleBpmChange = useCallback((val) => {
-    const parsedBpm = parseInt(val, 10);
-    if (!isNaN(parsedBpm) && parsedBpm >= BPM_MIN && parsedBpm <= BPM_MAX) {
-      const clampedBpm = Math.max(BPM_MIN, Math.min(BPM_MAX, parsedBpm));
-      setBpm(clampedBpm);
-      if (setContextBpm) setContextBpm(clampedBpm);
-    }
-  }, [setContextBpm]);
-
   const handleBpmChangeForInput = useCallback((e) => { coreHandleBpmChange(e.target.value); }, [coreHandleBpmChange]);
 
-  
+  const handleFootRotation = useCallback((side, newRotation) => {
+    const ROTATION_LIMIT = 45;
+    const clampedRotation = Math.max(-ROTATION_LIMIT, Math.min(ROTATION_LIMIT, newRotation));
+    if (side === 'L') { setLeftFootRotation(clampedRotation); } 
+    else { setRightFootRotation(clampedRotation); }
+  }, []);
 
   const handleJointDataUpdate = useCallback((jointAbbrev, dataType, value) => {
     const newSongData = makeDeepCopy(songDataRef.current);
     const beat = newSongData[currentEditingBar].beats[activeBeatIndex];
     if (!beat.jointInfo) beat.jointInfo = {};
-    if (!beat.jointInfo[jointAbbrev]) {
-      beat.jointInfo[jointAbbrev] = { vector: { ...POSE_DEFAULT_VECTOR }, rotation: 0, extension: 0, };
-    }
+    if (!beat.jointInfo[jointAbbrev]) beat.jointInfo[jointAbbrev] = { vector: { ...POSE_DEFAULT_VECTOR }, rotation: 0, extension: 0, };
     beat.jointInfo[jointAbbrev][dataType] = value;
     updateSongDataAndHistory(newSongData);
   }, [currentEditingBar, activeBeatIndex, makeDeepCopy, updateSongDataAndHistory]);
 
-  // All other handlers from your working version would be placed here, unabridged...
-  // For example:
   const handleCrossfaderChange = useCallback((newValue) => {
     const newSongData = makeDeepCopy(songDataRef.current);
     const beat = newSongData[currentEditingBar].beats[activeBeatIndex];
@@ -209,9 +194,7 @@ const StepSequencerControls = () => {
     const newSongData = makeDeepCopy(songDataRef.current);
     const beat = newSongData[currentEditingBar].beats[activeBeatIndex];
     if (!beat.jointInfo) beat.jointInfo = {};
-    if (!beat.jointInfo['SPIN_L']) {
-        beat.jointInfo['SPIN_L'] = { vector: { ...POSE_DEFAULT_VECTOR }, rotation: 0, extension: 0 };
-    }
+    if (!beat.jointInfo['SPIN_L']) beat.jointInfo['SPIN_L'] = { vector: { ...POSE_DEFAULT_VECTOR }, rotation: 0, extension: 0 };
     beat.jointInfo['SPIN_L'].rotation = newRotation;
     updateSongDataAndHistory(newSongData);
   }, [currentEditingBar, activeBeatIndex, makeDeepCopy, updateSongDataAndHistory]);
@@ -220,9 +203,7 @@ const StepSequencerControls = () => {
     const newSongData = makeDeepCopy(songDataRef.current);
     const beat = newSongData[barIdx].beats[beatIdx];
     const sounds = beat.sounds || [];
-    if (!sounds.includes(soundName) && sounds.length < MAX_SOUNDS_PER_BEAT) {
-      beat.sounds = [...sounds, soundName];
-    }
+    if (!sounds.includes(soundName) && sounds.length < MAX_SOUNDS_PER_BEAT) beat.sounds.push(soundName);
     updateSongDataAndHistory(newSongData);
   }, [makeDeepCopy, updateSongDataAndHistory]);
   
@@ -240,9 +221,7 @@ const StepSequencerControls = () => {
   const coreHandleDeleteSound = useCallback((barIdx, beatIdx, soundName) => {
     const newSongData = makeDeepCopy(songDataRef.current);
     const beat = newSongData[barIdx].beats[beatIdx];
-    if (beat.sounds) {
-      beat.sounds = beat.sounds.filter(s => s !== soundName);
-    }
+    if (beat.sounds) beat.sounds = beat.sounds.filter(s => s !== soundName);
     updateSongDataAndHistory(newSongData);
   }, [makeDeepCopy, updateSongDataAndHistory]);
 
@@ -800,20 +779,19 @@ const StepSequencerControls = () => {
   
   useEffect(() => { if (contextBpm !== undefined && contextBpm !== bpm) setBpm(contextBpm); }, [contextBpm, bpm]);
 
-  // RENDER BLOCK
-  const weightShiftCurveForUI = beatDataForActiveSelection?.jointInfo?.SPIN_L?.rotation ?? 0;
-  const leftFootGrounding = useMemo(() => activePoseData.grounding?.L ?? null, [activePoseData]);
-  const rightFootGrounding = useMemo(() => activePoseData.grounding?.R ?? null, [activePoseData]);
-  const crossfaderValueForUI = 100 - (beatDataForActiveSelection?.grounding?.L_weight ?? 50);
-  const leftIndicatorOpacity = Math.max(0.2, (beatDataForActiveSelection?.grounding?.L_weight ?? 50) / 50 * 0.8 + 0.2);
-  const rightIndicatorOpacity = Math.max(0.2, (100 - (beatDataForActiveSelection?.grounding?.L_weight ?? 50)) / 50 * 0.8 + 0.2);
-  const leftIndicatorGlow = `0 0 15px rgba(59, 130, 246, ${Math.max(0, ((beatDataForActiveSelection?.grounding?.L_weight ?? 50) - 20) / 30)})`;
-  const rightIndicatorGlow = `0 0 15px rgba(239, 68, 68, ${Math.max(0, ((100 - (beatDataForActiveSelection?.grounding?.L_weight ?? 50)) - 20) / 30)})`;
+  const leftFootGrounding = activePoseData.grounding?.L ?? null;
+  const rightFootGrounding = activePoseData.grounding?.R ?? null;
+  const crossfaderValueForUI = 100 - (activePoseData.grounding?.L_weight ?? 50);
+  const leftIndicatorOpacity = Math.max(0.2, (activePoseData.grounding?.L_weight ?? 50) / 50 * 0.8 + 0.2);
+  const rightIndicatorOpacity = Math.max(0.2, (100 - (activePoseData.grounding?.L_weight ?? 50)) / 50 * 0.8 + 0.2);
+  const leftIndicatorGlow = `0 0 15px rgba(59, 130, 246, ${Math.max(0, ((activePoseData.grounding?.L_weight ?? 50) - 20) / 30)})`;
+  const rightIndicatorGlow = `0 0 15px rgba(239, 68, 68, ${Math.max(0, ((100 - (activePoseData.grounding?.L_weight ?? 50)) - 20) / 30)})`;
+  const weightShiftCurveForUI = activePoseData.jointInfo?.SPIN_L?.rotation ?? 0;
   
-  if (isLoadingSounds) { return ( <div className="flex items-center justify-center h-full bg-gray-900 text-white">Loading...</div> ); }
-  if (errorLoadingSounds) { return ( <div className="flex items-center justify-center h-full bg-gray-900 text-red-500">Error loading sounds.</div> ); }
+  if (isLoadingSounds) return <div className="flex items-center justify-center h-full bg-gray-900 text-white">Loading...</div>;
+  if (errorLoadingSounds) return <div className="flex items-center justify-center h-full bg-gray-900 text-red-500">Error loading sounds.</div>;
 
-return (
+  return (
     <div className="p-2 sm:p-3 bg-gray-900 text-gray-100 h-screen flex flex-col font-sans select-none">
       <div className="w-full max-w-full xl:max-w-screen-2xl mx-auto flex flex-col h-full overflow-hidden">
         <header className="mb-2 p-2 bg-gray-800 rounded-lg shadow-md flex flex-wrap items-center justify-between gap-x-3 gap-y-2 flex-shrink-0 z-30">
@@ -840,35 +818,24 @@ return (
         </div>
 
         <div className="flex-grow grid grid-cols-[240px_1fr_240px] gap-3 overflow-hidden min-h-0">
-          {/* --- LEFT SIDEBAR --- */}
           <div className="order-1 flex flex-col items-center gap-4 p-2 rounded-md overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
             <SideJointSelector side="L" onJointSelect={coreHandleJointSelect} activeEditingJoint={activeEditingJoint} />
             {activeEditingJoint && UI_LEFT_JOINTS_ABBREVS_NEW.some(j => j.abbrev === activeEditingJoint) && (
-              <JointInputPanel
-                jointAbbrev={activeEditingJoint}
-                jointData={activePoseData?.jointInfo?.[activeEditingJoint]}
-                footGrounding={leftFootGrounding}
-                onClose={() => setActiveEditingJoint(null)}
-                onUpdate={handleJointDataUpdate}
-              />
+              <JointInputPanel jointAbbrev={activeEditingJoint} jointData={activePoseData?.jointInfo?.[activeEditingJoint]} footGrounding={leftFootGrounding} onClose={() => setActiveEditingJoint(null)} onUpdate={handleJointDataUpdate} />
             )}
           </div>
 
-          {/* --- CENTRAL COLUMN --- */}
           <div ref={centralColumnRef} className="order-2 flex flex-col items-center justify-start gap-2 overflow-hidden">
-            {/* Beat Grid */}
             <div className="w-full bg-gray-800/30 p-3 rounded-lg flex flex-col items-center justify-center flex-shrink-0">
               <div className="grid grid-cols-8 gap-2 mb-2 w-full">
-                {currentBarBeatsForUI.slice(0, 8).map((beat, beatIdx) => ( <BeatButton key={`beat-A-${beatIdx}`} {...{ barIndex: currentEditingBar, beatIndex: beatIdx, isActive: activeBeatIndex === beatIdx, isCurrentStep: isPlaying && currentBar === currentEditingBar && currentStep === beatIdx, onClick: coreHandleBeatClick, sounds: beat?.sounds, viewMode, hasPoseData: !!beat?.jointInfo && Object.keys(beat.jointInfo).length > 0, poseData: beat?.jointInfo, grounding: beat?.grounding, thumbnail: beat?.thumbnail, onClearPoseData: coreHandleClearPoseData, currentSoundInBank, onAddSound: coreHandleAddSoundToBeat, onDeleteSound: coreHandleDeleteSound }}/> ))}
+                {currentBarBeatsForUI.slice(0, 8).map((beat, beatIdx) => ( <BeatButton key={`beat-A-${beatIdx}`} beatData={beat} barIndex={currentEditingBar} beatIndex={beatIdx} isActive={activeBeatIndex === beatIdx} isCurrentStep={isPlaying && currentBar === currentEditingBar && currentStep === beatIdx} onClick={coreHandleBeatClick} viewMode={viewMode} onClearPoseData={coreHandleClearPoseData} onDeleteSound={coreHandleDeleteSound} /> ))}
               </div>
               <div className="grid grid-cols-8 gap-2 w-full">
-                {currentBarBeatsForUI.slice(8, 16).map((beat, beatIdx) => ( <BeatButton key={`beat-B-${beatIdx}`} {...{ barIndex: currentEditingBar, beatIndex: beatIdx + 8, isActive: activeBeatIndex === beatIdx + 8, isCurrentStep: isPlaying && currentBar === currentEditingBar && currentStep === beatIdx + 8, onClick: coreHandleBeatClick, sounds: beat?.sounds, viewMode, hasPoseData: !!beat?.jointInfo && Object.keys(beat.jointInfo).length > 0, poseData: beat?.jointInfo, grounding: beat?.grounding, thumbnail: beat?.thumbnail, onClearPoseData: coreHandleClearPoseData, currentSoundInBank, onAddSound: coreHandleAddSoundToBeat, onDeleteSound: coreHandleDeleteSound }}/> ))}
+                {currentBarBeatsForUI.slice(8, 16).map((beat, beatIdx) => ( <BeatButton key={`beat-B-${beatIdx}`} beatData={beat} barIndex={currentEditingBar} beatIndex={beatIdx + 8} isActive={activeBeatIndex === beatIdx + 8} isCurrentStep={isPlaying && currentBar === currentEditingBar && currentStep === beatIdx + 8} onClick={coreHandleBeatClick} viewMode={viewMode} onClearPoseData={coreHandleClearPoseData} onDeleteSound={coreHandleDeleteSound} /> ))}
               </div>
             </div>
             
-            {/* Main Display Area */}
             <div className="w-full flex-grow relative flex items-center justify-center">
-              {/* Hip Indicators */}
               <div className="absolute top-0 left-0 z-10">
                 <HipWeightIndicator side="L" opacity={leftIndicatorOpacity} glow={leftIndicatorGlow} />
               </div>
@@ -877,17 +844,12 @@ return (
               </div>
 
               <div className="flex items-center justify-around w-full h-full">
-                {/* Left Foot Display with Knee Visualizer Overlay */}
                 <div className="relative w-80 h-80">
                     <FootDisplay side="L" groundPoints={mainLeftGrounding} sizeClasses="w-full h-full" rotation={leftFootRotation} onRotate={handleFootRotation}/>
                     <FootJoystickOverlay side="L" onGroundingChange={coreHandleMainUIGroundingChange} isActive={true} logToConsoleFromParent={(...args) => logDebug('debug', ...args)} />
-                    <KneePositionVisualizer
-                        kneeVector={activePoseData?.jointInfo?.LK?.vector}
-                        isEditing={activeEditingJoint === 'LK'}
-                    />
+                    <KneePositionVisualizer kneeVector={activePoseData?.jointInfo?.LK?.vector} isEditing={activeEditingJoint === 'LK'} />
                 </div>
                 
-                {/* Media Player and Central Controls */}
                 <div className="flex flex-col items-center justify-center gap-4 h-full">
                   <div className="relative w-full max-w-[280px] aspect-video bg-black rounded-lg shadow-lg flex items-center justify-center flex-grow min-h-0">
                     {mediaSrcUrl ? <VideoMediaPlayer ref={videoPlayerRef} mediaSrc={mediaSrcUrl} mediaType={mediaType} /> : <SkeletalPoseVisualizer2D jointInfoData={activePoseData?.jointInfo || {}} />}
@@ -908,37 +870,23 @@ return (
                   </div>
                 </div>
 
-                {/* Right Foot Display with Knee Visualizer Overlay */}
                 <div className="relative w-80 h-80">
                     <FootDisplay side="R" groundPoints={mainRightGrounding} sizeClasses="w-full h-full" rotation={rightFootRotation} onRotate={handleFootRotation}/>
                     <FootJoystickOverlay side="R" onGroundingChange={coreHandleMainUIGroundingChange} isActive={true} logToConsoleFromParent={(...args) => logDebug('debug', ...args)} />
-                    <KneePositionVisualizer
-                        kneeVector={activePoseData?.jointInfo?.RK?.vector}
-                        isEditing={activeEditingJoint === 'RK'}
-                    />
+                    <KneePositionVisualizer kneeVector={activePoseData?.jointInfo?.RK?.vector} isEditing={activeEditingJoint === 'RK'} />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* --- RIGHT SIDEBAR --- */}
           <div className="order-3 flex flex-col items-center gap-4 p-2 rounded-md overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
              <SideJointSelector side="R" onJointSelect={coreHandleJointSelect} activeEditingJoint={activeEditingJoint} />
              {activeEditingJoint && UI_RIGHT_JOINTS_ABBREVS_NEW.some(j => j.abbrev === activeEditingJoint) ? (
-              <JointInputPanel
-                jointAbbrev={activeEditingJoint}
-                jointData={activePoseData?.jointInfo?.[activeEditingJoint]}
-                footGrounding={rightFootGrounding}
-                onClose={() => setActiveEditingJoint(null)}
-                onUpdate={handleJointDataUpdate}
-              />
-             ) : (
-              <div className="w-full mt-auto"></div>
-             )}
+              <JointInputPanel jointAbbrev={activeEditingJoint} jointData={activePoseData?.jointInfo?.[activeEditingJoint]} footGrounding={rightFootGrounding} onClose={() => setActiveEditingJoint(null)} onUpdate={handleJointDataUpdate} />
+             ) : <div className="w-full mt-auto"></div>}
           </div>
         </div>
         
-        {/* --- NOTATION FOOTER --- */}
         <div className="mt-2 p-2 bg-gray-800/60 rounded-md text-sm space-y-1 flex-shrink-0 z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
             <div>
@@ -950,7 +898,7 @@ return (
               <p className="text-gray-200 font-sans bg-gray-900/50 p-2 rounded-md h-20 overflow-y-auto">{notationText.plainEnglish}</p>
             </div>
             <div>
-              <h4 className="font-bold text-gray-400 mb-1 uppercase tracking-wider">Medical/Scientific Analysis:</h4>
+              <h4 className="font-bold text-gray-400 mb-1 uppercase tracking-wider">Analysis:</h4>
               <p className="text-gray-300 font-sans bg-gray-900/50 p-2 rounded-md h-20 overflow-y-auto">{notationText.analysis}</p>
             </div>
           </div>
