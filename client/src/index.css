@@ -1,0 +1,180 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+/* --- Custom Digital Play Font Definitions --- */
+@font-face {
+  font-family: 'Digital Play';
+  src: url('/assets/fonts/Digital Play St.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Digital Play'; /* Same family name for italic variant */
+  src: url('/assets/fonts/Digital Play Italic St.ttf') format('truetype');
+  font-weight: normal; /* Often font files for italic have 'normal' weight */
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Digital Play Hollow';
+  src: url('/assets/fonts/Digital Play Hollow St.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+/* --- End Custom Font Definitions --- */
+
+/* Tailwind Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global CSS Variables */
+:root {
+  /* RGB values for Tailwind opacity utility (e.g., bg-brand-accent/50) */
+  /* These should match the HEX values in your tailwind.config.js if you defined them directly there */
+  --color-brand-accent-rgb: 0, 242, 234;   /* #00F2EA */
+  --color-brand-pos-rgb: 250, 204, 21;     /* #FACC15 */
+  --color-brand-seq-rgb: 59, 130, 246;    /* #3B82F6 */
+  --color-brand-sync-rgb: 168, 85, 247;   /* #A855F7 */
+  
+  /* Specific UI Element colors (if not directly in Tailwind config) */
+  --color-pos-yellow-rgb: 253, 224, 71; /* #FDE047 (Tailwind yellow-400 for example) */
+  /* --color-brand-primary-dark-rgb: 49, 46, 129; /* #312E81 (example) */
+
+  /* Direct color values (can be used with var(--color-X) ) */
+  --color-brand-accent: rgb(var(--color-brand-accent-rgb));
+  --color-brand-pos: rgb(var(--color-brand-pos-rgb));
+  --color-brand-seq: rgb(var(--color-brand-seq-rgb));
+  --color-brand-sync: rgb(var(--color-brand-sync-rgb));
+  --color-pos-yellow: rgb(var(--color-pos-yellow-rgb));
+  /* --color-brand-primary-dark: rgb(var(--color-brand-primary-dark-rgb)); */
+
+  /* Dark theme base colors (can be defined here for JS access or if not using Tailwind utility classes) */
+  /* Since you use Tailwind utilities like `bg-gray-900`, these might be redundant here unless JS needs them */
+  --color-dark-bg-rgb: 17, 24, 39;      /* For #111827 (gray-900) */
+  --color-light-bg-rgb: 31, 41, 55;     /* For #1F2937 (gray-800) */
+  --color-text-primary-rgb: 243, 244, 246; /* For #F3F4F6 (gray-100) */
+  
+  /* Example for box-shadow usage in tailwind.config.js */
+  /* --color-brand-accent-rgb-for-shadow: var(--color-brand-accent-rgb); /* Re-alias if needed for shadow */
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    font-family: theme('fontFamily.sans'); /* Default sans-serif from tailwind.config.js */
+  }
+
+  body {
+    @apply bg-dark-bg text-text-primary antialiased; /* Using theme colors defined in tailwind.config.js */
+    /* Or use CSS variables directly:
+    background-color: rgb(var(--color-dark-bg-rgb));
+    color: rgb(var(--color-text-primary-rgb));
+    */
+    min-height: 100vh;
+    overflow-x: hidden; /* Good for preventing horizontal scroll */
+  }
+
+  /* Custom Scrollbar Styling (Using CSS Variables for consistency) */
+  /* Webkit Browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2; /* Width for vertical, height for horizontal */
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-800 rounded-full; /* Or use var(--color-light-bg-rgb) if more consistent */
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-brand-accent); /* Using the direct CSS variable */
+    @apply rounded-full border-[3px] border-transparent bg-clip-content; /* Creates inset effect */
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(var(--color-brand-accent-rgb), 0.85); /* Slightly less transparent on hover */
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-brand-accent) theme('colors.gray.800'); /* thumb track */
+  }
+
+  /* Base Input Styles (Good starting point, components can add more specific styles) */
+  .input-field, .input-select { /* General class for text inputs and selects */
+    @apply block w-full px-3 py-1.5 rounded-md text-sm 
+           bg-element-bg border border-border-color text-text-primary placeholder-text-muted 
+           transition-colors duration-150 ease-in-out
+           focus:outline-none focus:ring-1 focus:ring-brand-accent focus:border-brand-accent;
+  }
+  
+  /* Hide number input spinners (Good utility) */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
+  }
+  
+  /* Base Select dropdown arrow (Good utility if not using custom Select component that handles this) */
+  /* Your .input-select already handles this well with SVG background */
+  .label-text {
+    @apply block text-xs font-medium text-text-secondary mb-1; /* Using theme colors */
+  }
+
+  /* Base button style - most styling should come from the Button component's variants */
+  .btn { /* This class might be less used if Button component is always used */
+    @apply font-medium rounded-md shadow-sm 
+           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 
+           transition-colors duration-150 ease-in-out 
+           inline-flex items-center justify-center;
+  }
+}
+
+/* Utility font classes (from your tailwind.config.js for direct CSS usage if needed) */
+/* Usually, you'd apply these with Tailwind classes like `font-orbitron` directly in JSX */
+/*
+.font-orbitron { font-family: theme('fontFamily.orbitron'); }
+.font-digital-play { font-family: theme('fontFamily.digital-play'); }
+.font-digital-play-hollow { font-family: theme('fontFamily.digital-play-hollow'); }
+*/
+
+/* Toastify Dark Theme Customization */
+.Toastify__toast-theme--dark {
+  background: theme('colors.light-bg') !important; /* Using Tailwind theme color */
+  color: theme('colors.text-primary') !important;
+  border: 1px solid theme('colors.element-bg');
+}
+.Toastify__close-button--dark {
+  color: theme('colors.text-secondary') !important;
+  opacity: 0.7 !important;
+}
+.Toastify__progress-bar--dark {
+  background: var(--color-brand-accent) !important; /* Using CSS variable */
+}
+.Toastify__toast-icon svg {
+  fill: var(--color-brand-accent) !important; /* Using CSS variable */
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Add any other global base styles or fine-grained utilities below */
+/* For example, specific focus styles if not handled by Tailwind's focus:ring utilities */
+/*
+input:focus, select:focus, textarea:focus, button:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-brand-accent); // Custom focus glow
+}
+*/
