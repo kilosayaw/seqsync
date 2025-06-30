@@ -3,7 +3,6 @@ import * as poseDetection from '@tensorflow-models/pose-detection';
 import '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 
-// The setter from context is passed in here
 export const useMotionAnalysis = (videoRef, setLivePoseData) => {
     const [detector, setDetector] = useState(null);
     const animationFrameId = useRef();
@@ -12,37 +11,33 @@ export const useMotionAnalysis = (videoRef, setLivePoseData) => {
         const initDetector = async () => {
             try {
                 const model = poseDetection.SupportedModels.BlazePose;
-                const detectorConfig = {
-                    runtime: 'tfjs',
-                    modelType: 'full',
-                };
+                const detectorConfig = { runtime: 'tfjs', modelType: 'full' };
                 const createdDetector = await poseDetection.createDetector(model, detectorConfig);
                 setDetector(createdDetector);
-                console.log("Pose detector initialized.");
+                console.log("[useMotionAnalysis] ✅ Pose detector initialized.");
             } catch (error) {
-                console.error("Error initializing pose detector:", error);
+                console.error("[useMotionAnalysis] ❌ Error initializing pose detector:", error);
             }
         };
         initDetector();
     }, []);
 
     const analyzePose = useCallback(async () => {
-        // Check if setLivePoseData is actually a function before using it
-        if (detector && videoRef.current && videoRef.current.video && typeof setLivePoseData === 'function') {
+        if (detector && videoRef.current?.video?.readyState === 4 && typeof setLivePoseData === 'function') {
             const video = videoRef.current.video;
-            if (video.readyState === 4) {
-                try {
-                    const poses = await detector.estimatePoses(video, {
-                        flipHorizontal: true,
-                    });
-                    if (poses && poses.length > 0) {
-                        setLivePoseData(poses[0]);
-                    } else {
-                        setLivePoseData(null);
-                    }
-                } catch (error) {
-                    console.error("Error estimating pose:", error);
+            try {
+                const poses = await detector.estimatePoses(video, { flipHorizontal: true });
+                if (poses && poses.length > 0) {
+                    // --- ENHANCED LOGGING ---
+                    // This log is very noisy, so we comment it out by default.
+                    // Uncomment it if you need to debug frame-by-frame detection.
+                    // console.log('[useMotionAnalysis] Pose detected.');
+                    setLivePoseData(poses[0]);
+                } else {
+                    setLivePoseData(null);
                 }
+            } catch (error) {
+                // console.error("[useMotionAnalysis] ❌ Error estimating pose:", error);
             }
         }
         animationFrameId.current = requestAnimationFrame(analyzePose);
@@ -58,7 +53,6 @@ export const useMotionAnalysis = (videoRef, setLivePoseData) => {
             }
         };
     }, [detector, videoRef, analyzePose]);
-    
-    // This hook doesn't return anything directly; it works via the context setter.
-    return {}; 
+
+    return {};
 };

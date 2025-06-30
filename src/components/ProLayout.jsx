@@ -1,11 +1,11 @@
 import React from 'react';
 import Deck from './Deck';
 import CenterConsole from './CenterConsole';
-import MasterSequencer from './MasterSequencer';
+import WaveformNavigator from './WaveformNavigator'; // Use the new interactive navigator
 import NotationDisplay from './NotationDisplay';
-import TopNavBar from './TopNavBar'; // Import the new component
-import PoseEditorModal from './PoseEditorModal'; // Import the new modal
-import { useUIState } from '../context/UIStateContext'; // Import context to control modal
+import TopNavBar from './TopNavBar';
+import PoseEditorModal from './PoseEditorModal';
+import { useUIState } from '../context/UIStateContext';
 import './ProLayout.css';
 
 const ProLayout = () => {
@@ -13,15 +13,21 @@ const ProLayout = () => {
 
     return (
         <div className="pro-layout-container">
-            <TopNavBar /> {/* Add the new nav bar */}
-            <MasterSequencer />
+            <TopNavBar />
+            
+            {/* KEY CHANGE: The old MasterSequencer is replaced with the new WaveformNavigator */}
+            <WaveformNavigator />
+
             <NotationDisplay />
+            
             <div className="main-content-area">
                 <Deck side="left" />
                 <CenterConsole />
                 <Deck side="right" />
             </div>
-            {isPoseEditorOpen && <PoseEditorModal />} {/* Conditionally render modal */}
+            
+            {/* The PoseEditorModal is still here and will work as intended */}
+            {isPoseEditorOpen && <PoseEditorModal />}
         </div>
     );
 };

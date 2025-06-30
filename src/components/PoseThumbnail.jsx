@@ -12,28 +12,40 @@ const POSE_CONNECTIONS = [
 ];
 
 const PoseThumbnail = ({ poseData }) => {
-    if (!poseData || !poseData.keypoints) {
+    // Safety check for null or malformed data
+    if (!poseData || !poseData.keypoints || !Array.isArray(poseData.keypoints)) {
         return null;
     }
 
     const { keypoints } = poseData;
+    
+    // Find valid keypoints with a reasonable confidence score
+    const validKeypoints = keypoints.filter(p => p && typeof p.score === 'number' && p.score > 0.3);
 
-    // Find the bounding box of the pose to normalize it
+    // KEY FIX: If there are no valid keypoints, don't try to render anything.
+    if (validKeypoints.length === 0) {
+        return null; 
+    }
+
+    // Find the bounding box of ONLY the valid points
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    keypoints.forEach(p => {
-        if (p.score > 0.3) { // Only consider reasonably confident points
-            minX = Math.min(minX, p.x);
-            minY = Math.min(minY, p.y);
-            maxX = Math.max(maxX, p.x);
-            maxY = Math.max(maxY, p.y);
-        }
+    validKeypoints.forEach(p => {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
     });
+
+    // This check is now redundant because of the length check above, but it's a good failsafe.
+    if (!isFinite(minX)) {
+        return null;
+    }
 
     const width = maxX - minX;
     const height = maxY - minY;
-    
-    // Add padding to the bounding box
-    const padding = Math.max(width, height) * 0.15;
+
+    // Handle case where pose might be a single point (width/height is 0)
+    const padding = Math.max(width, height, 50) * 0.2; // Add a minimum padding
     const viewBox = `${minX - padding} ${minY - padding} ${width + padding * 2} ${height + padding * 2}`;
     
     return (
@@ -43,7 +55,7 @@ const PoseThumbnail = ({ poseData }) => {
                     const start = keypoints[startIdx];
                     const end = keypoints[endIdx];
 
-                    // Draw the line only if both points are reasonably confident
+                    // Draw the line only if both points are valid
                     if (start && end && start.score > 0.3 && end.score > 0.3) {
                         return (
                             <line

@@ -2,7 +2,7 @@
   width: 100%;
   height: 100%;
   aspect-ratio: 1;
-  max-width: 350px; /* Allow it to be larger */
+  max-width: 350px;
   max-height: 350px;
   position: relative;
   display: flex;
@@ -10,7 +10,6 @@
   align-items: center;
 }
 
-/* NEW: A simple, static black circle for the background */
 .rotary-static-background {
     position: absolute;
     width: 85%;
@@ -28,7 +27,7 @@
   height: 100%;
   border-radius: 50%;
   cursor: grab;
-  z-index: 10; /* The wheel is on top of the background */
+  z-index: 10;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -37,7 +36,6 @@
   cursor: grabbing;
 }
 
-/* The rim image is the base layer of the rotating part */
 .rotary-rim-img {
   position: absolute;
   width: 100%;
@@ -46,17 +44,15 @@
   pointer-events: none; 
 }
 
-/* The foot image sits on top of the rim */
 .foot-img {
   position: absolute;
-  width: 85%; /* Sized to fit inside the rim */
+  width: 85%;
   height: 85%;
   object-fit: contain;
   z-index: 15;
-  pointer-events: none; /* Clicks should pass through to the SVG */
+  pointer-events: none;
 }
 
-/* The SVG overlay is the top-most interactive layer */
 .interaction-overlay {
     position: absolute;
     width: 85%;
@@ -67,12 +63,8 @@
 .interaction-overlay .zone {
     fill: transparent;
     cursor: pointer;
-    /* For debugging, uncomment below */
-    /* stroke: rgba(0, 255, 170, 0.5); */
-    /* stroke-width: 2; */
 }
 
-/* The text display is on top of everything */
 .active-zone-display {
   position: absolute;
   bottom: 10px;

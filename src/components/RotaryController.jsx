@@ -24,25 +24,21 @@ const RotaryController = ({ side }) => {
     const { nodeRef, handleMouseDown } = useRotaryDrag(handleDragEnd, setAngle);
 
     // --- EFFECT TO LOAD DATA FROM CONTEXT (STABLE VERSION) ---
-    // KEY FIX: We select the specific beat's data *before* the effect.
-    // The effect now only depends on `beatState`, not the entire `songData` array.
-    // This breaks the infinite loop.
+    // This effect is now stable because it only depends on the specific beat's data.
     const beatState = songData[selectedBeat]?.rotary?.[side];
-
     useEffect(() => {
         if (beatState) {
             setAngle(beatState.angle || 0);
             setGrounding(beatState.grounding || defaultGrounding);
         } else {
-            // Reset to default when no beat is selected or data is missing
             setAngle(0);
             setGrounding(defaultGrounding);
         }
-    }, [beatState, defaultGrounding]); // Dependency is now stable
+    }, [beatState]); // The dependency is now a specific object, breaking the loop.
 
     // --- DIRECT EVENT HANDLERS ---
     const handleGroundingChange = (newGrounding) => {
-        setGrounding(newGrounding); // Update local state for instant feedback
+        setGrounding(newGrounding);
         if (selectedBeat !== null) {
             updateRotaryState(selectedBeat, side, { grounding: newGrounding });
         }
@@ -52,10 +48,9 @@ const RotaryController = ({ side }) => {
 
     return (
         <div className="rotary-controller-container">
-            {/* The non-rotating black circle background */}
             <div className="rotary-static-background"></div>
             
-            {/* The main rotating wheel. EVERYTHING that spins goes in here. */}
+            {/* The main rotating wheel. Everything that spins goes inside. */}
             <div 
                 className="rotary-wheel" 
                 ref={nodeRef} 
@@ -69,22 +64,10 @@ const RotaryController = ({ side }) => {
                 
                  {/* The interactive SVG is ALSO INSIDE the rotating wheel */}
                  <svg className="interaction-overlay" viewBox="0 0 100 100">
-                    <rect 
-                        x="20" y="10" width="60" height="50" 
-                        className="zone" 
-                        onMouseEnter={() => handleGroundingChange(side === 'left' ? 'L_HEEL_UP' : 'R_HEEL_UP')}
-                    />
-                    <rect 
-                        x="20" y="60" width="60" height="30" 
-                        className="zone"
-                        onMouseEnter={() => handleGroundingChange(side === 'left' ? 'L_HEEL' : 'R_HEEL')}
-                    />
-                    <rect 
-                        width="100" height="100"
-                        fill="transparent"
-                        onMouseLeave={() => handleGroundingChange(defaultGrounding)}
-                    />
-                </svg>
+                    <rect x="20" y="10" width="60" height="50" className="zone" onMouseEnter={() => handleGroundingChange(side === 'left' ? 'L_HEEL_UP' : 'R_HEEL_UP')} />
+                    <rect x="20" y="60" width="60" height="30" className="zone" onMouseEnter={() => handleGroundingChange(side === 'left' ? 'L_HEEL' : 'R_HEEL')} />
+                    <rect width="100" height="100" fill="transparent" onMouseLeave={() => handleGroundingChange(defaultGrounding)} />
+                 </svg>
             </div>
             
             <div className="active-zone-display">{grounding}</div>

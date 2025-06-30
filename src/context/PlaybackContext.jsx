@@ -11,26 +11,39 @@ export const PlaybackProvider = ({ children }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [bpm, setBpm] = useState(120);
-    const [currentBeat, setCurrentBeat] = useState(0);
+    const [currentBeat, setCurrentBeat] = useState(0); // This is the beat within a bar (0-15)
     const intervalRef = useRef(null);
 
-    const motion = useMotion();
-    const sequence = useSequence();
-    const uiState = useUIState();
+    const { livePoseData } = useMotion();
+    const { updateBeatData } = useSequence();
+    const { selectedBar } = useUIState();
 
-    // The recording effect remains the same, but will now work due to the state fix.
+    const livePoseDataRef = useRef(livePoseData);
     useEffect(() => {
-        if (isRecording && isPlaying && motion && motion.livePoseData && sequence && uiState) {
-            const globalBeatIndex = ((uiState.selectedBar - 1) * 16) + currentBeat;
-            const newPose = { poseData: { keypoints: motion.livePoseData.keypoints } };
-            sequence.updateBeatData(globalBeatIndex, newPose);
-        }
-    }, [isRecording, isPlaying, currentBeat, motion, sequence, uiState]);
+        livePoseDataRef.current = livePoseData;
+    });
 
+    useEffect(() => {
+        if (!isRecording || !isPlaying) return;
+
+        console.log(
+            `[PlaybackContext] RECORD TICK | Beat: ${currentBeat + 1} | Pose Data Available: ${!!livePoseDataRef.current}`
+        );
+
+        if (livePoseDataRef.current) {
+            const globalBeatIndex = ((selectedBar - 1) * 16) + currentBeat;
+            const newPose = { poseData: { keypoints: livePoseDataRef.current.keypoints } };
+            
+            console.log(`✅ [PlaybackContext] SAVING POSE to global index: ${globalBeatIndex}`);
+            updateBeatData(globalBeatIndex, newPose);
+        }
+    }, [isRecording, isPlaying, currentBeat, selectedBar, updateBeatData]);
+    
     useEffect(() => {
         if (isPlaying) {
             const stepInterval = (60 / bpm) * 1000 / 4;
             intervalRef.current = setInterval(() => {
+                // This logic automatically wraps to the next bar in the UI, but the playhead is always 0-15
                 setCurrentBeat(prev => (prev + 1) % 16);
             }, stepInterval);
         } else {
@@ -39,37 +52,43 @@ export const PlaybackProvider = ({ children }) => {
         return () => clearInterval(intervalRef.current);
     }, [isPlaying, bpm]);
 
-    // --- REWRITTEN LOGIC ---
     const stopAll = () => {
+        console.log("[PlaybackContext] Stop All called.");
         setIsPlaying(false);
         setIsRecording(false);
-        // Optional: Reset playhead to the start of the bar on stop
-        // setCurrentBeat(0); 
     };
 
     const togglePlay = () => {
+        console.log(`[PlaybackContext] togglePlay called. Was playing: ${isPlaying}`);
         if (isPlaying) {
-            // If we are playing (and maybe recording), stop everything.
             stopAll();
         } else {
-            // If we are stopped, just start playing.
             setIsPlaying(true);
-            setIsRecording(false); // Ensure recording is off
+            if (isRecording) setIsRecording(false);
         }
     };
 
     const toggleRecording = () => {
+        console.log(`[PlaybackContext] toggleRecording called. Was recording: ${isRecording}`);
         if (isRecording) {
-            // If we are already recording, stop everything.
             stopAll();
         } else {
-            // If we are not recording, start recording (which also implies playing).
             setIsRecording(true);
             setIsPlaying(true);
         }
     };
   
-    const value = { isPlaying, isRecording, bpm, currentBeat, setBpm, togglePlay, toggleRecording };
+    // KEY CHANGE: Exposing setCurrentBeat allows other components to control the playhead
+    const value = { 
+        isPlaying, 
+        isRecording, 
+        bpm, 
+        currentBeat, 
+        setBpm, 
+        togglePlay, 
+        toggleRecording,
+        setCurrentBeat // This is now exposed
+    };
 
     return (
         <PlaybackContext.Provider value={value}>

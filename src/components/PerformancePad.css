@@ -1,0 +1,27 @@
+.performance-pad {
+    background-color: #3a3a3c;
+    border: 1px solid #222;
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    position: relative;
+    overflow: hidden;
+    color: var(--color-text-secondary);
+}
+.performance-pad:hover {
+    background-color: #4f4f52;
+}
+.performance-pad.has-data {
+    padding: 4px;
+    background-color: var(--color-dark-surface-3);
+}
+.performance-pad.selected {
+    border-color: var(--color-accent-secondary);
+    box-shadow: 0 0 8px var(--color-accent-secondary);
+}
+.pad-number {
+    opacity: 0.7;
+}

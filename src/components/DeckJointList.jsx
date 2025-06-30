@@ -6,6 +6,11 @@ import './DeckJointList.css';
 const DeckJointList = ({ side }) => {
     const { selectedJoint, setSelectedJoint } = useUIState();
 
+    const handleJointSelect = (jointId) => {
+        console.log(`[DeckJointList] Joint '${jointId}' selected on '${side}' side.`);
+        setSelectedJoint(jointId);
+    };
+
     const panelJoints = JOINT_LIST.filter(j => 
         (side === 'left' && j.id.startsWith('L')) || 
         (side === 'right' && j.id.startsWith('R'))
@@ -17,10 +22,9 @@ const DeckJointList = ({ side }) => {
                 <button
                     key={joint.id}
                     className={`deck-joint-button ${selectedJoint === joint.id ? 'active' : ''}`}
-                    onClick={() => setSelectedJoint(joint.id)}
+                    onClick={() => handleJointSelect(joint.id)}
                 >
-                    {/* KEY CHANGE: Using the short ID to fit the square button style */}
-                    {joint.id}
+                    {joint.name}
                 </button>
             ))}
         </div>
