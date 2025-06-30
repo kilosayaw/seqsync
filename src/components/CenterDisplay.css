@@ -1,0 +1,70 @@
+.center-display-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm);
+    background-color: #252527;
+    border-radius: var(--border-radius-sm);
+}
+
+.knob-placeholder {
+    width: 50px;
+    height: 50px;
+    border: 1px dashed var(--color-border);
+    border-radius: 50%;
+}
+
+.digital-display-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.transport-bar {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.transport-btn {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 1rem;
+}
+.transport-btn.play {
+    font-size: 1.2rem;
+    color: var(--color-accent-primary);
+}
+
+.seven-segment-display {
+    background-color: #000;
+    border-radius: 4px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    display: flex;
+    gap: var(--spacing-md);
+    border: 2px solid #333;
+}
+
+.segment-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.segment-group span {
+    font-size: 0.8em; /* Adjusted size */
+    color: var(--color-text-secondary);
+    font-family: 'Digital Play Hollow', sans-serif; /* Apply Hollow font to labels */
+    font-weight: bold;
+}
+
+.segment-number {
+    font-family: 'Digital Play', 'Roboto Mono', monospace; /* Apply main digital font */
+    color: #23ff23;
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    text-shadow: 0 0 5px #23ff23;
+}
+
+/* You would need to add the @font-face rule for DSEG7-Classic in your main index.css if you choose to download and use it */

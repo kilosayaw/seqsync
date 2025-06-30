@@ -1,0 +1,50 @@
+.beat-button {
+  flex: 1 1 0;
+  aspect-ratio: 1 / 1;
+  min-width: 40px;
+  max-width: 60px;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-dark-surface-2);
+  position: relative;
+  transition: all 0.1s ease-in-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+.beat-button:hover {
+  background-color: var(--color-dark-surface-3);
+  border-color: var(--color-text-secondary);
+}
+
+/* Style for the "playhead" */
+.beat-button.active {
+  background-color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 10px var(--color-accent-primary);
+}
+
+/* Style for the user's selection */
+.beat-button.selected {
+  border: 2px solid var(--color-accent-secondary);
+  transform: scale(1.05);
+}
+
+.beat-button.active.selected {
+    /* Ensure selection is still visible when active */
+    box-shadow: 0 0 10px var(--color-accent-primary), 0 0 0 2px var(--color-accent-secondary);
+}
+
+
+.beat-number {
+  color: var(--color-text-secondary);
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.beat-button.active .beat-number {
+    color: var(--color-dark-bg);
+}

@@ -1,0 +1,9 @@
+.deck-sequencer-container {
+  display: grid;
+  /* This is the key: we use minmax to say "be at least 20px, but grow to fill 1fr of space" */
+  /* This prevents the buttons from becoming too small on tiny screens while allowing them to shrink */
+  grid-template-columns: repeat(16, minmax(20px, 1fr));
+  gap: 4px; /* A slightly smaller gap can also help */
+  width: 100%;
+  min-width: 0; /* Allows the grid itself to shrink if needed */
+}
