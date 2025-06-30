@@ -1,34 +1,56 @@
 import React from 'react';
 import { usePlayback } from '../context/PlaybackContext';
 import { useUIState } from '../context/UIStateContext';
+import { useSequence } from '../context/SequenceContext';
 import ProBeatButton from './ProBeatButton';
 import './MasterSequencer.css';
 
 const MasterSequencer = () => {
-    const { currentBeat } = usePlayback();
-    const { selectedBeat, setSelectedBeat } = useUIState();
+    const { currentBeat, isPlaying } = usePlayback();
+    // KEY FIX: Add `selectedBar` to the destructuring from the useUIState hook call.
+    const { selectedBeat, setSelectedBeat, setIsPoseEditorOpen, setBeatToEdit, selectedBar } = useUIState();
+    const { getCurrentBarData } = useSequence();
 
-    const handleBeatSelect = (beatIndex) => {
-        setSelectedBeat(beatIndex);
+    const currentBarBeats = getCurrentBarData(selectedBar);
+
+    const handleBeatSelect = (beatIndexInBar) => {
+        setSelectedBeat(beatIndexInBar);
     };
 
-    const sequencerButtons = Array.from({ length: 16 }, (_, i) => i);
+    const handleBeatDoubleClick = (beatData, index) => {
+        if (beatData && beatData.poseData) {
+            // We need to pass the global index to the editor
+            const beatWithGlobalIndex = {
+                ...beatData,
+                globalIndex: ((selectedBar - 1) * 16) + index
+            };
+            setBeatToEdit(beatWithGlobalIndex);
+            setIsPoseEditorOpen(true);
+        }
+    };
 
     return (
-        // The outer wrapper is now gone, as the background can be handled by the parent
-        <div className="master-sequencer-container">
-            {sequencerButtons.map(index => (
-                <ProBeatButton
-                    key={index}
-                    beatIndex={index}
-                    isActive={currentBeat === index}
-                    isSelected={selectedBeat === index}
-                    onClick={() => handleBeatSelect(index)}
-                    // We will pass waveform data here later
-                />
-            ))}
+        <div className="master-sequencer-wrapper">
+            <div className="master-sequencer-container">
+                {currentBarBeats.length > 0 ? (
+                    currentBarBeats.map((beatData, index) => (
+                        <ProBeatButton
+                            key={`bar${beatData.bar}-beat${beatData.beat}`}
+                            beatIndex={index}
+                            beatData={beatData}
+                            isActive={currentBeat === index && isPlaying}
+                            isSelected={selectedBeat === index}
+                            onClick={() => handleBeatSelect(index)}
+                            onDoubleClick={() => handleBeatDoubleClick(beatData, index)}
+                        />
+                    ))
+                ) : (
+                    <div className="sequencer-placeholder">Load a track to begin sequencing.</div>
+                )}
+            </div>
         </div>
     );
 };
+// The invalid hook call that was previously here has been REMOVED.
 
 export default MasterSequencer;

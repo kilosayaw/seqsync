@@ -1,102 +1,62 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
-const SequenceContext = createContext();
+const SequenceContext = createContext(null);
 
 export const useSequence = () => useContext(SequenceContext);
 
-const initializeSequenceData = () => {
-  return Array.from({ length: 16 }, (_, i) => ({
-    bar: 1, 
-    beat: i,
-    poseData: {}, 
-    rotary: {
-      left: { angle: 0, grounding: null },
-      right: { angle: 0, grounding: null },
-    },
-    waveform: null, // This will hold the waveform slice
-  }));
-};
+const createBeatData = (bar, beat) => ({
+    bar: bar, beat: beat, poseData: null,
+    rotary: { left: { angle: 0, grounding: null }, right: { angle: 0, grounding: null } },
+});
+
+const createDefaultSequence = () => Array.from({ length: 16 }, (_, i) => createBeatData(1, i));
 
 export const SequenceProvider = ({ children }) => {
-  const [songData, setSongData] = useState(initializeSequenceData());
+    const [songData, setSongData] = useState(createDefaultSequence());
+    const [totalBars, setTotalBars] = useState(1);
 
-  // ... (keep existing update functions)
-  const updateBeatData = useCallback((beatIndex, newBeatData) => {
-    setSongData(prevData => {
-      const newData = [...prevData];
-      newData[beatIndex] = { ...newData[beatIndex], ...newBeatData };
-      return newData;
-    });
-  }, []);
-
-  const updateJointPose = useCallback((beatIndex, jointId, jointPoseData) => {
-    setSongData(prevData => {
-        const newData = [...prevData];
-        const newPoseData = {...newData[beatIndex].poseData, [jointId]: jointPoseData };
-        newData[beatIndex] = { ...newData[beatIndex], poseData: newPoseData };
-        return newData;
-    });
-  }, []);
-  
-  const updateRotaryState = useCallback((beatIndex, side, newState) => {
-    setSongData(prevData => {
-      const newData = [...prevData];
-      const newRotaryData = {
-        ...newData[beatIndex].rotary,
-        [side]: {
-          ...newData[beatIndex].rotary[side],
-          ...newState,
+    const initializeSequenceFromBpm = useCallback((trackDuration, bpm) => {
+        if (!trackDuration || !bpm || bpm <= 0) {
+            setSongData(createDefaultSequence());
+            setTotalBars(1);
+            return;
         }
-      };
-      newData[beatIndex] = { ...newData[beatIndex], rotary: newRotaryData };
-      return newData;
-    })
-  }, []);
 
+        const beatsPerBar = 4;
+        const totalStepsPerBar = 16;
+        const totalBeatsInSong = (trackDuration / 60) * bpm;
+        const calculatedTotalBars = Math.ceil(totalBeatsInSong / beatsPerBar);
+        const totalStepsInSong = calculatedTotalBars * totalStepsPerBar;
 
-  // NEW: Function to slice the full waveform and distribute it to beats
-  const mapWaveformToBeats = useCallback((fullPeaks, trackDuration, bpm) => {
-    const beatsPerBar = 16;
-    const barDuration = (60 / bpm) * 4; // Assuming 4/4 time signature
-    const totalSamples = fullPeaks.length;
+        const newSongData = Array.from({ length: totalStepsInSong }, (_, i) => {
+            const bar = Math.floor(i / totalStepsPerBar) + 1;
+            const beat = i % totalStepsPerBar;
+            return createBeatData(bar, beat);
+        });
 
-    const newSongData = songData.map((beat, index) => {
-      const beatStartTime = (index / beatsPerBar) * barDuration;
-      const beatEndTime = ((index + 1) / beatsPerBar) * barDuration;
+        setSongData(newSongData);
+        setTotalBars(calculatedTotalBars);
+    }, []);
 
-      // Make sure we don't try to read past the end of the track
-      if (beatStartTime > trackDuration) {
-        return { ...beat, waveform: null };
-      }
-
-      const startSample = Math.floor((beatStartTime / trackDuration) * totalSamples);
-      const endSample = Math.floor((beatEndTime / trackDuration) * totalSamples);
-
-      const waveformSlice = fullPeaks.slice(startSample, endSample);
-      
-      return { ...beat, waveform: waveformSlice };
-    });
+    const getCurrentBarData = useCallback((selectedBar) => {
+        const stepsPerBar = 16;
+        const startIndex = (selectedBar - 1) * stepsPerBar;
+        if (startIndex >= songData.length) return [];
+        const endIndex = startIndex + stepsPerBar;
+        return songData.slice(startIndex, endIndex);
+    }, [songData]);
     
-    setSongData(newSongData);
-  }, [songData]);
+    const updateBeatData = useCallback((globalBeatIndex, newBeatData) => {
+        setSongData(prevData => {
+            const newData = [...prevData];
+            if (newData[globalBeatIndex]) {
+                newData[globalBeatIndex] = { ...newData[globalBeatIndex], ...newBeatData };
+            }
+            return newData;
+        });
+    }, []);
 
-
-  const clearSequence = () => {
-      setSongData(initializeSequenceData());
-  }
-
-  const value = {
-    songData,
-    updateBeatData,
-    updateJointPose,
-    updateRotaryState,
-    clearSequence,
-    mapWaveformToBeats, // Expose the new function
-  };
-
-  return (
-    <SequenceContext.Provider value={value}>
-      {children}
-    </SequenceContext.Provider>
-  );
+    const value = { songData, totalBars, initializeSequenceFromBpm, getCurrentBarData, updateBeatData };
+    
+    return <SequenceContext.Provider value={value}>{children}</SequenceContext.Provider>;
 };

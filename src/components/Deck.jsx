@@ -8,7 +8,6 @@ const Deck = ({ side }) => {
 
     return (
         <div className={`deck deck-${side}`}>
-            {/* Top row containing the main interactive elements */}
             <div className="deck-interactive-row">
                 {side === 'left' && (
                     <div className="side-panel-wrapper">
@@ -17,7 +16,6 @@ const Deck = ({ side }) => {
                 )}
                 {side === 'right' && <DeckJointList side="right" />}
 
-                {/* This central column now contains top-controls and rotary */}
                 <div className="deck-rotary-column">
                     <div className="deck-top-controls">
                         <div className="placeholder-pro-switch">Up/Down</div>
@@ -39,7 +37,6 @@ const Deck = ({ side }) => {
                 )}
             </div>
 
-            {/* Pads section is now a separate flex item at the bottom that will grow */}
             <div className="deck-pads-section">
                 <div className="option-buttons">
                     <div className="placeholder-option-btn">Opt 1</div>

@@ -1,27 +1,25 @@
 import React, { createContext, useContext, useState } from 'react';
 
-const UIStateContext = createContext();
-
+const UIStateContext = createContext(null);
 export const useUIState = () => useContext(UIStateContext);
 
 export const UIStateProvider = ({ children }) => {
   const [selectedBar, setSelectedBar] = useState(1);
-  const [totalBars, setTotalBars] = useState(4); // NEW: Moved here
   const [selectedBeat, setSelectedBeat] = useState(null);
   const [selectedJoint, setSelectedJoint] = useState(null);
-  const [appMode, setAppMode] = useState('SEQ');
+  const [isLiveFeed, setIsLiveFeed] = useState(true);
+  
+  // NEW: State for the Pose Editor
+  const [isPoseEditorOpen, setIsPoseEditorOpen] = useState(false);
+  const [beatToEdit, setBeatToEdit] = useState(null);
 
   const value = {
-    selectedBar,
-    setSelectedBar,
-    totalBars,      // NEW
-    setTotalBars,   // NEW
-    selectedBeat,
-    setSelectedBeat,
-    selectedJoint,
-    setSelectedJoint,
-    appMode,
-    setAppMode,
+    selectedBar, setSelectedBar,
+    selectedBeat, setSelectedBeat,
+    selectedJoint, setSelectedJoint,
+    isLiveFeed, setIsLiveFeed,
+    isPoseEditorOpen, setIsPoseEditorOpen,
+    beatToEdit, setBeatToEdit,
   };
 
   return (

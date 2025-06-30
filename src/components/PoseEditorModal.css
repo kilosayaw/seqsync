@@ -1,44 +1,64 @@
-.pro-beat-button {
-  aspect-ratio: 1;
-  background-color: #3a3a3c;
-  border-radius: 3px;
-  border: 1px solid #222;
-  border-bottom: 2px solid #111;
-  color: #aaa;
-  position: relative;
-  transition: all 0.1s ease-out;
-  padding: 0; /* Remove padding to allow for more shrinkage */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 0; /* Explicitly allow button to shrink */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
 }
 
-.pro-beat-button:hover {
-  background-color: #4f4f52;
+.modal-content {
+    background-color: var(--color-dark-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    width: 80%;
+    max-width: 900px;
+    height: 70%;
+    display: flex;
+    flex-direction: column;
 }
 
-.pro-beat-button.selected {
-  border-color: var(--color-accent-secondary);
-  box-shadow: 0 0 5px var(--color-accent-secondary);
+.modal-header {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.close-button {
+    background: none;
+    font-size: 1.5rem;
+    padding: 0;
 }
 
-.pro-beat-button.active {
-  background-color: var(--color-accent-primary);
-  border-color: #fff;
-  color: #fff;
-  transform: scale(1.05);
-  z-index: 1; /* Ensure it's on top when scaled */
+.modal-body {
+    flex-grow: 1;
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    min-height: 0;
+}
+.modal-visualizer-placeholder, .modal-controls-placeholder {
+    flex: 1;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--color-text-secondary);
 }
 
-/* KEY CHANGE: Reduced font size */
-.pro-beat-number {
-  font-size: 0.9em; 
-  font-weight: bold;
-  color: var(--color-text-secondary);
+.modal-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
 }
-
-
-.pro-beat-button.active .pro-beat-number {
-    color: #fff;
+.save-button {
+    background-color: var(--color-accent-primary);
 }

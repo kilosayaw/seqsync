@@ -2,56 +2,94 @@ import React, { useState, useEffect } from 'react';
 import { useRotaryDrag } from '../hooks/useRotaryDrag';
 import { useSequence } from '../context/SequenceContext';
 import { useUIState } from '../context/UIStateContext';
+import { GROUNDING_STATES } from '../utils/constants';
 import './RotaryController.css';
 
-// This is the functional Rotary Controller with your assets.
 const RotaryController = ({ side }) => {
-  const { songData, updateRotaryState } = useSequence();
-  const { selectedBeat } = useUIState();
+    const { songData, updateRotaryState } = useSequence();
+    const { selectedBeat } = useUIState();
 
-  const handleDragEnd = (finalAngle) => {
-    if (selectedBeat !== null) {
-      updateRotaryState(selectedBeat, side, { angle: finalAngle });
-    }
-  };
+    const defaultGrounding = side === 'left' ? 'L_FULL' : 'R_FULL';
 
-  const { angle, setAngle, nodeRef, handleMouseDown } = useRotaryDrag(handleDragEnd);
-  
-  // A simple placeholder state for grounding, we can restore the full SVG logic next
-  const [activeZone, setActiveZone] = useState('None');
-  
-  useEffect(() => {
-    if (selectedBeat !== null && songData[selectedBeat]) {
-      const beatState = songData[selectedBeat].rotary[side];
-      setAngle(beatState.angle || 0);
-      setActiveZone(beatState.grounding || 'None');
-    } else {
-      setAngle(0);
-      setActiveZone('None');
-    }
-  }, [selectedBeat, songData, side, setAngle]);
+    // Local state for immediate visual feedback
+    const [angle, setAngle] = useState(0);
+    const [grounding, setGrounding] = useState(defaultGrounding);
 
-  return (
-    <div className="rotary-controller-container">
-      {/* This is the draggable, rotating wheel rim */}
-      <div 
-        className="rotary-wheel" 
-        ref={nodeRef} 
-        onMouseDown={handleMouseDown} 
-        style={{ transform: `rotate(${angle}deg)` }}
-      >
-         <img src="/assets/ground/foot-wheel.png" alt="Rotary Rim" className="rotary-rim-img" />
-      </div>
+    // --- DRAG LOGIC ---
+    const handleDragEnd = (finalAngle) => {
+        if (selectedBeat !== null) {
+            updateRotaryState(selectedBeat, side, { angle: finalAngle });
+        }
+    };
+    const { nodeRef, handleMouseDown } = useRotaryDrag(handleDragEnd, setAngle);
 
-      {/* This is the static foot image in the center */}
-      <div className="rotary-center-content">
-        <img src={`/assets/ground/foot-${side}.png`} alt={`${side} foot`} className="foot-img" />
-      </div>
-      
-      {/* This will display the grounding point */}
-       <div className="active-zone-display">{activeZone}</div>
-    </div>
-  );
+    // --- EFFECT TO LOAD DATA FROM CONTEXT (STABLE VERSION) ---
+    // KEY FIX: We select the specific beat's data *before* the effect.
+    // The effect now only depends on `beatState`, not the entire `songData` array.
+    // This breaks the infinite loop.
+    const beatState = songData[selectedBeat]?.rotary?.[side];
+
+    useEffect(() => {
+        if (beatState) {
+            setAngle(beatState.angle || 0);
+            setGrounding(beatState.grounding || defaultGrounding);
+        } else {
+            // Reset to default when no beat is selected or data is missing
+            setAngle(0);
+            setGrounding(defaultGrounding);
+        }
+    }, [beatState, defaultGrounding]); // Dependency is now stable
+
+    // --- DIRECT EVENT HANDLERS ---
+    const handleGroundingChange = (newGrounding) => {
+        setGrounding(newGrounding); // Update local state for instant feedback
+        if (selectedBeat !== null) {
+            updateRotaryState(selectedBeat, side, { grounding: newGrounding });
+        }
+    };
+
+    const groundingImagePath = GROUNDING_STATES[grounding] || GROUNDING_STATES[defaultGrounding];
+
+    return (
+        <div className="rotary-controller-container">
+            {/* The non-rotating black circle background */}
+            <div className="rotary-static-background"></div>
+            
+            {/* The main rotating wheel. EVERYTHING that spins goes in here. */}
+            <div 
+                className="rotary-wheel" 
+                ref={nodeRef} 
+                onMouseDown={handleMouseDown} 
+                style={{ transform: `rotate(${angle}deg)` }}
+            >
+                 <img src="/ground/foot-wheel.png" alt="Rotary Rim" className="rotary-rim-img" />
+                 
+                 {/* The foot image is NOW INSIDE the rotating wheel */}
+                 <img src={groundingImagePath} alt={grounding} className="foot-img" />
+                
+                 {/* The interactive SVG is ALSO INSIDE the rotating wheel */}
+                 <svg className="interaction-overlay" viewBox="0 0 100 100">
+                    <rect 
+                        x="20" y="10" width="60" height="50" 
+                        className="zone" 
+                        onMouseEnter={() => handleGroundingChange(side === 'left' ? 'L_HEEL_UP' : 'R_HEEL_UP')}
+                    />
+                    <rect 
+                        x="20" y="60" width="60" height="30" 
+                        className="zone"
+                        onMouseEnter={() => handleGroundingChange(side === 'left' ? 'L_HEEL' : 'R_HEEL')}
+                    />
+                    <rect 
+                        width="100" height="100"
+                        fill="transparent"
+                        onMouseLeave={() => handleGroundingChange(defaultGrounding)}
+                    />
+                </svg>
+            </div>
+            
+            <div className="active-zone-display">{grounding}</div>
+        </div>
+    );
 };
 
 export default RotaryController;

@@ -11,3 +11,13 @@
     padding: var(--spacing-md);
     margin-bottom: var(--spacing-md); /* Spacing between sequencer and notation display */
 }
+
+.sequencer-placeholder {
+    grid-column: 1 / -1; /* Span all 16 columns */
+    text-align: center;
+    padding: var(--spacing-md);
+    color: var(--color-text-secondary);
+    background-color: var(--color-dark-bg);
+    border-radius: var(--border-radius-sm);
+    font-style: italic;
+}

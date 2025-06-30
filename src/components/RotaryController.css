@@ -2,12 +2,22 @@
   width: 100%;
   height: 100%;
   aspect-ratio: 1;
-  max-width: 250px;
-  max-height: 250px;
+  max-width: 350px; /* Allow it to be larger */
+  max-height: 350px;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* NEW: A simple, static black circle for the background */
+.rotary-static-background {
+    position: absolute;
+    width: 85%;
+    height: 85%;
+    border-radius: 50%;
+    background-color: #111;
+    z-index: 1;
 }
 
 .rotary-wheel {
@@ -18,36 +28,51 @@
   height: 100%;
   border-radius: 50%;
   cursor: grab;
-  z-index: 10;
+  z-index: 10; /* The wheel is on top of the background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .rotary-wheel:active {
   cursor: grabbing;
 }
 
+/* The rim image is the base layer of the rotating part */
 .rotary-rim-img {
+  position: absolute;
   width: 100%;
   height: 100%;
+  z-index: 12;
   pointer-events: none; 
 }
 
-.rotary-center-content {
-  width: 85%;
-  height: 85%;
-  border-radius: 50%;
-  background-color: #111;
-  z-index: 5;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-}
-
+/* The foot image sits on top of the rim */
 .foot-img {
-  width: 80%; /* Adjust size of foot inside the center */
-  height: 80%;
+  position: absolute;
+  width: 85%; /* Sized to fit inside the rim */
+  height: 85%;
   object-fit: contain;
+  z-index: 15;
+  pointer-events: none; /* Clicks should pass through to the SVG */
 }
 
+/* The SVG overlay is the top-most interactive layer */
+.interaction-overlay {
+    position: absolute;
+    width: 85%;
+    height: 85%;
+    z-index: 20;
+}
+
+.interaction-overlay .zone {
+    fill: transparent;
+    cursor: pointer;
+    /* For debugging, uncomment below */
+    /* stroke: rgba(0, 255, 170, 0.5); */
+    /* stroke-width: 2; */
+}
+
+/* The text display is on top of everything */
 .active-zone-display {
   position: absolute;
   bottom: 10px;
@@ -55,7 +80,7 @@
   background-color: rgba(0,0,0,0.7);
   padding: 4px 8px;
   border-radius: 4px;
-  z-index: 15;
+  z-index: 25;
   font-size: 1rem;
   font-weight: bold;
 }

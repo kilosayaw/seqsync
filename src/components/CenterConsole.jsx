@@ -1,16 +1,18 @@
 import React from 'react';
-import TransportControls from './TransportControls';
+import CenterDisplayUnit from './CenterDisplayUnit'; // Import the NEW component
+import CameraFeed from './CameraFeed';
 import './CenterConsole.css';
 
 const CenterConsole = () => {
     return (
         <div className="center-console-container">
-            <TransportControls />
+            {/* The old TransportControls is replaced by our new unit */}
+            <CenterDisplayUnit />
 
-            {/* This placeholder will eventually hold the main skeletal visualizer */}
-            <div className="main-display-placeholder"></div>
+            <div className="main-display-area">
+                <CameraFeed />
+            </div>
 
-            {/* This group contains the directional buttons from the old InteractionArea */}
             <div className="directional-controls-wrapper">
                 <div className="directional-controls">
                     <button className="d-btn">UP</button>
