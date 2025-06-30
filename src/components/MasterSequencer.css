@@ -1,0 +1,13 @@
+/* The .master-sequencer-wrapper and .sequencer-info classes are now removed */
+
+.master-sequencer-container {
+    display: grid;
+    grid-template-columns: repeat(16, minmax(20px, 1fr));
+    gap: 5px;
+    width: 100%;
+    background-color: var(--color-dark-surface-1);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md); /* Spacing between sequencer and notation display */
+}

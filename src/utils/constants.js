@@ -105,21 +105,21 @@ export const STRIKE_ANGLES = {
 
 export const JOINT_LIST = [
   // ... (previous joint list remains the same)
-  { id: 'H', name: 'Head' },
-  { id: 'N', name: 'Neck' },
-  { id: 'LS', name: 'L Shoulder' },
-  { id: 'RS', name: 'R Shoulder' },
-  { id: 'LE', name: 'L Elbow' },
-  { id: 'RE', name: 'R Elbow' },
-  { id: 'LW', name: 'L Wrist' },
-  { id: 'RW', name: 'R Wrist' },
-  { id: 'TC', name: 'Torso/Core' },
-  { id: 'LH', name: 'L Hip' },
-  { id: 'RH', name: 'R Hip' },
-  { id: 'LK', name: 'L Knee' },
-  { id: 'RK', name: 'R Knee' },
-  { id: 'LA', name: 'L Ankle' },
-  { id: 'RA', name: 'R Ankle' },
+  { id: 'head', name: 'Head' },
+  { id: 'neck', name: 'Neck' },
+  { id: 'LS', name: 'LS' },
+  { id: 'RS', name: 'RS' },
+  { id: 'LE', name: 'LE' },
+  { id: 'RE', name: 'RE' },
+  { id: 'LW', name: 'LW' },
+  { id: 'RW', name: 'RW' },
+  { id: 'core', name: 'Core' },
+  { id: 'LH', name: 'LH' },
+  { id: 'RH', name: 'RH' },
+  { id: 'LK', name: 'LK' },
+  { id: 'RK', name: 'RK' },
+  { id: 'LA', name: 'LA' },
+  { id: 'RA', name: 'RA' },
 ];
 
 // Base paths for foot controller images

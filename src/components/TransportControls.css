@@ -1,191 +1,81 @@
-/* --- Main Pro Layout Container --- */
-.pro-layout-container {
-  width: 100%;
-  height: 100vh;
+.transport-container {
   display: flex;
-  background-color: #1a1a1a;
-  color: #ccc;
-  padding: var(--spacing-md);
+  flex-direction: column;
   gap: var(--spacing-md);
-  font-family: 'Roboto Mono', monospace;
-}
-
-/* --- Deck (Left & Right Sides) --- */
-.deck {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: #2c2c2e;
-  border-radius: var(--border-radius-md);
-  padding: var(--spacing-sm);
-  gap: var(--spacing-sm);
-  border: 1px solid #444;
-  min-width: 0; /* Allows deck to shrink */
-  min-height: 0; /* Allows deck to shrink */
-}
-
-.deck-sequencer {
-  display: grid;
-  grid-template-columns: repeat(16, 1fr);
-  gap: 4px;
-}
-
-.main-deck-area {
-  flex-grow: 1;
-  display: flex;
-  gap: var(--spacing-sm);
-  min-height: 0; /* Allows this area to shrink */
-}
-
-.side-slider {
-  width: 40px;
-}
-
-.rotary-and-pads {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  min-width: 0;
-}
-
-.deck-joint-list {
-  width: 120px;
-}
-
-/* --- Center Console --- */
-.center-console {
-  width: 250px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background-color: #2c2c2e;
-  border-radius: var(--border-radius-md);
-  padding: var(--spacing-sm);
-  border: 1px solid #444;
-}
-
-.center-top-controls {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-}
-
-/* --- Individual Placeholder Styles --- */
-.placeholder-pro-beat {
-  aspect-ratio: 1;
-  background-color: #3a3a3c;
-  border-radius: 3px;
-  display: flex; justify-content: center; align-items: center; font-size: 0.7em;
-  border-bottom: 2px solid #222;
-}
-
-.placeholder-v-slider {
-  height: 100%;
-  border: 1px dashed #555; border-radius: 4px; display: flex; justify-content: center; align-items: center; 
-  /* Simplified text for better layout calculation */
-  font-size: 0.8em;
-  padding: 4px;
-  writing-mode: vertical-rl; text-orientation: mixed;
-}
-
-.deck-top-controls {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-}
-
-.placeholder-pro-switch {
-  border: 1px dashed #555; border-radius: 4px; padding: 4px 8px; font-size: 0.8em;
-}
-
-.rotary-wrapper {
-  flex-grow: 1; /* This will now fill the available space */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 0; /* Critical for shrinking */
-}
-
-.placeholder-rotary-wheel {
+  padding: var(--spacing-xs);
   width: 100%;
-  height: 100%;
-  max-width: 250px; /* Give it a max size */
-  max-height: 250px;
-  aspect-ratio: 1;
-  border: 2px dashed #888;
-  border-radius: 50%;
-  background-color: #3a3a3c;
 }
 
-/* --- KEY CHANGE: Circular Side Buttons --- */
-.placeholder-side-button {
-  width: 50px;
-  height: 50px;
-  border: 1px dashed #555;
-  border-radius: 50%; /* Makes it a circle */
+.transport-button {
   display: flex;
-  justify-content: center;
   align-items: center;
-  flex-shrink: 0; /* Prevent shrinking */
-  font-size: 0.8em;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  background-color: var(--color-dark-surface-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-sm);
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+}
+.transport-button:hover {
+  background-color: var(--color-dark-surface-2);
+  border-color: var(--color-text-secondary);
+}
+.transport-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.deck-bottom-controls {
+.upload-button {
+  width: 100%;
+}
+
+.bar-navigation {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto; /* Arrows, Display, Play/Pause */
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.bar-display {
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+}
+
+.play-pause-button {
+  font-size: 1.2rem;
+  color: var(--color-accent-primary);
+}
+
+.info-display-group {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-md);
+  align-items: center;
+  justify-content: center;
 }
 
-.option-buttons {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+.info-display {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
-.placeholder-option-btn {
-  height: 35px;
-  border: 1px dashed #555; border-radius: 4px; display: flex; justify-content: center; align-items: center;
+.info-display label {
+  font-weight: bold;
+  color: var(--color-text-secondary);
 }
 
-.pads-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.placeholder-pad {
-  aspect-ratio: 1;
-  background-color: #3a3a3c;
-  border-radius: 4px;
-  border-bottom: 2px solid #222;
-  display: flex; justify-content: center; align-items: center; font-size: 0.8em;
-}
-
-.placeholder-joint-list {
-  height: 100%;
-  border: 1px dashed #555; border-radius: 4px; display: flex; justify-content: center; align-items: center;
-}
-
-.placeholder-knob {
-  width: 50px;
-  height: 50px;
-  border: 1px dashed #555;
-  border-radius: 50%;
-  display: flex; justify-content: center; align-items: center;
-}
-.placeholder-center-display {
-  width: 100px;
-  height: 50px;
-  border: 1px dashed #555; border-radius: 4px; display: flex; justify-content: center; align-items: center;
-}
-.placeholder-center-dpad {
-  height: 100px;
-  border: 1px dashed #555; border-radius: 4px; display: flex; justify-content: center; align-items: center;
-}
-.placeholder-pro-crossfader {
-  height: 40px;
-  border: 1px dashed #555; border-radius: 4px; display: flex; justify-content: center; align-items: center;
+.info-input {
+  background-color: var(--color-dark-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: 'Roboto Mono', monospace;
+  width: 80px;
+  text-align: center;
+  font-size: 1.1rem;
 }

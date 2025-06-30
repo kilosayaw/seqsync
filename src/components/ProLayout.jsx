@@ -1,19 +1,22 @@
 import React from 'react';
 import Deck from './Deck';
 import CenterConsole from './CenterConsole';
+import MasterSequencer from './MasterSequencer';
+import NotationDisplay from './NotationDisplay'; // Import the new component
 import './ProLayout.css';
 
 const ProLayout = () => {
-  // The old renderDeck function is now moved into the Deck.jsx component.
-  // This component is now much cleaner.
-
-  return (
-    <div className="pro-layout-container">
-      <Deck side="left" />
-      <CenterConsole />
-      <Deck side="right" />
-    </div>
-  );
+    return (
+        <div className="pro-layout-container">
+            <MasterSequencer />
+            <NotationDisplay /> {/* Add the new component here */}
+            <div className="main-content-area">
+                <Deck side="left" />
+                <CenterConsole />
+                <Deck side="right" />
+            </div>
+        </div>
+    );
 };
 
 export default ProLayout;

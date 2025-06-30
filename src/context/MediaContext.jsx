@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 
 const MediaContext = createContext();
@@ -9,49 +9,39 @@ export const MediaProvider = ({ children }) => {
   const [mediaFile, setMediaFile] = useState(null);
   const [wavesurfer, setWavesurfer] = useState(null);
   const [isMediaReady, setIsMediaReady] = useState(false);
-  const [beatMarkers, setBeatMarkers] = useState([]);
   const [duration, setDuration] = useState(0);
+  const [peaks, setPeaks] = useState([]); // NEW: To store the raw waveform data
 
   const loadMedia = useCallback(async (file) => {
-    // For now, we only handle audio files for beat detection
-    if (file && file.type.startsWith('audio/')) {
+    if (file && (file.type.startsWith('audio/') || file.type.startsWith('video/'))) {
       setMediaFile(file);
       setIsMediaReady(false);
+      setPeaks([]);
 
       if (wavesurfer) {
         wavesurfer.destroy();
       }
       
       const newWavesurfer = WaveSurfer.create({
-        container: document.createElement('div'), // We don't need to see the default waveform
-        waveColor: 'rgb(200, 0, 200)',
-        progressColor: 'rgb(100, 0, 100)',
+        container: document.createElement('div'), 
         url: URL.createObjectURL(file),
-        barWidth: 2,
-        barGap: 1,
-        barRadius: 2,
+        splitChannels: false, // Process a single channel for waveform
       });
 
       newWavesurfer.on('ready', (newDuration) => {
         setDuration(newDuration);
-        setIsMediaReady(true);
-        // !! Placeholder for real beat detection logic !!
-        // In a future step, we will replace this with a proper
-        // beat detection algorithm. For now, we simulate finding beats.
-        console.log("Media ready. Duration:", newDuration);
-        const bpm = 120; // Assume a BPM for now
-        const beatInterval = 60 / bpm;
-        const markers = [];
-        for (let i = 0; i < newDuration; i += beatInterval) {
-          markers.push(i);
+        // NEW: Get all the peak data for the entire track
+        const rawPeaks = newWavesurfer.getDecodedData();
+        if (rawPeaks) {
+          // We only need one channel of data
+          setPeaks(rawPeaks.getChannelData(0));
         }
-        setBeatMarkers(markers);
-        console.log(`Simulated ${markers.length} beats.`);
+        setIsMediaReady(true);
       });
       
       setWavesurfer(newWavesurfer);
     } else {
-        console.error("Unsupported file type. Please upload an audio file.");
+        console.error("Unsupported file type. Please upload an audio or video file.");
     }
   }, [wavesurfer]);
 
@@ -60,8 +50,8 @@ export const MediaProvider = ({ children }) => {
     loadMedia,
     isMediaReady,
     wavesurfer,
-    beatMarkers,
     duration,
+    peaks, // Expose the peak data
   };
 
   return <MediaContext.Provider value={value}>{children}</MediaContext.Provider>;

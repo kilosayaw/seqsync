@@ -9,27 +9,18 @@ const initializeSequenceData = () => {
     bar: 1, 
     beat: i,
     poseData: {}, 
-    // This is the old grounding structure, we will replace it
-    // with a more comprehensive one inside the rotary object.
-    
-    // NEW: A dedicated object for rotary controller states
     rotary: {
       left: { angle: 0, grounding: null },
       right: { angle: 0, grounding: null },
     },
-
-    sounds: [],     
-    transitions: {
-      type: 'cut',
-      duration: 0,
-    },
-    waveform: null,
+    waveform: null, // This will hold the waveform slice
   }));
 };
 
 export const SequenceProvider = ({ children }) => {
   const [songData, setSongData] = useState(initializeSequenceData());
 
+  // ... (keep existing update functions)
   const updateBeatData = useCallback((beatIndex, newBeatData) => {
     setSongData(prevData => {
       const newData = [...prevData];
@@ -47,7 +38,6 @@ export const SequenceProvider = ({ children }) => {
     });
   }, []);
   
-  // NEW: A specific function to update rotary state for a given beat and side
   const updateRotaryState = useCallback((beatIndex, side, newState) => {
     setSongData(prevData => {
       const newData = [...prevData];
@@ -63,6 +53,34 @@ export const SequenceProvider = ({ children }) => {
     })
   }, []);
 
+
+  // NEW: Function to slice the full waveform and distribute it to beats
+  const mapWaveformToBeats = useCallback((fullPeaks, trackDuration, bpm) => {
+    const beatsPerBar = 16;
+    const barDuration = (60 / bpm) * 4; // Assuming 4/4 time signature
+    const totalSamples = fullPeaks.length;
+
+    const newSongData = songData.map((beat, index) => {
+      const beatStartTime = (index / beatsPerBar) * barDuration;
+      const beatEndTime = ((index + 1) / beatsPerBar) * barDuration;
+
+      // Make sure we don't try to read past the end of the track
+      if (beatStartTime > trackDuration) {
+        return { ...beat, waveform: null };
+      }
+
+      const startSample = Math.floor((beatStartTime / trackDuration) * totalSamples);
+      const endSample = Math.floor((beatEndTime / trackDuration) * totalSamples);
+
+      const waveformSlice = fullPeaks.slice(startSample, endSample);
+      
+      return { ...beat, waveform: waveformSlice };
+    });
+    
+    setSongData(newSongData);
+  }, [songData]);
+
+
   const clearSequence = () => {
       setSongData(initializeSequenceData());
   }
@@ -71,8 +89,9 @@ export const SequenceProvider = ({ children }) => {
     songData,
     updateBeatData,
     updateJointPose,
-    updateRotaryState, // Expose the new function
-    clearSequence
+    updateRotaryState,
+    clearSequence,
+    mapWaveformToBeats, // Expose the new function
   };
 
   return (

@@ -5,8 +5,14 @@
   border: 1px solid #222;
   border-bottom: 2px solid #111;
   color: #aaa;
-  position: relative;
+  position: relative; /* Needed for absolute positioning of children */
   transition: all 0.1s ease-out;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0; 
+  overflow: hidden; /* Hide anything that goes outside the button */
 }
 
 .pro-beat-button:hover {
@@ -23,8 +29,41 @@
   border-color: #fff;
   color: #fff;
   transform: scale(1.05);
+  z-index: 1; 
+}
+
+.pro-beat-number {
+  font-size: 0.8em; 
+  font-weight: bold;
+  color: var(--color-text-secondary);
+  z-index: 2; /* Make sure number is on top of waveform */
+  /* Add a slight background to make it readable over the waveform */
+  background-color: rgba(0, 0, 0, 0.4);
+  padding: 0 4px;
+  border-radius: 2px;
 }
 
 .pro-beat-button.active .pro-beat-number {
     color: #fff;
+}
+
+/* NEW: Waveform Styling */
+.waveform-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0.6;
+}
+
+.waveform-svg path {
+    stroke: var(--color-accent-secondary);
+    stroke-width: 1.5;
+    fill: none;
+}
+
+.pro-beat-button.active .waveform-svg path {
+    stroke: #fff;
 }

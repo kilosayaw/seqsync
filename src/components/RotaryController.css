@@ -4,7 +4,7 @@
   aspect-ratio: 1;
   max-width: 250px;
   max-height: 250px;
-  position: relative; /* Context for absolute positioning of children */
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -27,11 +27,11 @@
 .rotary-rim-img {
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Allows clicks to pass through to the div */
+  pointer-events: none; 
 }
 
 .rotary-center-content {
-  width: 85%; /* Slightly smaller than the wheel */
+  width: 85%;
   height: 85%;
   border-radius: 50%;
   background-color: #111;
@@ -42,14 +42,10 @@
   overflow: hidden;
 }
 
-.foot-svg {
-  width: 100%;
-  height: 100%;
-}
-
-.foot-zones path {
-  fill: transparent; /* Make the zones invisible */
-  stroke: none;
+.foot-img {
+  width: 80%; /* Adjust size of foot inside the center */
+  height: 80%;
+  object-fit: contain;
 }
 
 .active-zone-display {
@@ -62,11 +58,4 @@
   z-index: 15;
   font-size: 1rem;
   font-weight: bold;
-}
-
-.joystick-dot {
-    fill: var(--color-accent-primary);
-    stroke: white;
-    stroke-width: 2px;
-    pointer-events: none; /* The dot shouldn't interfere with mouse events */
 }

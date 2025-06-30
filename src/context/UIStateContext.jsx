@@ -6,13 +6,16 @@ export const useUIState = () => useContext(UIStateContext);
 
 export const UIStateProvider = ({ children }) => {
   const [selectedBar, setSelectedBar] = useState(1);
-  const [selectedBeat, setSelectedBeat] = useState(null); // The index 0-15
+  const [totalBars, setTotalBars] = useState(4); // NEW: Moved here
+  const [selectedBeat, setSelectedBeat] = useState(null);
   const [selectedJoint, setSelectedJoint] = useState(null);
-  const [appMode, setAppMode] = useState('SEQ'); // 'SEQ' or 'POS'
+  const [appMode, setAppMode] = useState('SEQ');
 
   const value = {
     selectedBar,
     setSelectedBar,
+    totalBars,      // NEW
+    setTotalBars,   // NEW
     selectedBeat,
     setSelectedBeat,
     selectedJoint,

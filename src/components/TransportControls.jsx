@@ -11,19 +11,19 @@ const TransportControls = () => {
   const { selectedBar, setSelectedBar } = useUIState();
 
   const fileInputRef = useRef(null);
-  const [totalBars, setTotalBars] = useState(4); // Default to 4 bars
+  const [totalBars, setTotalBars] = useState(4); 
 
   useEffect(() => {
-    // Auto-detect bar count when media is ready
     if (isMediaReady && duration > 0 && bpm > 0) {
-      const beatsPerBar = 4; // Assuming 4/4 time
+      const beatsPerBar = 4;
       const totalBeatsInSong = duration / (60 / bpm);
       const estimatedBars = Math.ceil(totalBeatsInSong / beatsPerBar);
       setTotalBars(estimatedBars > 0 ? estimatedBars : 1);
-      setSelectedBar(1); // Reset to first bar on new media load
+      if (selectedBar > estimatedBars) {
+        setSelectedBar(1); 
+      }
     }
-  }, [isMediaReady, duration, bpm, setSelectedBar]);
-
+  }, [isMediaReady, duration, bpm, selectedBar, setSelectedBar]);
 
   const handleUploadClick = () => {
     fileInputRef.current.click();
@@ -36,13 +36,6 @@ const TransportControls = () => {
     }
   };
   
-  const handleBarChange = (e) => {
-    const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value > 0) {
-      setTotalBars(value);
-    }
-  }
-
   const handlePrevBar = () => {
       setSelectedBar(prev => Math.max(1, prev - 1));
   }
@@ -70,16 +63,15 @@ const TransportControls = () => {
             <FaArrowLeft />
         </button>
         <div className="bar-display">
-            Bar {selectedBar} of {totalBars}
+            BAR {selectedBar} of {totalBars}
         </div>
         <button onClick={handleNextBar} className="transport-button nav-button" disabled={selectedBar >= totalBars}>
             <FaArrowRight />
         </button>
+        <button onClick={togglePlay} className="transport-button play-pause-button">
+          {isPlaying ? <FaPause /> : <FaPlay />}
+        </button>
       </div>
-
-      <button onClick={togglePlay} className="transport-button play-pause-button">
-        {isPlaying ? <FaPause /> : <FaPlay />}
-      </button>
 
       <div className="info-display-group">
         <div className="info-display">
@@ -88,19 +80,9 @@ const TransportControls = () => {
             id="bpm"
             type="number"
             value={bpm}
-            onChange={(e) => setBpm(parseInt(e.target.value, 10))}
+            onChange={(e) => setBpm(parseInt(e.target.value, 10) || 120)}
             className="info-input"
           />
-        </div>
-        <div className="info-display">
-            <label htmlFor="total-bars">Total Bars</label>
-             <input
-                id="total-bars"
-                type="number"
-                value={totalBars}
-                onChange={handleBarChange}
-                className="info-input"
-            />
         </div>
       </div>
     </div>
