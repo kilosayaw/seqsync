@@ -1,33 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useUIState } from '../context/UIStateContext';
 import { useSequence } from '../context/SequenceContext';
+import SkeletalRenderer from './SkeletalRenderer';
 import './PoseEditorModal.css';
 
 const PoseEditorModal = () => {
-    const { setIsPoseEditorOpen, beatToEdit } = useUIState();
+    const { setIsPoseEditorOpen, beatToEdit, setBeatToEdit, selectedJoint } = useUIState();
     const { updateBeatData } = useSequence();
 
-    // Local state for the edits
-    const [editablePose, setEditablePose] = useState(null);
-
-    useEffect(() => {
-        // When the modal opens, load the beat's data into local state
-        if (beatToEdit && beatToEdit.poseData) {
-            setEditablePose(JSON.parse(JSON.stringify(beatToEdit.poseData))); // Deep copy
-        }
-    }, [beatToEdit]);
+    const editablePose = beatToEdit?.poseData;
+    const currentJointData = editablePose?.keypoints?.[selectedJoint];
 
     const handleClose = () => {
         setIsPoseEditorOpen(false);
+        setBeatToEdit(null);
     };
 
     const handleSave = () => {
-        // Create a new data object with the updated pose
-        const updatedBeatData = { ...beatToEdit, poseData: editablePose };
-        // Find the global index to update the correct beat in the master array
-        const globalIndex = ((beatToEdit.bar - 1) * 16) + beatToEdit.beat;
-        updateBeatData(globalIndex, updatedBeatData);
+        console.log(`[PoseEditorModal] Saving changes for global index: ${beatToEdit.globalIndex}`);
+        updateBeatData(beatToEdit.globalIndex, { poseData: editablePose });
         handleClose();
+    };
+
+    // --- REWRITTEN UPDATE HANDLER ---
+    const handleJointPositionChange = (axis, value) => {
+        // Use a functional update to ensure we are always working with the latest state
+        setBeatToEdit(prevBeatToEdit => {
+            // Guard against null state, which can happen in rapid updates
+            if (!prevBeatToEdit?.poseData?.keypoints || selectedJoint === null) {
+                return prevBeatToEdit;
+            }
+
+            // Create a deep copy to ensure we don't mutate the original state
+            const newKeypoints = JSON.parse(JSON.stringify(prevBeatToEdit.poseData.keypoints));
+            
+            // KEY FIX: Check if the joint exists before trying to update it
+            if (newKeypoints[selectedJoint]) {
+                newKeypoints[selectedJoint][axis] = parseFloat(value);
+            } else {
+                // This case should not happen with valid data, but it's a good safeguard
+                console.warn(`Attempted to edit non-existent joint at index ${selectedJoint}`);
+                return prevBeatToEdit;
+            }
+
+            // Return the new, updated state object
+            return {
+                ...prevBeatToEdit,
+                poseData: {
+                    ...prevBeatToEdit.poseData,
+                    keypoints: newKeypoints,
+                },
+            };
+        });
     };
 
     if (!beatToEdit) return null;
@@ -40,11 +64,36 @@ const PoseEditorModal = () => {
                     <button onClick={handleClose} className="close-button">×</button>
                 </div>
                 <div className="modal-body">
-                    <div className="modal-visualizer-placeholder">
-                        Skeletal Visualizer Here
+                    <div className="modal-visualizer">
+                        <SkeletalRenderer 
+                            poseData={editablePose}
+                            selectedJointId={selectedJoint}
+                            width={500}
+                            height={500}
+                        />
                     </div>
-                    <div className="modal-controls-placeholder">
-                        Pose Controls Here
+                    <div className="modal-controls">
+                        <h3>Joint Controls</h3>
+                        {/* Add extra checks for robustness */}
+                        {selectedJoint !== null && currentJointData && typeof currentJointData.x === 'number' ? (
+                            <div className="joint-editor">
+                               <h4>Editing: {currentJointData.name || `Joint #${selectedJoint}`}</h4>
+                               <div className="slider-group">
+                                   <label>X: {currentJointData.x.toFixed(2)}</label>
+                                   <input type="range" min={0} max={1280} step={1} value={currentJointData.x} onChange={e => handleJointPositionChange('x', e.target.value)} />
+                               </div>
+                               <div className="slider-group">
+                                   <label>Y: {currentJointData.y.toFixed(2)}</label>
+                                   <input type="range" min={0} max={720} step={1} value={currentJointData.y} onChange={e => handleJointPositionChange('y', e.target.value)} />
+                               </div>
+                               <div className="slider-group">
+                                   <label>Z: {(currentJointData.z || 0).toFixed(2)}</label>
+                                   <input type="range" min={-1} max={1} step={0.01} value={currentJointData.z || 0} onChange={e => handleJointPositionChange('z', e.target.value)} />
+                               </div>
+                            </div>
+                        ) : (
+                           <p>Select a joint from the side panels to begin editing.</p>
+                        )}
                     </div>
                 </div>
                 <div className="modal-footer">

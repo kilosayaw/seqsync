@@ -41,3 +41,9 @@
     box-shadow: 0 0 8px var(--color-accent-secondary);
     transform: scale(1.02);
 }
+
+.deck-joint-button {
+    /* ... */
+    font-size: 1.1rem; /* Make the abbreviation a bit bigger */
+    /* ... */
+}

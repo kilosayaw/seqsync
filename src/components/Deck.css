@@ -113,4 +113,10 @@
     grid-template-rows: repeat(2, 1fr);
     gap: 8px;
 }
+
+.placeholder-option-btn.active {
+    background-color: var(--color-accent-secondary);
+    color: var(--color-dark-bg);
+    border-color: var(--color-accent-secondary);
+}
 /* The actual pad styling is in PerformancePad.css, this just defines the grid container */

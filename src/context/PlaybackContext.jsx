@@ -1,98 +1,110 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { useMotion } from './MotionContext';
+import { useMedia } from './MediaContext';
 import { useSequence } from './SequenceContext';
 import { useUIState } from './UIStateContext';
+import { useMotion } from './MotionContext';
 
 const PlaybackContext = createContext(null);
-
 export const usePlayback = () => useContext(PlaybackContext);
 
 export const PlaybackProvider = ({ children }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [bpm, setBpm] = useState(120);
-    const [currentBeat, setCurrentBeat] = useState(0); // This is the beat within a bar (0-15)
-    const intervalRef = useRef(null);
+    const [currentBeat, setCurrentBeat] = useState(0);
 
+    const { wavesurferRef, firstBeatOffset, duration } = useMedia();
+    const { totalBars, updateBeatData } = useSequence();
+    const { selectedBar, setSelectedBar } = useUIState();
     const { livePoseData } = useMotion();
-    const { updateBeatData } = useSequence();
-    const { selectedBar } = useUIState();
 
+    const globalStepRef = useRef(0);
     const livePoseDataRef = useRef(livePoseData);
-    useEffect(() => {
-        livePoseDataRef.current = livePoseData;
-    });
+    useEffect(() => { livePoseDataRef.current = livePoseData; });
 
     useEffect(() => {
-        if (!isRecording || !isPlaying) return;
+        const ws = wavesurferRef.current;
+        if (!ws) return;
 
-        console.log(
-            `[PlaybackContext] RECORD TICK | Beat: ${currentBeat + 1} | Pose Data Available: ${!!livePoseDataRef.current}`
-        );
-
-        if (livePoseDataRef.current) {
-            const globalBeatIndex = ((selectedBar - 1) * 16) + currentBeat;
-            const newPose = { poseData: { keypoints: livePoseDataRef.current.keypoints } };
+        const onTimeUpdate = (currentTime) => {
+            const stepDuration = (60 / bpm) / 4;
+            if (stepDuration <= 0) return;
+            const relativeTime = Math.max(0, currentTime - firstBeatOffset);
+            const currentStep = Math.floor(relativeTime / stepDuration);
             
-            console.log(`✅ [PlaybackContext] SAVING POSE to global index: ${globalBeatIndex}`);
-            updateBeatData(globalBeatIndex, newPose);
-        }
-    }, [isRecording, isPlaying, currentBeat, selectedBar, updateBeatData]);
-    
-    useEffect(() => {
-        if (isPlaying) {
-            const stepInterval = (60 / bpm) * 1000 / 4;
-            intervalRef.current = setInterval(() => {
-                // This logic automatically wraps to the next bar in the UI, but the playhead is always 0-15
-                setCurrentBeat(prev => (prev + 1) % 16);
-            }, stepInterval);
-        } else {
-            clearInterval(intervalRef.current);
-        }
-        return () => clearInterval(intervalRef.current);
-    }, [isPlaying, bpm]);
+            if (currentStep !== globalStepRef.current) {
+                globalStepRef.current = currentStep;
+                const newBar = Math.floor(currentStep / 16) + 1;
+                const newBeatInBar = currentStep % 16;
+                
+                if (newBar <= totalBars) {
+                    if (newBar !== selectedBar) setSelectedBar(newBar);
+                    setCurrentBeat(newBeatInBar);
+                }
+            }
+        };
 
-    const stopAll = () => {
-        console.log("[PlaybackContext] Stop All called.");
-        setIsPlaying(false);
-        setIsRecording(false);
+        const onPlay = () => setIsPlaying(true);
+        const onPause = () => setIsPlaying(false);
+        const onFinish = () => {
+            setIsPlaying(false);
+            setCurrentBeat(0);
+        };
+
+        ws.on('timeupdate', onTimeUpdate);
+        ws.on('play', onPlay);
+        ws.on('pause', onPause);
+        ws.on('finish', onFinish);
+
+        return () => {
+            ws.un('timeupdate', onTimeUpdate);
+            ws.un('play', onPlay);
+            ws.un('pause', onPause);
+            ws.un('finish', onFinish);
+        };
+    }, [wavesurferRef, bpm, firstBeatOffset, selectedBar, setSelectedBar, totalBars]);
+
+    useEffect(() => {
+        if (isRecording && isPlaying && livePoseDataRef.current) {
+            updateBeatData(globalStepRef.current, { poseData: { keypoints: livePoseDataRef.current.keypoints } });
+        }
+    }, [isRecording, isPlaying, globalStepRef.current]);
+
+    const seekToGlobalStep = (step) => {
+        const ws = wavesurferRef.current;
+        if (!ws || duration <= 0) return;
+        
+        const stepDuration = (60 / bpm) / 4;
+        const targetTime = firstBeatOffset + (step * stepDuration);
+        ws.seekTo(targetTime / duration);
+        
+        globalStepRef.current = step;
+        const newBar = Math.floor(step / 16) + 1;
+        const newBeatInBar = step % 16;
+        setSelectedBar(newBar);
+        setCurrentBeat(newBeatInBar);
+    };
+    
+    const auditionSlice = (seekTime) => {
+        const ws = wavesurferRef.current;
+        if (!ws) return;
+        ws.play(seekTime);
+        setTimeout(() => { if (ws && !isPlaying) ws.pause(); }, 500);
     };
 
     const togglePlay = () => {
-        console.log(`[PlaybackContext] togglePlay called. Was playing: ${isPlaying}`);
-        if (isPlaying) {
-            stopAll();
-        } else {
-            setIsPlaying(true);
-            if (isRecording) setIsRecording(false);
-        }
+        const ws = wavesurferRef.current;
+        if (ws) ws.playPause();
     };
-
+    
     const toggleRecording = () => {
-        console.log(`[PlaybackContext] toggleRecording called. Was recording: ${isRecording}`);
-        if (isRecording) {
-            stopAll();
-        } else {
-            setIsRecording(true);
-            setIsPlaying(true);
+        const newRecordingState = !isRecording;
+        setIsRecording(newRecordingState);
+        if (newRecordingState && wavesurferRef.current && !wavesurferRef.current.isPlaying()) {
+            wavesurferRef.current.play();
         }
     };
-  
-    // KEY CHANGE: Exposing setCurrentBeat allows other components to control the playhead
-    const value = { 
-        isPlaying, 
-        isRecording, 
-        bpm, 
-        currentBeat, 
-        setBpm, 
-        togglePlay, 
-        toggleRecording,
-        setCurrentBeat // This is now exposed
-    };
-
-    return (
-        <PlaybackContext.Provider value={value}>
-            {children}
-        </PlaybackContext.Provider>
-    );
+    
+    const value = { isPlaying, isRecording, bpm, currentBeat, setBpm, togglePlay, toggleRecording, seekToGlobalStep, auditionSlice };
+    return <PlaybackContext.Provider value={value}>{children}</PlaybackContext.Provider>;
 };

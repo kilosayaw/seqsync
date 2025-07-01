@@ -8,10 +8,11 @@ export const UIStateProvider = ({ children }) => {
   const [selectedBeat, setSelectedBeat] = useState(null);
   const [selectedJoint, setSelectedJoint] = useState(null);
   const [isLiveFeed, setIsLiveFeed] = useState(true);
-  
-  // NEW: State for the Pose Editor
   const [isPoseEditorOpen, setIsPoseEditorOpen] = useState(false);
   const [beatToEdit, setBeatToEdit] = useState(null);
+  
+  // NEW: State for note division
+  const [noteDivision, setNoteDivision] = useState('1/16'); // '1/16', '1/8', '1/4'
 
   const value = {
     selectedBar, setSelectedBar,
@@ -19,7 +20,7 @@ export const UIStateProvider = ({ children }) => {
     selectedJoint, setSelectedJoint,
     isLiveFeed, setIsLiveFeed,
     isPoseEditorOpen, setIsPoseEditorOpen,
-    beatToEdit, setBeatToEdit,
+    beatToEdit, setBeatToEdit, noteDivision, setNoteDivision
   };
 
   return (

@@ -3,21 +3,23 @@ import DeckJointList from './DeckJointList';
 import RotaryController from './RotaryController';
 import PerformancePad from './PerformancePad';
 import { useUIState } from '../context/UIStateContext';
-import { useSequence } from '../context/SequenceContext';
+import { usePlayback } from '../context/PlaybackContext';
+import { usePadMapping } from '../hooks/usePadMapping';
 import './Deck.css';
 
 const Deck = ({ side }) => {
-    // Correctly call hooks at the top level of the component
-    const { selectedBeat, setSelectedBeat, selectedBar } = useUIState();
-    const { getCurrentBarData } = useSequence();
+    const { selectedBeat, setSelectedBeat, noteDivision, setNoteDivision, selectedBar } = useUIState();
+    const { isPlaying, currentBeat, seekToGlobalStep, auditionSlice } = usePlayback();
+    const padMap = usePadMapping();
 
-    // Get the data for the currently selected bar
-    const barData = getCurrentBarData(selectedBar);
+    const padData = side === 'left' ? padMap.slice(0, 8) : padMap.slice(8, 16);
     
-    // Determine which slice of the bar data this deck is responsible for
-    // Slicing an empty array is safe and will just return an empty array
-    const padData = side === 'left' ? barData.slice(0, 8) : barData.slice(8, 16);
-    const padOffset = side === 'left' ? 0 : 8;
+    const cycleDivision = () => {
+        const divisions = ['1/4', '1/8', '1/16', '1/2'];
+        const currentIndex = divisions.indexOf(noteDivision);
+        const nextIndex = (currentIndex + 1) % divisions.length;
+        setNoteDivision(divisions[nextIndex]);
+    };
 
     return (
         <div className={`deck deck-${side}`}>
@@ -51,28 +53,56 @@ const Deck = ({ side }) => {
                 )}
             </div>
 
-            {/* Bottom row containing the performance pads */}
+            {/* Bottom row containing the pads and their controls */}
             <div className="deck-pads-section">
                 <div className="option-buttons">
-                    <div className="placeholder-option-btn">Opt 1</div>
-                    <div className="placeholder-option-btn">Opt 2</div>
-                    <div className="placeholder-option-btn">Opt 3</div>
-                    <div className="placeholder-option-btn">Opt 4</div>
+                    {/* Asymmetrical control logic */}
+                    {side === 'left' ? (
+                         <>
+                            {/* The master note division controller */}
+                            <button className="placeholder-option-btn active" onClick={cycleDivision}>
+                                {noteDivision}
+                            </button>
+                            <div className="placeholder-option-btn disabled">Opt 2</div>
+                            <div className="placeholder-option-btn disabled">Opt 3</div>
+                            <div className="placeholder-option-btn disabled">Opt 4</div>
+                         </>
+                    ) : (
+                         <>
+                            {/* The right side has non-functional placeholders */}
+                            <div className="placeholder-option-btn disabled" />
+                            <div className="placeholder-option-btn disabled" />
+                            <div className="placeholder-option-btn disabled" />
+                            <div className="placeholder-option-btn disabled" />
+                         </>
+                    )}
                 </div>
                 <div className="pads-grid">
-                    {/* Map over the 8 pads for this deck */}
-                    {Array.from({ length: 8 }).map((_, index) => {
-                        const beatIndexInBar = padOffset + index;
-                        const beatDataForPad = padData[index]; // Use the sliced data
+                    {padData.map((pad, index) => {
+                        const displayNum = (side === 'left' ? index + 1 : index + 9);
+
+                        if (pad.isEmpty) return <div key={`pad-empty-${side}-${index}`} className="performance-pad disabled"><span className="pad-number">{displayNum}</span></div>;
+                        
+                        let isActive = false;
+                        if (isPlaying && selectedBar === pad.bar) {
+                            let stepMultiplier = 1;
+                            if (noteDivision === '1/8') stepMultiplier = 2;
+                            else if (noteDivision === '1/4') stepMultiplier = 4;
+                            else if (noteDivision === '1/2') stepMultiplier = 8;
+                            
+                            const padStartBeat = Math.floor(pad.beat / stepMultiplier) * stepMultiplier;
+                            isActive = (currentBeat >= padStartBeat && currentBeat < padStartBeat + stepMultiplier);
+                        }
+                        
                         return (
                             <PerformancePad 
-                                key={`pad-${side}-${index}`}
-                                beatData={beatDataForPad}
-                                beatNum={beatIndexInBar + 1}
-                                isSelected={selectedBeat === beatIndexInBar}
+                                key={pad.key}
+                                pad={{...pad, displayLabel: displayNum}}
+                                isSelected={selectedBeat === pad.beat}
+                                isActive={isActive}
                                 onClick={() => {
-                                    console.log(`[Deck] Performance Pad ${beatIndexInBar + 1} clicked.`);
-                                    setSelectedBeat(beatIndexInBar);
+                                    setSelectedBeat(pad.beat);
+                                    seekToGlobalStep(pad.globalStep);
                                 }}
                             />
                         );

@@ -41,16 +41,47 @@
     gap: var(--spacing-md);
     padding: var(--spacing-md);
     min-height: 0;
+    background-color: var(--color-dark-bg);
 }
-.modal-visualizer-placeholder, .modal-controls-placeholder {
-    flex: 1;
-    border: 1px dashed var(--color-border);
+
+.modal-visualizer {
+    flex: 2; /* Give more space to the visualizer */
+    background-color: #222;
     border-radius: var(--border-radius-sm);
+    overflow: hidden;
+}
+.modal-controls {
+    flex: 1;
+    padding: var(--spacing-md);
+    background-color: var(--color-dark-surface-1);
+    border-radius: var(--border-radius-sm);
+    color: var(--color-text-primary);
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+.modal-controls h3 {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-sm);
+}
+
+.joint-editor h4 {
+    color: var(--color-accent-secondary);
+    margin-bottom: var(--spacing-md);
+}
+.slider-group {
+    margin-bottom: var(--spacing-md);
+}
+.slider-group label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-size: 0.9rem;
     color: var(--color-text-secondary);
 }
+.slider-group input[type="range"] {
+    width: 100%;
+}
+
 
 .modal-footer {
     padding: var(--spacing-md);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import Aubio from 'aubiojs';
 
@@ -13,82 +13,102 @@ export const MediaProvider = ({ children }) => {
     const [detectedBpm, setDetectedBpm] = useState(null);
     const [audioPeaks, setAudioPeaks] = useState([]);
     const [mediaFile, setMediaFile] = useState(null);
-    const [mediaUrl, setMediaUrl] = useState(null); // This will hold the blob URL for the video player
+    const [mediaUrl, setMediaUrl] = useState(null);
+    const [firstBeatOffset, setFirstBeatOffset] = useState(0); // To store the first beat's timestamp in seconds
+    const wavesurferRef = useRef(null); // To hold the WaveSurfer instance
 
-    const runBeatDetection = async (audioBuffer) => {
-        console.log("Starting beat detection...");
+    const analyzeAudio = async (audioBuffer) => {
+        console.log("[MediaContext] Analyzing audio for BPM and Downbeat...");
         const aubio = await Aubio();
-        
         const sampleRate = audioBuffer.sampleRate;
-        const tempo = new aubio.Tempo(4096, 512, sampleRate);
         const channelData = audioBuffer.getChannelData(0);
-        
         const frameCount = Math.floor(channelData.length / 512);
-        let allBpms = [];
 
+        // --- BPM Detection ---
+        const tempo = new aubio.Tempo(4096, 512, sampleRate);
+        const bpms = [];
         for (let i = 0; i < frameCount; i++) {
-            const frame = channelData.subarray(i * 512, (i * 512) + 512);
+            const frame = channelData.subarray(i * 512, (i + 1) * 512);
             if (tempo.do(frame)) {
-                allBpms.push(tempo.getBpm());
+                bpms.push(tempo.getBpm());
+            }
+        }
+        if (bpms.length > 0) {
+            bpms.sort((a, b) => a - b);
+            const medianBpm = bpms[Math.floor(bpms.length / 2)];
+            const roundedBpm = Math.round(medianBpm);
+            setDetectedBpm(roundedBpm);
+            console.log(`[MediaContext] BPM detected: ${roundedBpm}`);
+        } else {
+            setDetectedBpm(120); // Fallback
+            console.log("[MediaContext] No BPM detected, defaulting to 120.");
+        }
+
+        // --- Onset (Downbeat) Detection ---
+        const onset = new aubio.Onset('default', 4096, 512, sampleRate);
+        const onsets = [];
+        for (let i = 0; i < frameCount; i++) {
+            const frame = channelData.subarray(i * 512, (i + 1) * 512);
+            if (onset.do(frame)) {
+                onsets.push(onset.getLast());
             }
         }
         
-        if (allBpms.length > 0) {
-            allBpms.sort((a, b) => a - b);
-            const medianBpm = allBpms[Math.floor(allBpms.length / 2)];
-            console.log(`Beat detection complete. Median BPM: ${medianBpm.toFixed(2)}`);
-            setDetectedBpm(Math.round(medianBpm));
-        } else {
-            console.log("No beats detected. Defaulting to 120 BPM.");
-            setDetectedBpm(120);
-        }
+        // Use the first detected onset as our "beat 1" reference point
+        const firstOnsetSample = onsets.length > 0 ? onsets[0] : 0;
+        const newFirstBeatOffset = firstOnsetSample / sampleRate;
+        setFirstBeatOffset(newFirstBeatOffset);
+        console.log(`[MediaContext] First beat offset detected at: ${newFirstBeatOffset.toFixed(3)}s`);
     };
 
     const loadMedia = useCallback(async (file) => {
         if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
-            console.error("Unsupported file type. Please upload an audio or video file.");
+            console.error("Unsupported file type.");
             return;
         }
 
         setIsLoading(true);
         setIsMediaReady(false);
+        if (wavesurferRef.current) {
+            wavesurferRef.current.destroy();
+        }
+
+        // Reset all media-related state
         setDetectedBpm(null);
         setAudioPeaks([]);
-        setMediaFile(file);
-
-        // Create a URL for the media file to be used by players
+        setFirstBeatOffset(0);
+        setDuration(0);
+        
         const blobUrl = URL.createObjectURL(file);
         setMediaUrl(blobUrl);
+        setMediaFile(file);
 
         try {
-            // The Web Audio API can decode the audio track from both audio and video files
             const audioContext = new AudioContext();
             const arrayBuffer = await file.arrayBuffer();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             
             setDuration(audioBuffer.duration);
 
-            // Use WaveSurfer to get peak data for the waveform visuals
-            const wavesurfer = WaveSurfer.create({ 
-                container: document.createElement('div'), // We don't need the visual element
-                url: blobUrl,
-                progressColor: '#555',
-                waveColor: '#ccc'
+            // Create a new wavesurfer instance for peak generation
+            const ws = WaveSurfer.create({ 
+                container: document.createElement('div'), 
+                url: blobUrl 
             });
-            
-            wavesurfer.on('ready', () => {
-                const peaks = wavesurfer.getDecodedData()?.getChannelData(0) || [];
-                setAudioPeaks(Array.from(peaks));
-                wavesurfer.destroy();
+            wavesurferRef.current = ws; // Store instance
+
+            ws.on('ready', () => {
+                const peaks = ws.getDecodedData()?.getChannelData(0) || [];
+                setAudioPeaks(Array.from(peaks)); // Store a copy of the peak data
                 
-                // Now that we have the waveform, run the beat detection
-                runBeatDetection(audioBuffer).finally(() => {
+                // Now that we have the waveform, run the intensive analysis
+                analyzeAudio(audioBuffer).finally(() => {
                     setIsMediaReady(true);
                     setIsLoading(false); // All processing is done
                 });
             });
 
-            wavesurfer.on('error', (e) => {
+            ws.on('error', (e) => {
                 console.error("Wavesurfer error:", e);
                 setIsLoading(false);
             });
@@ -106,10 +126,12 @@ export const MediaProvider = ({ children }) => {
         duration, 
         detectedBpm, 
         audioPeaks,
-        mediaFile, // Expose the file itself
-        mediaUrl   // Expose the playable URL
+        mediaFile,
+        mediaUrl,
+        firstBeatOffset, // Expose the new offset
+        wavesurferRef   // Expose the wavesurfer instance for playback control
     };
-
+    
     return (
         <MediaContext.Provider value={value}>
             {children}
