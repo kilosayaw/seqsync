@@ -3,33 +3,44 @@ import DeckJointList from './DeckJointList';
 import RotaryController from './RotaryController';
 import PerformancePad from './PerformancePad';
 import { useUIState } from '../context/UIStateContext';
-import { useSequence } from '../context/SequenceContext';
+import { usePlayback } from '../context/PlaybackContext';
+import { usePadMapping } from '../hooks/usePadMapping'; // Import the new hook
 import './Deck.css';
 
 const Deck = ({ side }) => {
-    // Correctly call hooks at the top level of the component
-    const { selectedBeat, setSelectedBeat, selectedBar } = useUIState();
-    const { getCurrentBarData } = useSequence();
+    const { selectedBeat, setSelectedBeat } = useUIState();
+    const { isPlaying } = usePlayback();
+    const { noteDivision, setNoteDivision } = useUIState();
 
-    // Get the data for the currently selected bar
-    const barData = getCurrentBarData(selectedBar);
-    
-    // Determine which slice of the bar data this deck is responsible for
-    // Slicing an empty array is safe and will just return an empty array
-    const padData = side === 'left' ? barData.slice(0, 8) : barData.slice(8, 16);
+    // The component's interface to the pads is now this clean hook
+    const { activePadIndex, seekToPad } = usePadMapping();
+
     const padOffset = side === 'left' ? 0 : 8;
+
+    const cycleOptions = [
+        { division: 16, label: '1/16' },
+        { division: 8, label: '1/8' },
+        { division: 4, label: '1/4' },
+    ];
+
+    const handleCycle = () => {
+        const currentIndex = cycleOptions.findIndex(opt => opt.division === noteDivision);
+        const nextIndex = (currentIndex + 1) % cycleOptions.length;
+        setNoteDivision(cycleOptions[nextIndex].division);
+    };
+
+    const currentCycleLabel = cycleOptions.find(opt => opt.division === noteDivision)?.label || '1/16';
 
     return (
         <div className={`deck deck-${side}`}>
-            {/* Top row containing the main interactive elements */}
             <div className="deck-interactive-row">
+                {/* ... existing interactive row JSX ... */}
                 {side === 'left' && (
                     <div className="side-panel-wrapper">
                         <div className="placeholder-v-slider">PITCH</div>
                     </div>
                 )}
                 {side === 'right' && <DeckJointList side="right" />}
-
                 <div className="deck-rotary-column">
                     <div className="deck-top-controls">
                         <div className="placeholder-pro-switch">Up/Down</div>
@@ -42,7 +53,6 @@ const Deck = ({ side }) => {
                         <div className="placeholder-side-button">Special</div>
                     </div>
                 </div>
-                
                 {side === 'left' && <DeckJointList side="left" />}
                 {side === 'right' && (
                     <div className="side-panel-wrapper">
@@ -51,28 +61,47 @@ const Deck = ({ side }) => {
                 )}
             </div>
 
-            {/* Bottom row containing the performance pads */}
             <div className="deck-pads-section">
                 <div className="option-buttons">
-                    <div className="placeholder-option-btn">Opt 1</div>
-                    <div className="placeholder-option-btn">Opt 2</div>
-                    <div className="placeholder-option-btn">Opt 3</div>
-                    <div className="placeholder-option-btn">Opt 4</div>
+                    {side === 'left' ? (
+                        <>
+                            <div className="control-wrapper">
+                                <div className="control-label">CYCLE</div>
+                                <button className="control-button" onClick={handleCycle}>
+                                    {currentCycleLabel}
+                                </button>
+                            </div>
+                            <div className="placeholder-option-btn">Opt 2</div>
+                            <div className="placeholder-option-btn">Opt 3</div>
+                            <div className="placeholder-option-btn">Opt 4</div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="placeholder-option-btn">Opt 1</div>
+                            <div className="placeholder-option-btn">Opt 2</div>
+                            <div className="placeholder-option-btn">Opt 3</div>
+                            <div className="placeholder-option-btn">Opt 4</div>
+                        </>
+                    )}
                 </div>
+
                 <div className="pads-grid">
-                    {/* Map over the 8 pads for this deck */}
                     {Array.from({ length: 8 }).map((_, index) => {
-                        const beatIndexInBar = padOffset + index;
-                        const beatDataForPad = padData[index]; // Use the sliced data
+                        const padIndex = padOffset + index;
                         return (
                             <PerformancePad 
-                                key={`pad-${side}-${index}`}
-                                beatData={beatDataForPad}
-                                beatNum={beatIndexInBar + 1}
-                                isSelected={selectedBeat === beatIndexInBar}
+                                key={`pad-${side}-${padIndex}`}
+                                beatNum={padIndex + 1}
+                                isSelected={selectedBeat === padIndex}
+                                isActive={isPlaying && activePadIndex === padIndex}
                                 onClick={() => {
-                                    console.log(`[Deck] Performance Pad ${beatIndexInBar + 1} clicked.`);
-                                    setSelectedBeat(beatIndexInBar);
+                                    // The hook provides the seek function directly
+                                    seekToPad(padIndex);
+                                    setSelectedBeat(padIndex);
+                                    if (!isPlaying) {
+                                       // Optional: If we want pads to trigger playback
+                                       // togglePlay();
+                                    }
                                 }}
                             />
                         );

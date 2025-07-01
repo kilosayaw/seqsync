@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import Aubio from 'aubiojs';
 
@@ -10,10 +10,11 @@ export const MediaProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [isMediaReady, setIsMediaReady] = useState(false);
     const [duration, setDuration] = useState(0);
-    const [detectedBpm, setDetectedBpm] = useState(null);
-    const [audioPeaks, setAudioPeaks] = useState([]);
+    const [detectedBpm, setDetectedBpm] = useState(120);
     const [mediaFile, setMediaFile] = useState(null);
-    const [mediaUrl, setMediaUrl] = useState(null); // This will hold the blob URL for the video player
+    const [mediaUrl, setMediaUrl] = useState(null);
+
+    const wavesurferRef = useRef(null);
 
     const runBeatDetection = async (audioBuffer) => {
         console.log("Starting beat detection...");
@@ -35,8 +36,16 @@ export const MediaProvider = ({ children }) => {
         
         if (allBpms.length > 0) {
             allBpms.sort((a, b) => a - b);
-            const medianBpm = allBpms[Math.floor(allBpms.length / 2)];
-            console.log(`Beat detection complete. Median BPM: ${medianBpm.toFixed(2)}`);
+            let medianBpm = allBpms[Math.floor(allBpms.length / 2)];
+            console.log(`Beat detection raw median BPM: ${medianBpm.toFixed(2)}`);
+
+            // --- PROACTIVE BPM SANITY CHECK ---
+            while (medianBpm < 60) {
+                medianBpm *= 2;
+                console.log(`BPM too low. Doubling to: ${medianBpm.toFixed(2)}`);
+            }
+            
+            console.log(`Beat detection complete. Final BPM: ${Math.round(medianBpm)}`);
             setDetectedBpm(Math.round(medianBpm));
         } else {
             console.log("No beats detected. Defaulting to 120 BPM.");
@@ -52,51 +61,43 @@ export const MediaProvider = ({ children }) => {
 
         setIsLoading(true);
         setIsMediaReady(false);
-        setDetectedBpm(null);
-        setAudioPeaks([]);
         setMediaFile(file);
 
-        // Create a URL for the media file to be used by players
         const blobUrl = URL.createObjectURL(file);
         setMediaUrl(blobUrl);
 
-        try {
-            // The Web Audio API can decode the audio track from both audio and video files
-            const audioContext = new AudioContext();
-            const arrayBuffer = await file.arrayBuffer();
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            
-            setDuration(audioBuffer.duration);
-
-            // Use WaveSurfer to get peak data for the waveform visuals
-            const wavesurfer = WaveSurfer.create({ 
-                container: document.createElement('div'), // We don't need the visual element
-                url: blobUrl,
-                progressColor: '#555',
-                waveColor: '#ccc'
-            });
-            
-            wavesurfer.on('ready', () => {
-                const peaks = wavesurfer.getDecodedData()?.getChannelData(0) || [];
-                setAudioPeaks(Array.from(peaks));
-                wavesurfer.destroy();
-                
-                // Now that we have the waveform, run the beat detection
-                runBeatDetection(audioBuffer).finally(() => {
-                    setIsMediaReady(true);
-                    setIsLoading(false); // All processing is done
-                });
-            });
-
-            wavesurfer.on('error', (e) => {
-                console.error("Wavesurfer error:", e);
-                setIsLoading(false);
-            });
-
-        } catch (error) {
-            console.error("Error processing media file:", error);
+        if (!wavesurferRef.current) {
+            console.error("WaveSurfer instance is not available. Cannot load media.");
             setIsLoading(false);
+            return;
         }
+        
+        // Wrap WaveSurfer loading in a promise to handle ready/error states gracefully
+        return new Promise((resolve, reject) => {
+            const subscriptions = [
+                wavesurferRef.current.on('ready', async (durationValue) => {
+                    try {
+                        const audioBuffer = wavesurferRef.current.getDecodedData();
+                        setDuration(durationValue);
+                        await runBeatDetection(audioBuffer);
+                        setIsMediaReady(true);
+                        setIsLoading(false);
+                        subscriptions.forEach(unsub => unsub());
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    }
+                }),
+                wavesurferRef.current.on('error', (e) => {
+                    console.error("Error loading media into WaveSurfer:", e);
+                    setIsLoading(false);
+                    subscriptions.forEach(unsub => unsub());
+                    reject(e);
+                })
+            ];
+            wavesurferRef.current.load(blobUrl);
+        });
+
     }, []);
 
     const value = { 
@@ -104,10 +105,11 @@ export const MediaProvider = ({ children }) => {
         loadMedia, 
         isMediaReady, 
         duration, 
-        detectedBpm, 
-        audioPeaks,
-        mediaFile, // Expose the file itself
-        mediaUrl   // Expose the playable URL
+        detectedBpm,
+        setDetectedBpm,
+        mediaFile,
+        mediaUrl,
+        wavesurferRef
     };
 
     return (
