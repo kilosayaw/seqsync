@@ -4,43 +4,44 @@ import RotaryController from './RotaryController';
 import PerformancePad from './PerformancePad';
 import { useUIState } from '../context/UIStateContext';
 import { usePlayback } from '../context/PlaybackContext';
-import { usePadMapping } from '../hooks/usePadMapping'; // Import the new hook
+import { usePadMapping } from '../hooks/usePadMapping';
 import './Deck.css';
 
 const Deck = ({ side }) => {
-    const { selectedBeat, setSelectedBeat } = useUIState();
+    const { selectedBeat, setSelectedBeat, noteDivision, setNoteDivision, padPlayMode, setPadPlayMode } = useUIState();
     const { isPlaying } = usePlayback();
-    const { noteDivision, setNoteDivision } = useUIState();
-
-    // The component's interface to the pads is now this clean hook
-    const { activePadIndex, seekToPad } = usePadMapping();
+    const { activePadIndex, handlePadDown, handlePadUp } = usePadMapping();
 
     const padOffset = side === 'left' ? 0 : 8;
 
-    const cycleOptions = [
-        { division: 16, label: '1/16' },
-        { division: 8, label: '1/8' },
-        { division: 4, label: '1/4' },
-    ];
+    const cycleOptions = [ { division: 16, label: '1/16' }, { division: 8, label: '1/8' }, { division: 4, label: '1/4' } ];
+    const currentCycleLabel = cycleOptions.find(opt => opt.division === noteDivision)?.label || '1/16';
 
     const handleCycle = () => {
         const currentIndex = cycleOptions.findIndex(opt => opt.division === noteDivision);
         const nextIndex = (currentIndex + 1) % cycleOptions.length;
-        setNoteDivision(cycleOptions[nextIndex].division);
+        const newDivision = cycleOptions[nextIndex];
+        console.log(`[Control] Cycle changed to ${newDivision.label}`);
+        setNoteDivision(newDivision.division);
     };
-
-    const currentCycleLabel = cycleOptions.find(opt => opt.division === noteDivision)?.label || '1/16';
+    
+    const handlePlayModeToggle = () => {
+        const newMode = padPlayMode === 'TRIGGER' ? 'GATE' : 'TRIGGER';
+        console.log(`[Control] Play Mode changed to ${newMode}`);
+        setPadPlayMode(newMode);
+    };
 
     return (
         <div className={`deck deck-${side}`}>
+            {/* === RESTORED VISUAL STRUCTURE === */}
             <div className="deck-interactive-row">
-                {/* ... existing interactive row JSX ... */}
                 {side === 'left' && (
                     <div className="side-panel-wrapper">
                         <div className="placeholder-v-slider">PITCH</div>
                     </div>
                 )}
                 {side === 'right' && <DeckJointList side="right" />}
+
                 <div className="deck-rotary-column">
                     <div className="deck-top-controls">
                         <div className="placeholder-pro-switch">Up/Down</div>
@@ -53,6 +54,7 @@ const Deck = ({ side }) => {
                         <div className="placeholder-side-button">Special</div>
                     </div>
                 </div>
+                
                 {side === 'left' && <DeckJointList side="left" />}
                 {side === 'right' && (
                     <div className="side-panel-wrapper">
@@ -60,6 +62,7 @@ const Deck = ({ side }) => {
                     </div>
                 )}
             </div>
+            {/* === END RESTORED STRUCTURE === */}
 
             <div className="deck-pads-section">
                 <div className="option-buttons">
@@ -71,7 +74,12 @@ const Deck = ({ side }) => {
                                     {currentCycleLabel}
                                 </button>
                             </div>
-                            <div className="placeholder-option-btn">Opt 2</div>
+                            <div className="control-wrapper">
+                                <div className="control-label">PLAY MODE</div>
+                                <button className="control-button" onClick={handlePlayModeToggle}>
+                                    {padPlayMode}
+                                </button>
+                            </div>
                             <div className="placeholder-option-btn">Opt 3</div>
                             <div className="placeholder-option-btn">Opt 4</div>
                         </>
@@ -94,14 +102,12 @@ const Deck = ({ side }) => {
                                 beatNum={padIndex + 1}
                                 isSelected={selectedBeat === padIndex}
                                 isActive={isPlaying && activePadIndex === padIndex}
-                                onClick={() => {
-                                    // The hook provides the seek function directly
-                                    seekToPad(padIndex);
+                                onMouseDown={() => {
                                     setSelectedBeat(padIndex);
-                                    if (!isPlaying) {
-                                       // Optional: If we want pads to trigger playback
-                                       // togglePlay();
-                                    }
+                                    handlePadDown(padIndex);
+                                }}
+                                onMouseUp={() => {
+                                    handlePadUp();
                                 }}
                             />
                         );

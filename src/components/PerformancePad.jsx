@@ -2,19 +2,25 @@ import React from 'react';
 import PoseThumbnail from './PoseThumbnail';
 import './PerformancePad.css';
 
-const PerformancePad = ({ beatData, beatNum, isSelected, isActive, isDisabled, onClick }) => {
+const PerformancePad = ({ beatData, beatNum, isSelected, isActive, isDisabled, onMouseDown, onMouseUp }) => {
     
     const getPadClasses = () => {
         let classes = 'performance-pad';
         if (isSelected) classes += ' selected';
-        if (isActive) classes += ' active'; // Add active class for playhead
-        if (isDisabled) classes += ' disabled'; // Add disabled class
+        if (isActive) classes += ' active';
+        if (isDisabled) classes += ' disabled';
         if (beatData?.poseData) classes += ' has-data';
         return classes;
     };
 
     return (
-        <button className={getPadClasses()} onClick={onClick} disabled={isDisabled}>
+        <button 
+            className={getPadClasses()} 
+            onMouseDown={onMouseDown}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseUp} // Stop playing if mouse leaves while held down
+            disabled={isDisabled}
+        >
             {beatData?.poseData ? (
                 <PoseThumbnail poseData={beatData.poseData} />
             ) : (

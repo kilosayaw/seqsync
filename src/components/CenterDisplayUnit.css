@@ -91,3 +91,17 @@
     50% { background-color: var(--color-dark-surface-3); }
     100% { background-color: #4d2828; }
 }
+
+.master-clock-display {
+    background-color: #000;
+    border: 2px solid #333;
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-family: 'Digital Play', 'Roboto Mono', monospace;
+    color: var(--color-accent-secondary);
+    font-size: 1.8rem;
+    text-align: center;
+    line-height: 1.2;
+    text-shadow: 0 0 5px var(--color-accent-secondary);
+    margin: var(--spacing-xs) 0;
+}

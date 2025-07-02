@@ -1,23 +1,22 @@
 import React from 'react';
 import Deck from './Deck';
 import CenterConsole from './CenterConsole';
-import WaveformNavigator from './WaveformNavigator'; // Use the new interactive navigator
+import WaveformNavigator from './WaveformNavigator';
 import NotationDisplay from './NotationDisplay';
 import TopNavBar from './TopNavBar';
 import PoseEditorModal from './PoseEditorModal';
 import { useUIState } from '../context/UIStateContext';
+import { useKeyboardControls } from '../hooks/useKeyboardControls';
 import './ProLayout.css';
 
 const ProLayout = () => {
     const { isPoseEditorOpen } = useUIState();
+    useKeyboardControls();
 
     return (
         <div className="pro-layout-container">
             <TopNavBar />
-            
-            {/* KEY CHANGE: The old MasterSequencer is replaced with the new WaveformNavigator */}
             <WaveformNavigator />
-
             <NotationDisplay />
             
             <div className="main-content-area">
@@ -26,7 +25,6 @@ const ProLayout = () => {
                 <Deck side="right" />
             </div>
             
-            {/* The PoseEditorModal is still here and will work as intended */}
             {isPoseEditorOpen && <PoseEditorModal />}
         </div>
     );

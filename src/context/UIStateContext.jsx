@@ -5,12 +5,11 @@ export const useUIState = () => useContext(UIStateContext);
 
 export const UIStateProvider = ({ children }) => {
   const [selectedBar, setSelectedBar] = useState(1);
-  const [selectedBeat, setSelectedBeat] = useState(null); // This is the selected pad index (0-15)
+  const [selectedBeat, setSelectedBeat] = useState(null);
   const [selectedJoint, setSelectedJoint] = useState(null);
   const [isLiveFeed, setIsLiveFeed] = useState(true);
-  
-  // NEW: State for the Note Division. Values are the number of steps per bar (16, 8, 4).
-  const [noteDivision, setNoteDivision] = useState(16); 
+  const [noteDivision, setNoteDivision] = useState(16);
+  const [padPlayMode, setPadPlayMode] = useState('TRIGGER');
   
   const [isPoseEditorOpen, setIsPoseEditorOpen] = useState(false);
   const [beatToEdit, setBeatToEdit] = useState(null);
@@ -20,7 +19,8 @@ export const UIStateProvider = ({ children }) => {
     selectedBeat, setSelectedBeat,
     selectedJoint, setSelectedJoint,
     isLiveFeed, setIsLiveFeed,
-    noteDivision, setNoteDivision, // Expose the new state and setter
+    noteDivision, setNoteDivision,
+    padPlayMode, setPadPlayMode,
     isPoseEditorOpen, setIsPoseEditorOpen,
     beatToEdit, setBeatToEdit,
   };

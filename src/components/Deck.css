@@ -182,3 +182,30 @@
 .control-button:hover {
     background-color: var(--color-dark-surface-2);
 }
+
+.latency-control-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--color-dark-surface-3);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--color-border);
+    height: 35px;
+    padding: 0 var(--spacing-xs);
+}
+.latency-control-group span {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: var(--color-text-primary);
+}
+.latency-control-group button {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+}
+.latency-control-group button:hover {
+    color: var(--color-accent-secondary);
+}
