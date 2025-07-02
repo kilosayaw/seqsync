@@ -5,8 +5,8 @@ export const useUIState = () => useContext(UIStateContext);
 
 export const UIStateProvider = ({ children }) => {
   const [selectedBar, setSelectedBar] = useState(1);
-  const [selectedBeat, setSelectedBeat] = useState(null);
-  const [selectedJoint, setSelectedJoint] = useState(null);
+  const [selectedBeat, setSelectedBeat] = useState(0); // Default to first beat
+  const [selectedJoint, setSelectedJoint] = useState('LF'); // Default to Left Foot
   const [isLiveFeed, setIsLiveFeed] = useState(true);
   const [noteDivision, setNoteDivision] = useState(16);
   const [padPlayMode, setPadPlayMode] = useState('TRIGGER');
@@ -17,7 +17,7 @@ export const UIStateProvider = ({ children }) => {
   const value = {
     selectedBar, setSelectedBar,
     selectedBeat, setSelectedBeat,
-    selectedJoint, setSelectedJoint,
+    selectedJoint, setSelectedJoint, // Expose selected joint
     isLiveFeed, setIsLiveFeed,
     noteDivision, setNoteDivision,
     padPlayMode, setPadPlayMode,

@@ -7,10 +7,11 @@ const DeckJointList = ({ side }) => {
     const { selectedJoint, setSelectedJoint } = useUIState();
 
     const handleJointSelect = (jointId) => {
-        console.log(`[DeckJointList] Joint '${jointId}' selected on '${side}' side.`);
+        console.log(`[DeckJointList] Joint '${jointId}' selected.`);
         setSelectedJoint(jointId);
     };
 
+    // Filter joints for the appropriate side (L/R)
     const panelJoints = JOINT_LIST.filter(j => 
         (side === 'left' && j.id.startsWith('L')) || 
         (side === 'right' && j.id.startsWith('R'))

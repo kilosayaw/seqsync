@@ -1,76 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRotaryDrag } from '../hooks/useRotaryDrag';
-import { useSequence } from '../context/SequenceContext';
+import { useGroundingJoystick } from '../hooks/useGroundingJoystick';
 import { useUIState } from '../context/UIStateContext';
-import { GROUNDING_STATES } from '../utils/constants';
+import { useSequence } from '../context/SequenceContext';
+import { FOOT_NOTATION_MAP } from '../utils/constants';
+import RotarySVG from './RotarySVG';
 import './RotaryController.css';
 
 const RotaryController = ({ side }) => {
-    const { songData, updateRotaryState } = useSequence();
-    const { selectedBeat } = useUIState();
+    const { selectedBar, selectedBeat } = useUIState();
+    const { songData, updateJointData } = useSequence();
 
-    const defaultGrounding = side === 'left' ? 'L_FULL' : 'R_FULL';
+    const globalIndex = selectedBeat !== null ? ((selectedBar - 1) * 16) + selectedBeat : -1;
+    const jointId = side === 'left' ? 'LF' : 'RF';
+    const currentJointData = globalIndex !== -1 ? songData[globalIndex]?.joints[jointId] : null;
 
-    // Local state for immediate visual feedback
-    const [angle, setAngle] = useState(0);
-    const [grounding, setGrounding] = useState(defaultGrounding);
-
-    // --- DRAG LOGIC ---
-    const handleDragEnd = (finalAngle) => {
-        if (selectedBeat !== null) {
-            updateRotaryState(selectedBeat, side, { angle: finalAngle });
+    // Hook for the rotation logic
+    const { angle, setAngle, handleMouseDown: handleWheelMouseDown } = useRotaryDrag(finalAngle => {
+        if (globalIndex !== -1) {
+            updateJointData(globalIndex, jointId, { angle: finalAngle });
         }
-    };
-    const { nodeRef, handleMouseDown } = useRotaryDrag(handleDragEnd, setAngle);
+    });
 
-    // --- EFFECT TO LOAD DATA FROM CONTEXT (STABLE VERSION) ---
-    // This effect is now stable because it only depends on the specific beat's data.
-    const beatState = songData[selectedBeat]?.rotary?.[side];
+    // Hook for the grounding joystick logic
+    const { joystickRef, liveNotation, handleInteractionStart, handleInteractionMove, handleInteractionEnd } = useGroundingJoystick(side);
+    
+    const [savedNotation, setSavedNotation] = useState(side === 'left' ? 'LF123T12345' : 'RF123T12345');
+
     useEffect(() => {
-        if (beatState) {
-            setAngle(beatState.angle || 0);
-            setGrounding(beatState.grounding || defaultGrounding);
-        } else {
-            setAngle(0);
-            setGrounding(defaultGrounding);
+        if (currentJointData) {
+            setAngle(currentJointData.angle || 0);
+            setSavedNotation(currentJointData.grounding || (side === 'left' ? 'LF123T12345' : 'RF123T12345'));
         }
-    }, [beatState]); // The dependency is now a specific object, breaking the loop.
+    }, [currentJointData, side, setAngle]);
 
-    // --- DIRECT EVENT HANDLERS ---
-    const handleGroundingChange = (newGrounding) => {
-        setGrounding(newGrounding);
-        if (selectedBeat !== null) {
-            updateRotaryState(selectedBeat, side, { grounding: newGrounding });
-        }
-    };
-
-    const groundingImagePath = GROUNDING_STATES[grounding] || GROUNDING_STATES[defaultGrounding];
-
+    const displayNotation = liveNotation || savedNotation;
+    
+    const baseFootKey = side === 'left' ? 'L_BASE_FOOT' : 'R_BASE_FOOT';
+    const baseFootPath = FOOT_NOTATION_MAP[baseFootKey]?.path;
+    const contactPointPath = FOOT_NOTATION_MAP[displayNotation]?.path;
+    
     return (
         <div className="rotary-controller-container">
-            <div className="rotary-static-background"></div>
-            
-            {/* The main rotating wheel. Everything that spins goes inside. */}
-            <div 
-                className="rotary-wheel" 
-                ref={nodeRef} 
-                onMouseDown={handleMouseDown} 
-                style={{ transform: `rotate(${angle}deg)` }}
-            >
-                 <img src="/ground/foot-wheel.png" alt="Rotary Rim" className="rotary-rim-img" />
-                 
-                 {/* The foot image is NOW INSIDE the rotating wheel */}
-                 <img src={groundingImagePath} alt={grounding} className="foot-img" />
-                
-                 {/* The interactive SVG is ALSO INSIDE the rotating wheel */}
-                 <svg className="interaction-overlay" viewBox="0 0 100 100">
-                    <rect x="20" y="10" width="60" height="50" className="zone" onMouseEnter={() => handleGroundingChange(side === 'left' ? 'L_HEEL_UP' : 'R_HEEL_UP')} />
-                    <rect x="20" y="60" width="60" height="30" className="zone" onMouseEnter={() => handleGroundingChange(side === 'left' ? 'L_HEEL' : 'R_HEEL')} />
-                    <rect width="100" height="100" fill="transparent" onMouseLeave={() => handleGroundingChange(defaultGrounding)} />
-                 </svg>
-            </div>
-            
-            <div className="active-zone-display">{grounding}</div>
+            <RotarySVG
+                angle={angle}
+                baseFootPath={baseFootPath}
+                contactPointPath={contactPointPath}
+                joystickRef={joystickRef}
+                handleInteractionStart={handleInteractionStart} // Pass the handler
+                handleInteractionMove={handleInteractionMove}
+                handleInteractionEnd={() => handleInteractionEnd(selectedBar, selectedBeat)}
+                handleWheelMouseDown={handleWheelMouseDown} // Pass the handler
+            />
         </div>
     );
 };

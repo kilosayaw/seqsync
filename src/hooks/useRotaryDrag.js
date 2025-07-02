@@ -1,46 +1,48 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
-export const useRotaryDrag = (onDragEnd) => { // Accept a callback
+export const useRotaryDrag = (onDragEnd) => {
   const [angle, setAngle] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const nodeRef = useRef(null);
-  
-  // This function is for live visual updates during the drag
+  const centerRef = useRef({ x: 0, y: 0 });
+
   const handleMouseMove = useCallback((e) => {
-    if (!isDragging || !nodeRef.current) return;
-    const rect = nodeRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const dx = e.clientX - centerX;
-    const dy = e.clientY - centerY;
+    if (!isDragging) return;
+    const dx = e.clientX - centerRef.current.x;
+    const dy = e.clientY - centerRef.current.y;
     const rad = Math.atan2(dy, dx);
-    let deg = rad * (180 / Math.PI);
+    const deg = rad * (180 / Math.PI);
     setAngle(deg + 90);
   }, [isDragging]);
 
   const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    // NEW: When the drag ends, call the provided callback with the final angle.
-    if (onDragEnd) {
-        // We capture the final angle using a functional update to ensure we have the latest value
+    if (isDragging) {
+      setIsDragging(false);
+      if (onDragEnd) {
         setAngle(currentAngle => {
             onDragEnd(currentAngle);
             return currentAngle;
         });
+      }
     }
-  }, [onDragEnd]);
+  }, [isDragging, onDragEnd]);
   
-  const handleMouseDown = useCallback(() => {
+  const handleMouseDown = useCallback((e) => {
+    // Stop event propagation to prevent joystick from firing
+    e.stopPropagation(); 
+    
     setIsDragging(true);
+    // Find the absolute center of the SVG viewport to calculate angle from
+    const rect = e.currentTarget.ownerSVGElement.getBoundingClientRect();
+    centerRef.current = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
   }, []);
 
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
-    } else {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
     }
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
@@ -48,5 +50,5 @@ export const useRotaryDrag = (onDragEnd) => { // Accept a callback
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  return { angle, setAngle, nodeRef, handleMouseDown }; // Expose setAngle for initial state
+  return { angle, setAngle, handleMouseDown };
 };

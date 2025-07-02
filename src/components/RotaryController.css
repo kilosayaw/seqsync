@@ -2,77 +2,14 @@
   width: 100%;
   height: 100%;
   aspect-ratio: 1;
-  max-width: 350px;
-  max-height: 350px;
-  position: relative;
+  /* This value MUST match the 'svgSize' variable in RotarySVG.jsx */
+  max-width: 550px;
+  max-height: 550px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.rotary-static-background {
-    position: absolute;
-    width: 85%;
-    height: 85%;
-    border-radius: 50%;
-    background-color: #111;
-    z-index: 1;
-}
-
-.rotary-wheel {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  cursor: grab;
-  z-index: 10;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.rotary-wheel:active {
-  cursor: grabbing;
-}
-
-.rotary-rim-img {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  z-index: 12;
-  pointer-events: none; 
-}
-
-.foot-img {
-  position: absolute;
-  width: 85%;
-  height: 85%;
-  object-fit: contain;
-  z-index: 15;
-  pointer-events: none;
-}
-
-.interaction-overlay {
-    position: absolute;
-    width: 85%;
-    height: 85%;
-    z-index: 20;
-}
-
-.interaction-overlay .zone {
-    fill: transparent;
-    cursor: pointer;
-}
-
-.active-zone-display {
-  position: absolute;
-  bottom: 10px;
-  color: var(--color-accent-secondary);
-  background-color: rgba(0,0,0,0.7);
-  padding: 4px 8px;
-  border-radius: 4px;
-  z-index: 25;
-  font-size: 1rem;
-  font-weight: bold;
+.rotary-svg-container .base-foot-img {
+    opacity: 0.8; /* Make base foot slightly transparent */
 }

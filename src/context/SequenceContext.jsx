@@ -1,12 +1,30 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { JOINT_LIST } from '../utils/constants';
 
 const SequenceContext = createContext(null);
 export const useSequence = () => useContext(SequenceContext);
 
-const createBeatData = (bar, beat) => ({
-    bar, beat, poseData: null, waveform: null,
-    rotary: { left: { angle: 0, grounding: null }, right: { angle: 0, grounding: null } },
-});
+// The new data structure, directly reflecting our notation system.
+const createBeatData = (bar, beat) => {
+    const joints = {};
+    // For every beat, create a default state for every joint in our system.
+    JOINT_LIST.forEach(joint => {
+        joints[joint.id] = {
+            rotation: 'NEU',      // 'IN', 'OUT', 'NEU'
+            angle: 0,             // e.g., 20 for +20R
+            position: 'EXT',      // 'FLEX', 'EXT'
+            flexion: 0,           // e.g., 90 for @ 90 FLEX
+            grounding: null,      // e.g., 'LF12', 'RF3' - only used by LF/RF
+            directionalMove: null,// e.g., '/>', 'v'
+            transition: null,     // e.g., '/*'
+        };
+    });
+    // Set a default grounding state for the feet
+    if (joints['LF']) joints['LF'].grounding = 'LF123T12345';
+    if (joints['RF']) joints['RF'].grounding = 'RF123T12345';
+    
+    return { bar, beat, joints };
+};
 
 const createDefaultSequence = () => Array.from({ length: 16 }, (_, i) => createBeatData(1, i));
 
@@ -17,7 +35,6 @@ export const SequenceProvider = ({ children }) => {
 
     const STEPS_PER_BAR = 16;
 
-    // === THIS FUNCTION DEFINITION WAS MISSING AND IS NOW RESTORED ===
     const initializeSequenceFromBpm = useCallback((trackDuration, bpm) => {
         if (!trackDuration || !bpm || bpm <= 0) {
             setSongData(createDefaultSequence());
@@ -51,7 +68,6 @@ export const SequenceProvider = ({ children }) => {
         setTotalBars(calculatedTotalBars);
     }, []);
 
-    // === THIS FUNCTION DEFINITION WAS MISSING AND IS NOW RESTORED ===
     const getCurrentBarData = useCallback((selectedBar) => {
         const startIndex = (selectedBar - 1) * STEPS_PER_BAR;
         if (startIndex >= songData.length) return [];
@@ -59,42 +75,36 @@ export const SequenceProvider = ({ children }) => {
         return songData.slice(startIndex, endIndex);
     }, [songData]);
 
-
-    const updateBeatData = useCallback((globalBeatIndex, newBeatData) => {
+    // This is the NEW and ONLY function for modifying sequence data.
+    // It is precise, allowing us to change specific properties of a single joint on a single beat.
+    const updateJointData = useCallback((globalBeatIndex, jointId, jointDataUpdate) => {
         setSongData(prevData => {
             const newData = [...prevData];
-            if (newData[globalBeatIndex]) {
-                newData[globalBeatIndex] = { ...newData[globalBeatIndex], ...newBeatData };
-            }
-            return newData;
-        });
-    }, []);
+            const beatData = newData[globalBeatIndex];
 
-    const updateRotaryState = useCallback((globalBeatIndex, side, newRotaryState) => {
-        setSongData(prevData => {
-            const newData = [...prevData];
-            if (newData[globalBeatIndex]) {
-                const existingRotary = newData[globalBeatIndex].rotary || { left: {}, right: {} };
-                newData[globalBeatIndex] = {
-                    ...newData[globalBeatIndex],
-                    rotary: {
-                        ...existingRotary,
-                        [side]: { ...existingRotary[side], ...newRotaryState },
-                    },
+            if (beatData && beatData.joints && beatData.joints[jointId]) {
+                // Use spread syntax to merge the update with the existing data for that joint
+                beatData.joints[jointId] = {
+                    ...beatData.joints[jointId],
+                    ...jointDataUpdate,
                 };
+            } else {
+                console.warn(`[SequenceContext] Could not update joint data. Beat or Joint not found at index ${globalBeatIndex}, jointId ${jointId}`);
             }
             return newData;
         });
+        console.log(`[SequenceContext] Updated Joint '${jointId}' at index ${globalBeatIndex}`, jointDataUpdate);
     }, []);
 
+    // The 'value' object provided to the rest of the app.
+    // The old, confusing functions have been removed.
     const value = { 
         songData, 
         totalBars, 
         initializeSequenceFromBpm, 
         getCurrentBarData, 
-        updateBeatData,
         barStartTimes,
-        updateRotaryState
+        updateJointData, // This is the new, primary mutation function
     };
     
     return <SequenceContext.Provider value={value}>{children}</SequenceContext.Provider>;

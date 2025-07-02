@@ -1,10 +1,11 @@
 import React from 'react';
 import { useUIState } from '../context/UIStateContext';
 import { useSequence } from '../context/SequenceContext';
+import { formatNotationShorthand } from '../utils/notationUtils'; // Import the new utility
 import './NotationDisplay.css';
 
 const NotationDisplay = () => {
-    const { selectedBeat, selectedBar } = useUIState();
+    const { selectedBeat, selectedBar, selectedJoint } = useUIState();
     const { songData } = useSequence();
 
     const getGlobalBeatIndex = () => {
@@ -15,17 +16,12 @@ const NotationDisplay = () => {
     const globalIndex = getGlobalBeatIndex();
     const currentBeatData = globalIndex !== null ? songData[globalIndex] : null;
 
-    const getShorthand = () => {
-        if (!currentBeatData) return '----';
-        const pose = currentBeatData.poseData;
-        if (!pose || Object.keys(pose).length === 0) return 'EMPTY';
-        return `POSE @ B${selectedBar}:${selectedBeat + 1}`;
-    };
+    const shorthand = formatNotationShorthand(currentBeatData, selectedJoint);
 
     return (
         <div className="notation-display-compact">
             <span className="notation-label">poSĒQr™:</span>
-            <span className="notation-content">{getShorthand()}</span>
+            <span className="notation-content">{shorthand}</span>
         </div>
     );
 };
