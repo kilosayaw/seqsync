@@ -1,0 +1,22 @@
+.camera-feed-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background-color: #000; /* Add black background for letterboxing */
+}
+
+.webcam-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; 
+}
+
+/* Add to end of CameraFeed.css */
+.video-player {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}

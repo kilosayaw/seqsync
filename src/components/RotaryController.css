@@ -1,0 +1,39 @@
+/* src/components/RotaryController.css */
+.rotary-controller-container {
+  position: relative;
+}
+.rotary-svg-container .rotary-grab-area {
+    cursor: grab;
+}
+.rotary-svg-container.disabled .rotary-grab-area {
+    cursor: not-allowed;
+}
+
+/* Base style for all contact points */
+.contact-point-img {
+    pointer-events: all; /* Make sure the images themselves are clickable */
+    cursor: pointer;
+    transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+/* Inactive points are faint grey */
+.contact-point-img.inactive {
+    opacity: 0.15;
+    filter: grayscale(100%) brightness(0.8);
+}
+.contact-point-img.inactive:hover {
+    opacity: 0.5;
+}
+
+/* Active points are bright green */
+.contact-point-img.active {
+    opacity: 1;
+    filter: drop-shadow(0 0 10px #00ffaa) hue-rotate(45deg) saturate(2);
+}
+
+/* When the whole wheel is disabled (ungrounded) */
+.rotary-svg-container.disabled .contact-point-img {
+    opacity: 0.1;
+    filter: grayscale(80%);
+    cursor: pointer; /* IMPORTANT: Still allow clicks to re-enable */
+}
