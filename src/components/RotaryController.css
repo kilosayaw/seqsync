@@ -1,39 +1,64 @@
-/* src/components/RotaryController.css */
 .rotary-controller-container {
-  position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
 }
-.rotary-svg-container .rotary-grab-area {
+
+/* --- Base Foot Template Styling --- */
+/* Visual Layer 1: Faint, grey, non-interactive visual guide. */
+.base-foot-template {
+    opacity: 0.15;
+    filter: grayscale(100%) brightness(1.5);
+    pointer-events: none; /* Ensures it doesn't interfere with clicks */
+}
+
+/* --- Hotspot Indicator Styling --- */
+/* Visual Layer 2: The glowing green circles. */
+.hotspot-indicator.active {
+    fill: hsl(120, 100%, 50%);
+    stroke: hsl(120, 100%, 75%);
+    stroke-width: 2px;
+    /* The specified "glow" effect */
+    filter: drop-shadow(0 0 5px hsl(120, 100%, 50%)) drop-shadow(0 0 10px hsl(120, 100%, 50%));
+    opacity: 0.8;
+    transition: opacity 0.1s ease-in-out, fill 0.1s ease-in-out;
+}
+
+.hotspot-indicator.inactive {
+    fill: transparent;
+    stroke: none;
+    opacity: 0;
+}
+
+/* --- Interaction Styling --- */
+.hotspot-clickable-area {
+    /* The invisible, larger area that intercepts clicks. */
+    cursor: pointer;
+}
+
+.rotary-grab-area {
     cursor: grab;
 }
+
+.rotary-grab-area:active {
+    cursor: grabbing;
+}
+
+/* --- Disabled State --- */
+.rotary-svg-container.disabled .base-foot-template {
+    opacity: 0.05;
+}
+
 .rotary-svg-container.disabled .rotary-grab-area {
     cursor: not-allowed;
 }
 
-/* Base style for all contact points */
-.contact-point-img {
-    pointer-events: all; /* Make sure the images themselves are clickable */
-    cursor: pointer;
-    transition: opacity 0.2s ease, filter 0.2s ease;
+.rotary-svg-container.disabled .hotspot-clickable-area {
+    cursor: default; /* Clicks are not allowed, so don't show pointer */
 }
 
-/* Inactive points are faint grey */
-.contact-point-img.inactive {
-    opacity: 0.15;
-    filter: grayscale(100%) brightness(0.8);
-}
-.contact-point-img.inactive:hover {
-    opacity: 0.5;
-}
-
-/* Active points are bright green */
-.contact-point-img.active {
-    opacity: 1;
-    filter: drop-shadow(0 0 10px #00ffaa) hue-rotate(45deg) saturate(2);
-}
-
-/* When the whole wheel is disabled (ungrounded) */
-.rotary-svg-container.disabled .contact-point-img {
-    opacity: 0.1;
-    filter: grayscale(80%);
-    cursor: pointer; /* IMPORTANT: Still allow clicks to re-enable */
+.rotary-svg-container.disabled .hotspot-indicator.active {
+    opacity: 0.3; /* Dim the active points when disabled */
+    filter: none; /* Remove glow when disabled */
 }
