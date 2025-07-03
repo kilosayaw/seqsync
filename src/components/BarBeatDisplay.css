@@ -1,0 +1,22 @@
+.bar-beat-display-container {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr;
+    gap: var(--spacing-sm);
+    font-family: var(--font-digital, monospace);
+    color: var(--color-accent-primary);
+}
+.readout-box {
+    background: var(--color-dark-bg);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-xs);
+    text-align: center;
+}
+.bar-display, .beat-display {
+    font-size: 2.5rem;
+}
+.time-display {
+    font-size: 1.3rem; /* REDUCED size to prevent overflow */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

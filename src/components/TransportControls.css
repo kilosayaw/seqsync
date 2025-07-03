@@ -1,0 +1,14 @@
+/* This is the CSS you provided, which styles your component. */
+.transport-wrapper-compact { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.file-controls-row, .bar-nav-compact, .main-controls-grid { display: flex; gap: var(--spacing-sm); }
+.file-controls-row .transport-btn-file { flex: 1; display: flex; align-items: center; justify-content: center; gap: var(--spacing-sm); background: var(--color-dark-surface-2); border: 1px solid var(--color-border); color: var(--color-text-secondary); padding: var(--spacing-xs); border-radius: var(--border-radius-sm); font-size: 0.8rem; }
+.live-toggle.active { background: #e63946; color: white; }
+.bar-nav-compact { align-items: center; }
+.bar-display-compact { flex-grow: 1; text-align: center; background: var(--color-dark-bg); padding: var(--spacing-xs); border-radius: var(--border-radius-sm); font-family: var(--font-digital, monospace); color: var(--color-accent-secondary); }
+.transport-btn-arrow { padding: var(--spacing-xs); background: var(--color-dark-surface-2); border: 1px solid var(--color-border); border-radius: var(--border-radius-sm); }
+.main-controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm); }
+.bpm-tap-group, .rec-play-group { display: flex; gap: var(--spacing-xs); }
+.digital-bpm-display { flex-grow: 1; background: var(--color-dark-bg); color: var(--color-accent-primary); font-family: var(--font-digital, monospace); font-size: 2rem; display: flex; justify-content: center; align-items: center; border-radius: var(--border-radius-sm); }
+.tap-btn, .rec-play-btn { flex-basis: 50px; background: var(--color-dark-surface-2); border: 1px solid var(--color-border); border-radius: var(--border-radius-sm); color: var(--color-text-secondary); font-weight: bold; }
+.rec-play-btn { font-size: 1.2rem; }
+.record-btn.active { background: #e63946; color: white; }

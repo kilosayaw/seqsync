@@ -1,23 +1,14 @@
-/* ADD to PerformancePad.css */
-
-.performance-pad.active {
-    background-color: var(--color-accent-primary);
-    border-color: var(--color-accent-primary);
-    box-shadow: 0 0 10px var(--color-accent-primary);
-}
-.performance-pad.active .pad-number {
-    color: var(--color-dark-bg);
-}
-.performance-pad.disabled {
-    background-color: #2a2a2c;
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-.performance-pad.disabled:hover {
-    background-color: #2a2a2c;
+/* ADD THIS NEW CLASS to your PerformancePad.css */
+.pad-preset-name {
+    font-size: 0.9rem;
+    font-weight: normal;
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 var(--spacing-xs);
+    pointer-events: none;
 }
 
-/* Existing .performance-pad css */
+/* --- Existing Styles Below --- */
 .performance-pad {
     background-color: #3a3a3c;
     border: 1px solid #222;
@@ -46,4 +37,21 @@
 }
 .pad-number {
     opacity: 0.7;
+}
+.performance-pad.active {
+    background-color: var(--color-accent-primary);
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 10px var(--color-accent-primary);
+}
+.performance-pad.active .pad-number,
+.performance-pad.active .pad-preset-name {
+    color: var(--color-dark-bg);
+}
+.performance-pad.disabled {
+    background-color: #2a2a2c;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.performance-pad.disabled:hover {
+    background-color: #2a2a2c;
 }

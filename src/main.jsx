@@ -1,20 +1,28 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import { MediaProvider } from './context/MediaContext';
-import { SequenceProvider } from './context/SequenceContext';
-import { UIStateProvider } from './context/UIStateContext';
-import { PlaybackProvider } from './context/PlaybackContext';
-import { MotionProvider } from './context/MotionContext';
-import './App.css';
+import App from './App.jsx';
+import './index.css';
+
+// Import all context providers
+import { MediaProvider } from './context/MediaContext.jsx';
+import { SequenceProvider } from './context/SequenceContext.jsx';
+import { UIStateProvider } from './context/UIStateContext.jsx';
+import { PlaybackProvider } from './context/PlaybackContext.jsx';
+import { MotionProvider } from './context/MotionContext.jsx'; // Assuming this exists from error log
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
+    {/* 
+      CORRECTED PROVIDER HIERARCHY:
+      Providers with no dependencies are on the outside.
+      Providers that consume other contexts are nested inside.
+      PlaybackProvider needs UIState and Sequence, so it must be inside them.
+    */}
     <MediaProvider>
       <SequenceProvider>
         <UIStateProvider>
           <MotionProvider>
-            <PlaybackProvider> {/* PlaybackProvider needs all others, so it's inside */}
+            <PlaybackProvider>
               <App />
             </PlaybackProvider>
           </MotionProvider>
@@ -22,4 +30,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       </SequenceProvider>
     </MediaProvider>
   </React.StrictMode>,
-);
+)

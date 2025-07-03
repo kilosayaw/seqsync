@@ -1,0 +1,2 @@
+.parameter-controls-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-sm); }
+.parameter-controls-grid button { background-color: var(--color-dark-surface-2); border: 1px solid var(--color-border); color: var(--color-text-secondary); padding: var(--spacing-sm) 0; border-radius: var(--border-radius-sm); font-weight: bold; }

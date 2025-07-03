@@ -1,0 +1,14 @@
+.pads-renderer-container {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: var(--spacing-sm);
+    background-color: var(--color-dark-surface-2);
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-border);
+    min-width: 300px;
+    max-width: 500px;
+    margin: 0 auto;
+}

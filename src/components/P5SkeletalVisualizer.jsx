@@ -10,19 +10,17 @@ const P5SkeletalVisualizer = ({ livePoseData }) => {
     };
 
     const draw = (p) => {
-        p.clear(); // Clear the canvas on each frame
+        p.clear();
         if (!livePoseData || !livePoseData.keypoints) return;
 
-        // Draw keypoints
         p.strokeWeight(8);
-        p.stroke('rgba(0, 255, 170, 0.8)'); // --color-accent-secondary
+        p.stroke('rgba(0, 255, 170, 0.8)');
         livePoseData.keypoints.forEach(point => {
-            if (point.score > 0.5) { // Only draw confident points
+            if (point.score > 0.5) {
                 p.point(point.x, point.y);
             }
         });
 
-        // Define body segments to draw lines
         const segments = [
             ['nose', 'left_eye'], ['nose', 'right_eye'],
             ['left_shoulder', 'right_shoulder'],

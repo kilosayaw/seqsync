@@ -1,129 +1,97 @@
-import React, { useEffect } from 'react';
-import { usePlayback } from '../context/PlaybackContext';
+import React from 'react';
 import { useUIState } from '../context/UIStateContext';
+import { usePlayback } from '../context/PlaybackContext';
 import { useSequence } from '../context/SequenceContext';
-import { useTapTempo } from '../hooks/useTapTempo';
-import { usePadMapping } from '../hooks/usePadMapping';
-import { formatTime } from '../utils/formatTime';
-import { FaPlay, FaPause, FaCircle, FaStepBackward, FaStepForward, FaFastBackward, FaFastForward } from 'react-icons/fa';
+import { formatTime } from '../utils/formatTime.js';
+import { seekToPad } from '../utils/playbackUtils.js';
+
+// react-icons import has been COMPLETELY REMOVED.
 import './CenterDisplayUnit.css';
 
 const CenterDisplayUnit = () => {
-    const { isPlaying, isRecording, togglePlay, toggleRecording, bpm, setBpm, currentTime, seekToTime } = usePlayback();
-    const { selectedBar, setSelectedBar, selectedBeat, setSelectedBeat } = useUIState();
+    const { selectedBar, setSelectedBar, selectedBeat, setSelectedBeat, noteDivision, isRecording, setIsRecording } = useUIState();
+    const { wavesurfer, duration, bpm, setBpm, currentTime, isPlaying, togglePlay } = usePlayback();
     const { totalBars, barStartTimes } = useSequence();
-    const { seekToPad } = usePadMapping();
-    
-    const { tap } = useTapTempo((newBpm) => {
-        console.log(`[Control] TAP registered. New BPM: ${newBpm}`);
-        setBpm(newBpm);
-    });
-    
-    const beatsPerSecond = bpm / 60;
-    const totalSixteenths = Math.floor(currentTime * beatsPerSecond * 4);
-    const liveBeat = totalSixteenths % 16;
-
-    useEffect(() => {
-        if (selectedBeat !== null) {
-            seekToPad(selectedBeat, selectedBar);
-        }
-    }, [selectedBeat, selectedBar, seekToPad]);
-
 
     const handlePrevBar = () => {
         const newBar = Math.max(1, selectedBar - 1);
-        if (newBar !== selectedBar) {
-            console.log(`[Navigation] Previous Bar clicked. Seeking to Bar ${newBar}`);
-            setSelectedBar(newBar);
-            seekToTime(barStartTimes[newBar - 1] || 0);
-        }
+        setSelectedBar(newBar);
+        seekToPad({ wavesurfer, duration, bpm, padIndex: selectedBeat, bar: newBar, barStartTimes, noteDivision });
     };
-
     const handleNextBar = () => {
         const newBar = Math.min(totalBars || 1, selectedBar + 1);
-        if (newBar !== selectedBar && newBar <= barStartTimes.length) {
-            console.log(`[Navigation] Next Bar clicked. Seeking to Bar ${newBar}`);
-            setSelectedBar(newBar);
-            seekToTime(barStartTimes[newBar - 1] || 0);
-        }
+        setSelectedBar(newBar);
+        seekToPad({ wavesurfer, duration, bpm, padIndex: selectedBeat, bar: newBar, barStartTimes, noteDivision });
     };
-
     const handlePrevBeat = () => {
-        const currentSelection = selectedBeat === null ? liveBeat : selectedBeat;
-        let newBeat = currentSelection - 1;
-        if (newBeat < 0) {
-            if (selectedBar > 1) {
-                const newBar = selectedBar - 1;
-                console.log(`[Navigation] Beat wrap-around to previous bar. New bar: ${newBar}`);
-                setSelectedBar(newBar);
-                newBeat = 15; 
-            } else { newBeat = 0; }
+        let newBeat = selectedBeat;
+        let newBar = selectedBar;
+        if (selectedBeat > 0) {
+            newBeat = selectedBeat - 1;
+        } else {
+            newBeat = 15;
+            newBar = Math.max(1, selectedBar - 1);
+            if (newBar !== selectedBar) setSelectedBar(newBar);
         }
-        console.log(`[Navigation] Previous Beat clicked. New beat selection: ${newBeat + 1}`);
         setSelectedBeat(newBeat);
+        seekToPad({ wavesurfer, duration, bpm, padIndex: newBeat, bar: newBar, barStartTimes, noteDivision });
     };
-
     const handleNextBeat = () => {
-        const currentSelection = selectedBeat === null ? liveBeat : selectedBeat;
-        let newBeat = currentSelection + 1;
-        if (newBeat > 15) {
-            if (selectedBar < totalBars) {
-                const newBar = selectedBar + 1;
-                console.log(`[Navigation] Beat wrap-around to next bar. New bar: ${newBar}`);
-                setSelectedBar(newBar);
-                newBeat = 0;
-            } else { newBeat = 15; }
+        let newBeat = selectedBeat;
+        let newBar = selectedBar;
+        if (selectedBeat < 15) {
+            newBeat = selectedBeat + 1;
+        } else {
+            newBeat = 0;
+            newBar = Math.min(totalBars || 1, selectedBar + 1);
+            if (newBar !== selectedBar) setSelectedBar(newBar);
         }
-        console.log(`[Navigation] Next Beat clicked. New beat selection: ${newBeat + 1}`);
         setSelectedBeat(newBeat);
+        seekToPad({ wavesurfer, duration, bpm, padIndex: newBeat, bar: newBar, barStartTimes, noteDivision });
     };
 
-    const handleTogglePlay = () => {
-        console.log(`[Control] Play/Pause toggled. Was playing: ${isPlaying}`);
-        togglePlay();
-    };
+    const handleBpmChange = (e) => setBpm(parseFloat(e.target.value) || 0);
 
-    const handleToggleRecording = () => {
-        console.log(`[Control] Record toggled. Was recording: ${isRecording}`);
-        toggleRecording();
-    };
-
-    const beatToDisplay = isPlaying ? liveBeat + 1 : (selectedBeat !== null ? selectedBeat + 1 : 0);
+    const displayBeat = isPlaying && bpm > 0 ? (Math.floor(currentTime * (bpm / 60) * 4) % 16) + 1 : selectedBeat + 1;
 
     return (
-        <div className="center-display-unit-wrapper">
-            <div className="digital-counters">
-                <div className="counter">
+        <div className="center-display-unit">
+            <div className="display-group">
+                <div className="display-box bar">
                     <span className="value">{String(selectedBar).padStart(2, '0')}</span>
                     <span className="label">BAR</span>
                 </div>
-                <div className="counter">
-                    <span className="value">{String(beatToDisplay).padStart(2, '0')}</span>
+                <div className="display-box beat">
+                    <span className="value">{String(displayBeat).padStart(2, '0')}</span>
                     <span className="label">BEAT</span>
                 </div>
             </div>
-
-            <div className="master-clock-display">
-                {formatTime(currentTime)}
+            <div className="display-box time">
+                <span className="value">{formatTime(currentTime)}</span>
             </div>
 
-            {/* === RESTORED VISUAL STRUCTURE === */}
-            <div className="transport-controls-new">
-                <button onClick={handlePrevBar}><FaFastBackward /></button>
-                <button onClick={handlePrevBeat}><FaStepBackward /></button>
-                <button className={`play-btn ${isPlaying ? 'active' : ''}`} onClick={handleTogglePlay}>
-                    {isPlaying ? <FaPause /> : <FaPlay />}
-                </button>
-                <button className={`record-btn ${isRecording ? 'active' : ''}`} onClick={handleToggleRecording}><FaCircle /></button>
-                <button onClick={handleNextBeat}><FaStepForward /></button>
-                <button onClick={handleNextBar}><FaFastForward /></button>
+            {/* ICONS HAVE BEEN REPLACED WITH TEXT SYMBOLS */}
+            <div className="transport-grid">
+                <div className="transport-group">
+                    <button onClick={handlePrevBar}>{'<<'}</button>
+                    <span className="transport-label">BAR</span>
+                    <button onClick={handleNextBar}>{'>>'}</button>
+                </div>
+                <div className="transport-group">
+                    <button onClick={handlePrevBeat}>{'<'}</button>
+                    <span className="transport-label">BEAT</span>
+                    <button onClick={handleNextBeat}>{'>'}</button>
+                </div>
+                <div className="transport-group master-controls">
+                    <button onClick={() => setIsRecording(p => !p)} className={`record-button ${isRecording ? 'active' : ''}`}>●</button>
+                    <button onClick={togglePlay} className="play-button">{isPlaying ? '❚❚' : '▶'}</button>
+                </div>
             </div>
 
-            <div className="bpm-controls">
-                <div className="bpm-display">{bpm}</div>
-                <button className="tap-btn-new" onClick={tap}>TAP</button>
+            <div className="bpm-main-display">
+                <input type="number" value={bpm.toFixed(0)} onChange={handleBpmChange} className="bpm-input" />
+                <button className="tap-button">TAP</button>
             </div>
-            {/* === END RESTORED STRUCTURE === */}
         </div>
     );
 };

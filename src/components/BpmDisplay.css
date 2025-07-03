@@ -1,0 +1,87 @@
+.bpm-display-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    background: var(--color-dark-surface-2);
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-border);
+}
+.bar-beat-display {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+.display-box {
+    flex: 1;
+    background: var(--color-dark-bg);
+    text-align: center;
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-sm);
+}
+.display-box .value {
+    font-size: 1.5rem;
+    color: var(--color-accent-primary);
+    display: block;
+    font-weight: bold;
+}
+.display-box .label {
+    font-size: 0.7rem;
+    color: var(--color-text-secondary);
+}
+.time-display {
+    background: var(--color-dark-bg);
+    text-align: center;
+    font-size: 1.2rem;
+    padding: var(--spacing-sm) 0;
+    border-radius: var(--border-radius-sm);
+    color: var(--color-accent-primary);
+    font-weight: bold;
+}
+
+/* NEW STYLES for the transport buttons */
+.transport-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xs);
+}
+.transport-bar button {
+    background: var(--color-dark-surface-3);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-size: 1.2rem;
+    padding: var(--spacing-xs) 0;
+    border-radius: var(--border-radius-sm);
+    font-weight: bold;
+}
+.transport-bar button:hover {
+    background: var(--color-dark-surface-1);
+}
+.transport-bar .play-pause-button {
+    font-size: 1.5rem; /* Make the play/pause button bigger */
+    color: var(--color-text-primary);
+}
+
+
+.bpm-main-display {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+.bpm-input {
+    flex-grow: 1;
+    background: var(--color-dark-bg);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    color: var(--color-accent-primary);
+    font-size: 2rem;
+    text-align: center;
+    font-family: 'Roboto Mono', monospace;
+    padding: 0;
+}
+.tap-button {
+    width: 60px;
+    background: var(--color-dark-surface-3);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    font-weight: bold;
+    border-radius: var(--border-radius-sm);
+}

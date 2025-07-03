@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { FOOT_HOTSPOT_COORDINATES, BASE_FOOT_PATHS } from '../utils/constants';
+import { useUIState } from '../context/UIStateContext'; // ADDED: Import UI context
 
 const RotarySVG = ({ side, angle, setAngle, activePoints, onPointClick, onDragEnd, isDisabled }) => {
     const svgSize = 550;
@@ -13,7 +14,12 @@ const RotarySVG = ({ side, angle, setAngle, activePoints, onPointClick, onDragEn
     const allHotspots = FOOT_HOTSPOT_COORDINATES[sideKey];
     const baseFootPath = BASE_FOOT_PATHS[sideKey];
 
-    // --- Turntable Physics (No changes needed here) ---
+    // --- NEW: Edit Mode Logic ---
+    const { selectedJoint } = useUIState(); // Get the selected joint
+    const jointId = `${sideKey}F`; // e.g., 'LF' or 'RF'
+    const isEditMode = selectedJoint === jointId; // Determine if this deck's foot is in edit mode
+
+    // --- Turntable Physics (Unchanged) ---
     const [isDragging, setIsDragging] = useState(false);
     const lastMouseAngleRef = useRef(0);
     const velocityRef = useRef(0);
@@ -89,9 +95,13 @@ const RotarySVG = ({ side, angle, setAngle, activePoints, onPointClick, onDragEn
             <g transform={`rotate(${angle}, ${centerX}, ${centerY})`}>
                 <image href="/ground/foot-wheel.png" x="0" y="0" width={svgSize} height={svgSize} style={{ pointerEvents: 'none' }} />
                 <circle cx={centerX} cy={centerY} r={svgSize / 2} fill="transparent" className="rotary-grab-area" onMouseDown={handleMouseDown} />
-                <image href={baseFootPath} x={xOffset} y={yOffset} width={newSize} height={newSize} className="base-foot-template" />
+                
+                {/* --- ADDED: Conditional rendering for the foot template --- */}
+                {isEditMode && (
+                    <image href={baseFootPath} x={xOffset} y={yOffset} width={newSize} height={newSize} className="base-foot-template" />
+                )}
 
-                {/* --- UPGRADED RENDERING LOGIC --- */}
+                {/* --- Rendering Logic (Unchanged) --- */}
                 {allHotspots.map(hotspot => (
                     <g key={hotspot.notation} onClick={() => onPointClick(hotspot.notation)} className="hotspot-group">
                         {hotspot.type === 'ellipse' ? (
@@ -104,13 +114,13 @@ const RotarySVG = ({ side, angle, setAngle, activePoints, onPointClick, onDragEn
                                 />
                                 <ellipse
                                     cx={hotspot.cx} cy={hotspot.cy}
-                                    rx={hotspot.rx + 5} ry={hotspot.ry + 5} // Larger clickable area
+                                    rx={hotspot.rx + 5} ry={hotspot.ry + 5}
                                     transform={`rotate(${hotspot.rotation}, ${hotspot.cx}, ${hotspot.cy})`}
                                     fill="transparent"
                                     className="hotspot-clickable-area"
                                 />
                             </>
-                        ) : ( // Default to 'circle'
+                        ) : (
                             <>
                                 <circle
                                     cx={hotspot.cx} cy={hotspot.cy}
@@ -119,7 +129,7 @@ const RotarySVG = ({ side, angle, setAngle, activePoints, onPointClick, onDragEn
                                 />
                                 <circle
                                     cx={hotspot.cx} cy={hotspot.cy}
-                                    r={hotspot.r + 5} // Larger clickable area
+                                    r={hotspot.r + 5}
                                     fill="transparent"
                                     className="hotspot-clickable-area"
                                 />

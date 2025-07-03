@@ -1,31 +1,17 @@
 import React from 'react';
-import CenterDisplayUnit from './CenterDisplayUnit';
-import CameraFeed from './CameraFeed';
+import CameraFeed from './CameraFeed.jsx';
+import TransportControls from './TransportControls.jsx'; // Using YOUR component
 import './CenterConsole.css';
 
 const CenterConsole = () => {
     return (
         <div className="center-console-container">
-            <CenterDisplayUnit />
-
-            <div className="main-display-area">
+            <div className="camera-feed-wrapper">
                 <CameraFeed />
             </div>
-
-            {/* === RESTORED VISUAL STRUCTURE === */}
-            <div className="directional-controls-wrapper">
-                <div className="directional-controls">
-                    <button className="d-btn">UP</button>
-                    <button className="d-btn">IN</button>
-                    <button className="d-btn">LEFT</button>
-                    <button className="d-btn">DOWN</button>
-                    <button className="d-btn">OUT</button>
-                    <button className="d-btn">RIGHT</button>
-                </div>
+            <div className="transport-controls-wrapper">
+                <TransportControls />
             </div>
-
-            <div className="crossfader-placeholder">Crossfader</div>
-            {/* === END RESTORED STRUCTURE === */}
         </div>
     );
 };

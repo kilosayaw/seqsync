@@ -1,45 +1,20 @@
 import React, { useEffect } from 'react';
-import { MediaProvider, useMedia } from './context/MediaContext';
-import { SequenceProvider, useSequence } from './context/SequenceContext';
-import { UIStateProvider } from './context/UIStateContext';
-import { PlaybackProvider } from './context/PlaybackContext';
-import { MotionProvider } from './context/MotionContext';
 import ProLayout from './components/ProLayout';
-import LoadingOverlay from './components/LoadingOverlay';
-import './App.css';
+import { useMedia } from './context/MediaContext';
+import { usePlayback } from './context/PlaybackContext';
 
 function App() {
-  const { isLoading, isMediaReady, detectedBpm, duration } = useMedia();
-  const { initializeSequenceFromBpm } = useSequence();
+    const { isMediaReady, mediaUrl, detectedBpm } = useMedia();
+    const { initializeEngine } = usePlayback();
 
-  useEffect(() => {
-    if (isMediaReady && detectedBpm && duration) {
-      console.log(`[App.jsx] Media is ready. Initializing sequence with Duration: ${duration}s, BPM: ${detectedBpm}`);
-      initializeSequenceFromBpm(duration, detectedBpm);
-    }
-  }, [isMediaReady, detectedBpm, duration, initializeSequenceFromBpm]);
+    useEffect(() => {
+        if (isMediaReady && mediaUrl) {
+            console.log(`[App] Media ready. Initializing engine with BPM: ${detectedBpm}`);
+            initializeEngine(mediaUrl, detectedBpm);
+        }
+    }, [isMediaReady, mediaUrl, detectedBpm, initializeEngine]);
 
-
-  return (
-    <>
-      {isLoading && <LoadingOverlay />}
-      <ProLayout />
-    </>
-  );
+    return <ProLayout />;
 }
 
-const AppWrapper = () => (
-  <MediaProvider>
-    <SequenceProvider>
-      <UIStateProvider>
-        <MotionProvider>
-          <PlaybackProvider>
-            <App />
-          </PlaybackProvider>
-        </MotionProvider>
-      </UIStateProvider>
-    </SequenceProvider>
-  </MediaProvider>
-);
-
-export default AppWrapper;
+export default App;

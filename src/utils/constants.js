@@ -38,7 +38,7 @@ export const FOOT_HOTSPOT_COORDINATES = {
     ],
     R: [ // Mirrored from L around a vertical axis at x=275
         { type: 'circle', notation: '3', cx: 276, cy: 403, r: 31 },  // Heel
-        { type: 'circle', notation: '1', cx: 236, cy: 235, r: 31 },  // Ball (inside)
+        { type: 'circle', notation: '1', cx: 233, cy: 235, r: 31 },  // Ball (inside)
         { type: 'circle', notation: '2', cx: 321, cy: 276, r: 18 },  // Ball (outside)
         { type: 'ellipse', notation: 'T1', cx: 236, cy: 150, rx: 22, ry: 30, rotation: 17 },  // Big Toe
         { type: 'ellipse', notation: 'T2', cx: 285, cy: 153, rx: 13, ry: 16, rotation: 10 },  // Toe 2

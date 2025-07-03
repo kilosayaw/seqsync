@@ -1,3 +1,4 @@
+// Using your definitive implementation.
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import '@tensorflow/tfjs-core';
@@ -28,10 +29,6 @@ export const useMotionAnalysis = (videoRef, setLivePoseData) => {
             try {
                 const poses = await detector.estimatePoses(video, { flipHorizontal: true });
                 if (poses && poses.length > 0) {
-                    // --- ENHANCED LOGGING ---
-                    // This log is very noisy, so we comment it out by default.
-                    // Uncomment it if you need to debug frame-by-frame detection.
-                    // console.log('[useMotionAnalysis] Pose detected.');
                     setLivePoseData(poses[0]);
                 } else {
                     setLivePoseData(null);

@@ -13,6 +13,29 @@
     gap: var(--spacing-sm);
 }
 
+.display-box .value {
+    font-family: var(--font-digital); /* APPLY DIGITAL FONT */
+    color: var(--color-accent-primary);
+    font-weight: normal; /* Digital fonts often look better at normal weight */
+}
+.display-box .label {
+    font-family: var(--font-digital-hollow); /* APPLY HOLLOW FONT */
+    font-size: 0.9rem; /* Adjust size for hollow font */
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+}
+.bpm-main-display .bpm-input {
+    font-family: var(--font-digital); /* APPLY DIGITAL FONT */
+    flex-grow: 1;
+    background: var(--color-dark-bg);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    color: var(--color-accent-primary);
+    font-size: 2.5rem; /* Adjust size */
+    text-align: center;
+    padding: 0;
+}
+
 .counter {
     flex: 1;
     background-color: #000;
