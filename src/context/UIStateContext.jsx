@@ -5,44 +5,48 @@ const UIStateContext = createContext(null);
 export const useUIState = () => useContext(UIStateContext);
 
 export const UIStateProvider = ({ children }) => {
-    // --- All the states for the UI ---
     const [selectedBar, setSelectedBar] = useState(1);
     const [selectedBeat, setSelectedBeat] = useState(0); 
-    const [selectedJoint, setSelectedJointState] = useState(null); // Renamed setter to avoid conflict
+    const [selectedJoint, setSelectedJointState] = useState(null);
     const [isLiveFeed, setIsLiveFeed] = useState(true);
     const [noteDivision, setNoteDivision] = useState(16);
-    const [padPlayMode, setPadPlayMode] = useState('TRIGGER');
+    // --- THIS IS THE FIX ---
+    // The default play mode is now 'GATE'.
+    const [padPlayMode, setPadPlayMode] = useState('GATE');
     const [isPoseEditorOpen, setIsPoseEditorOpen] = useState(false);
     const [beatToEdit, setBeatToEdit] = useState(null);
     const [isRecording, setIsRecording] = useState(false);
+    const [footEditState, setFootEditState] = useState({ left: false, right: false });
 
-    // --- The correct toggle logic for joint selection ---
     const handleJointSelect = (jointId) => {
-        // If the same joint is clicked, deselect it. Otherwise, select the new one.
         setSelectedJointState(prevJoint => prevJoint === jointId ? null : jointId);
     };
 
-    // --- The value object provided to the context ---
-    // This has been carefully constructed to have NO DUPLICATE KEYS.
+    const toggleFootEdit = (side, mode = 'single') => {
+        if (mode === 'dual') {
+            setFootEditState(prev => {
+                const areBothActive = prev.left && prev.right;
+                return { left: !areBothActive, right: !areBothActive };
+            });
+        } else {
+            setFootEditState(prev => ({
+                ...prev,
+                [side]: !prev[side]
+            }));
+        }
+    };
+
     const value = {
-        selectedBar, 
-        setSelectedBar,
-        selectedBeat, 
-        setSelectedBeat,
-        selectedJoint, // The state variable itself
-        setSelectedJoint: handleJointSelect, // The setter function, correctly named
-        isLiveFeed, 
-        setIsLiveFeed,
-        noteDivision, 
-        setNoteDivision,
-        padPlayMode, 
-        setPadPlayMode,
-        isPoseEditorOpen, 
-        setIsPoseEditorOpen,
-        beatToEdit, 
-        setBeatToEdit,
-        isRecording, 
-        setIsRecording,
+        selectedBar, setSelectedBar,
+        selectedBeat, setSelectedBeat,
+        selectedJoint, setSelectedJoint: handleJointSelect,
+        isLiveFeed, setIsLiveFeed,
+        noteDivision, setNoteDivision,
+        padPlayMode, setPadPlayMode,
+        isPoseEditorOpen, setIsPoseEditorOpen,
+        beatToEdit, setBeatToEdit,
+        isRecording, setIsRecording,
+        footEditState, toggleFootEdit,
     };
     
     return (

@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { useMotion } from '../context/MotionContext';
 import { useUIState } from '../context/UIStateContext';
 import { useMedia } from '../context/MediaContext';
 import { usePlayback } from '../context/PlaybackContext';
@@ -11,69 +10,67 @@ import './CameraFeed.css';
 const CameraFeed = () => {
     const { isLiveFeed } = useUIState();
     const { mediaUrl, mediaFile } = useMedia();
-    const { isPlaying } = usePlayback();
+    const { isPlaying, wavesurfer } = usePlayback(); // Get the wavesurfer instance
     
-    // We now need two separate refs: one for the live webcam, one for the video player
     const webcamRef = useRef(null);
-    const videoRef = useRef(null);
-
-    // Get the data and setters from our motion context
-    const { livePoseData, setLivePoseData } = useMotion();
+    const videoRef = useRef(null); // Ref for the <video> element
     
-    // KEY FIX: The motion analysis hook is now being called correctly.
-    // It's attached to the webcam's ref and will update the global MotionContext.
-    useMotionAnalysis(webcamRef, setLivePoseData);
+    useMotionAnalysis(webcamRef); // Hook for live webcam analysis
 
-    // This logic correctly handles playing/pausing the loaded video file
+    // This effect syncs the <video> element with the WaveSurfer audio.
     useEffect(() => {
-        if (videoRef.current) {
-            if (isPlaying) {
-                videoRef.current.play();
-            } else {
-                videoRef.current.pause();
-            }
+        const videoElement = videoRef.current;
+        if (!videoElement || !wavesurfer) return;
+
+        const syncVideo = () => {
+            console.log('[CameraFeed] Syncing video time to audio time.');
+            videoElement.currentTime = wavesurfer.getCurrentTime();
+        };
+
+        const onPlay = () => videoElement.play();
+        const onPause = () => videoElement.pause();
+        const onSeek = () => syncVideo();
+
+        // Attach listeners
+        wavesurfer.on('play', onPlay);
+        wavesurfer.on('pause', onPause);
+        wavesurfer.on('seek', onSeek);
+        
+        // Initial sync
+        if (isPlaying) {
+            syncVideo();
+            onPlay();
         }
-    }, [isPlaying, mediaUrl]); // Also re-run if the mediaUrl changes
-    
-    const shouldShowVideoPlayer = !isLiveFeed && mediaUrl && mediaFile?.type.startsWith('video/');
+
+        // Cleanup
+        return () => {
+            wavesurfer.un('play', onPlay);
+            wavesurfer.un('pause', onPause);
+            wavesurfer.un('seek', onSeek);
+        };
+
+    }, [wavesurfer, isPlaying]); // Re-run when the wavesurfer instance changes
+
+    const shouldShowVideoPlayer = mediaUrl && mediaFile?.type.startsWith('video/');
 
     return (
         <div className="camera-feed-container">
-            {/* Condition 1: If "Live" is on AND we are not showing a video file */}
-            {isLiveFeed && !shouldShowVideoPlayer && (
+            {isLiveFeed && !shouldShowVideoPlayer ? (
                 <>
-                    {/* KEY FIX: The Webcam component was missing and is now restored */}
-                    <Webcam
-                        ref={webcamRef}
-                        audio={false}
-                        mirrored={true}
-                        className="webcam-video"
-                    />
-                    {/* The skeletal overlay is tied to the live feed */}
-                    {livePoseData && (
-                        <P5SkeletalVisualizer livePoseData={livePoseData} />
-                    )}
+                    <Webcam ref={webcamRef} audio={false} mirrored={true} className="webcam-video" />
+                    {/* <P5SkeletalVisualizer ... /> */}
                 </>
-            )}
-
-            {/* Condition 2: If "Live" is off AND a video file is loaded */}
-            {shouldShowVideoPlayer && (
+            ) : shouldShowVideoPlayer ? (
                  <video
                     ref={videoRef}
                     key={mediaUrl} // Force re-render on new file
                     className="video-player"
-                    controls={false}
-                    loop // Loop the video for continuous playback
-                    muted // Mute by default to avoid issues, audio is handled by Web Audio API
                     src={mediaUrl}
+                    muted // Audio is handled by WaveSurfer, so the video MUST be muted.
+                    loop={false}
                 />
-            )}
-
-            {/* Condition 3: Fallback if Live is off and there's no video to play */}
-            {!isLiveFeed && !shouldShowVideoPlayer && (
-                <div className="feed-placeholder">
-                    <span>LIVE FEED OFF</span>
-                </div>
+            ) : (
+                <div className="feed-off-message">LIVE FEED OFF</div>
             )}
         </div>
     );

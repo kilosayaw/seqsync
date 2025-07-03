@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { FOOT_HOTSPOT_COORDINATES, BASE_FOOT_PATHS } from '../utils/constants';
-import { useUIState } from '../context/UIStateContext'; // ADDED: Import UI context
+import { useUIState } from '../context/UIStateContext';
 
 const RotarySVG = ({ side, angle, setAngle, activePoints, onPointClick, onDragEnd, isDisabled }) => {
     const svgSize = 550;
@@ -10,16 +10,12 @@ const RotarySVG = ({ side, angle, setAngle, activePoints, onPointClick, onDragEn
     const xOffset = 105;
     const yOffset = 109;
 
+    const { footEditState } = useUIState();
     const sideKey = side.charAt(0).toUpperCase();
     const allHotspots = FOOT_HOTSPOT_COORDINATES[sideKey];
     const baseFootPath = BASE_FOOT_PATHS[sideKey];
+    const isEditMode = footEditState[side];
 
-    // --- NEW: Edit Mode Logic ---
-    const { selectedJoint } = useUIState(); // Get the selected joint
-    const jointId = `${sideKey}F`; // e.g., 'LF' or 'RF'
-    const isEditMode = selectedJoint === jointId; // Determine if this deck's foot is in edit mode
-
-    // --- Turntable Physics (Unchanged) ---
     const [isDragging, setIsDragging] = useState(false);
     const lastMouseAngleRef = useRef(0);
     const velocityRef = useRef(0);
@@ -37,17 +33,38 @@ const RotarySVG = ({ side, angle, setAngle, activePoints, onPointClick, onDragEn
         animationFrameRef.current = requestAnimationFrame(animate);
     }, [onDragEnd, setAngle]);
 
+    // --- THIS IS THE JITTER FIX ---
     const handleMouseMove = useCallback((e) => {
         if (!isDragging) return;
         const dx = e.clientX - centerRef.current.x;
         const dy = e.clientY - centerRef.current.y;
-        const currentMouseAngle = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
+        
+        // Calculate the raw angle in degrees
+        let currentMouseAngle = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
+        
+        // Normalize the angle to be within a 0-360 range for consistent delta calculation
+        if (currentMouseAngle < 0) {
+            currentMouseAngle += 360;
+        }
+
         let delta = currentMouseAngle - lastMouseAngleRef.current;
-        if (delta < -180) delta += 360;
-        else if (delta > 180) delta -= 360;
+        
+        // Handle the "wrap-around" issue when crossing the 0/360 degree boundary
+        if (delta > 180) {
+            delta -= 360;
+        } else if (delta < -180) {
+            delta += 360;
+        }
+        
+        // Apply the smooth delta to the component's angle state
         setAngle(prev => prev + delta);
-        velocityRef.current = delta;
+        
+        // Update velocity for momentum physics, slightly dampened
+        velocityRef.current = delta * 0.85; 
+        
+        // Store the current normalized angle for the next frame's calculation
         lastMouseAngleRef.current = currentMouseAngle;
+
     }, [isDragging, setAngle]);
 
     const handleMouseUp = useCallback(() => {
@@ -96,12 +113,10 @@ const RotarySVG = ({ side, angle, setAngle, activePoints, onPointClick, onDragEn
                 <image href="/ground/foot-wheel.png" x="0" y="0" width={svgSize} height={svgSize} style={{ pointerEvents: 'none' }} />
                 <circle cx={centerX} cy={centerY} r={svgSize / 2} fill="transparent" className="rotary-grab-area" onMouseDown={handleMouseDown} />
                 
-                {/* --- ADDED: Conditional rendering for the foot template --- */}
                 {isEditMode && (
                     <image href={baseFootPath} x={xOffset} y={yOffset} width={newSize} height={newSize} className="base-foot-template" />
                 )}
 
-                {/* --- Rendering Logic (Unchanged) --- */}
                 {allHotspots.map(hotspot => (
                     <g key={hotspot.notation} onClick={() => onPointClick(hotspot.notation)} className="hotspot-group">
                         {hotspot.type === 'ellipse' ? (

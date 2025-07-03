@@ -1,12 +1,11 @@
 import React from 'react';
-import PoseThumbnail from './PoseThumbnail';
 import FootThumbnail from './FootThumbnail';
+// import PoseThumbnail from './PoseThumbnail'; // Kept for future use
 import './PerformancePad.css';
 
 const PerformancePad = (props) => {
     const { 
-        mode, beatData, beatNum, presetData,
-        isEditMode, // Receive the edit mode state
+        beatData, beatNum, isEditMode,
         isSelected, isActive, isDisabled, 
         onMouseDown, onMouseUp, onClick 
     } = props;
@@ -18,7 +17,7 @@ const PerformancePad = (props) => {
         if (isDisabled) classes += ' disabled';
         
         const hasData = beatData?.joints && Object.values(beatData.joints).some(
-            joint => joint.angle !== 0 || (joint.grounding && !joint.grounding.endsWith('0') && !joint.grounding.endsWith('123T12345'))
+            joint => joint.angle !== 0 || (joint.grounding && !joint.grounding.endsWith('0'))
         );
         if (hasData) classes += ' has-data';
         
@@ -26,23 +25,18 @@ const PerformancePad = (props) => {
     };
 
     const renderContent = () => {
-        if (mode === 'preset' && presetData) {
-            return <span className="pad-preset-name">{presetData.name}</span>;
-        }
+        const hasFootData = beatData?.joints?.LF?.grounding || beatData?.joints?.RF?.grounding;
 
         // --- UPGRADED RENDER LOGIC ---
-        // If we are in edit mode, OR if there is existing foot data, show the thumbnail.
-        const shouldShowFoot = isEditMode || beatData?.joints?.LF?.grounding || beatData?.joints?.RF?.grounding;
-
-        if (shouldShowFoot) {
-            // Pass the beatData, which may be undefined. The thumbnail will handle it.
+        // Priority 1: If we are in foot edit mode, OR if there is existing foot data, show the thumbnail.
+        if (isEditMode || hasFootData) {
+            // Pass the beatData. FootThumbnail will handle if it's undefined.
             return <FootThumbnail beatData={beatData} />;
         }
         
-        if (beatData?.poseData) {
-            return <PoseThumbnail poseData={beatData.poseData} />;
-        }
+        // Future Priority: if (beatData?.poseData) { ... }
         
+        // Fallback: Show the beat number.
         return <span className="pad-number">{beatNum}</span>;
     };
 

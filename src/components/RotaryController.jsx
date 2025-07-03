@@ -7,75 +7,60 @@ import RotarySVG from './RotarySVG.jsx';
 import './RotaryController.css';
 
 const RotaryController = ({ side }) => {
-    const { selectedBar, selectedBeat, selectedJoint } = useUIState();
+    const { selectedBar, selectedBeat, footEditState } = useUIState();
     const { songData, updateJointData } = useSequence();
     const { isPlaying, activeBeat } = usePlayback();
 
-    const [angle, setAngle] = useState(0);
-    const [activePoints, setActivePoints] = useState(new Set());
+    const [displayPoints, setDisplayPoints] = useState(new Set());
+    const [displayAngle, setDisplayAngle] = useState(0);
 
+    // --- THIS IS THE FIX ---
+    // The jointId is now declared at the top-level scope of the component.
     const sideKey = side.charAt(0).toUpperCase();
     const jointId = `${sideKey}F`;
-    const isEditMode = selectedJoint === jointId;
 
-    const selectedDataIndex = selectedBeat !== null ? ((selectedBar - 1) * 16) + selectedBeat : -1;
-    const displayDataIndex = isPlaying ? activeBeat : selectedDataIndex;
-    const displayJointData = displayDataIndex >= 0 && songData[displayDataIndex] ? songData[displayDataIndex].joints[jointId] : null;
+    const isEditMode = footEditState[side];
+
+    const dataIndex = isPlaying ? activeBeat : ((selectedBar - 1) * 16) + selectedBeat;
+    const currentBeatData = songData[dataIndex];
+    const jointData = currentBeatData?.joints?.[jointId];
 
     useEffect(() => {
-        if (displayJointData) {
-            setAngle(displayJointData.angle || 0);
-            setActivePoints(getPointsFromNotation(displayJointData.grounding, side));
-        } else {
-            setAngle(0);
-            setActivePoints(new Set());
-        }
-    }, [displayJointData, side]);
+        setDisplayAngle(jointData?.angle || 0);
+        setDisplayPoints(getPointsFromNotation(jointData?.grounding, side));
+    }, [jointData, side]);
 
     const handlePointClick = useCallback((pointNotation) => {
-        // --- EDIT LOCK ---
-        if (!isEditMode) {
-            console.log(`[RotaryController-${side}] Point clicked, but edit mode is OFF. Ignoring.`);
-            return;
-        }
-        console.log(`[RotaryController-${side}] Point clicked in EDIT MODE: ${pointNotation}`);
-        
-        const newPoints = new Set(activePoints);
+        if (!isEditMode) return;
+
+        const newPoints = new Set(displayPoints);
         if (newPoints.has(pointNotation)) newPoints.delete(pointNotation);
         else newPoints.add(pointNotation);
-        setActivePoints(newPoints);
+
+        setDisplayPoints(newPoints);
         
         const newResolvedNotation = resolveNotationFromPoints(newPoints, side);
-        if (selectedDataIndex >= 0) {
-            updateJointData(selectedDataIndex, jointId, { grounding: newResolvedNotation });
-        }
-    }, [isEditMode, activePoints, side, selectedDataIndex, jointId, updateJointData]);
-    
+        const editIndex = ((selectedBar - 1) * 16) + selectedBeat;
+        updateJointData(editIndex, jointId, { grounding: newResolvedNotation });
+        
+    }, [isEditMode, displayPoints, side, selectedBar, selectedBeat, jointId, updateJointData]);
+
     const handleDragEnd = useCallback((finalAngle) => {
-        // --- EDIT LOCK ---
-        if (!isEditMode) {
-            console.log(`[RotaryController-${side}] Drag ended, but edit mode is OFF. Ignoring.`);
-            return;
-        }
-        console.log(`[RotaryController-${side}] Drag ended in EDIT MODE. Final angle: ${finalAngle}`);
-
-        if (selectedDataIndex >= 0) {
-            updateJointData(selectedDataIndex, jointId, { angle: finalAngle });
-        }
-    }, [isEditMode, selectedDataIndex, jointId, updateJointData]);
-
-    const isUngrounded = activePoints.size === 0;
-    const isDisabled = isPlaying || (!isEditMode && isUngrounded);
-
+        if (!isEditMode) return;
+        
+        const editIndex = ((selectedBar - 1) * 16) + selectedBeat;
+        updateJointData(editIndex, jointId, { angle: finalAngle });
+    }, [isEditMode, selectedBar, selectedBeat, jointId, updateJointData]);
+    
     return (
         <RotarySVG
             side={side}
-            angle={angle}
-            setAngle={setAngle}
-            activePoints={activePoints}
+            angle={displayAngle}
+            setAngle={setDisplayAngle}
+            activePoints={displayPoints}
             onPointClick={handlePointClick}
             onDragEnd={handleDragEnd}
-            isDisabled={isDisabled}
+            isDisabled={isPlaying}
         />
     );
 };

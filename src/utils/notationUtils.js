@@ -1,40 +1,31 @@
+// src/utils/notationUtils.js
 import { formatTime } from './formatTime';
 
-const convertAngleToClock = (angle) => {
-    const normalizedAngle = ((angle % 360) + 360) % 360;
-    const clockValue = Math.round((normalizedAngle + 15) / 30) % 12;
-    return clockValue === 0 ? 12 : clockValue;
-};
+export const formatFullNotation = (beatData, bar, beat, currentTime) => {
+    if (!beatData) {
+        return `poSĒQr™: ${formatTime(currentTime)} | ${String(bar).padStart(2, '0')}:${String(beat + 1).padStart(2, '0')} | --`;
+    }
 
-export const formatFullNotation = (beatData, currentTime, bar, beat) => {
-    if (!beatData || !beatData.joints) return '---';
+    const formatJoint = (jointId) => {
+        const data = beatData.joints?.[jointId];
+        if (!data) return '';
+        
+        let parts = [];
+        if (data.grounding) parts.push(`G${jointId.charAt(0)}:${data.grounding}`);
+        if (data.angle) parts.push(`@ ${Math.round(data.angle)}°`);
+        
+        return parts.join(' ');
+    };
+
+    const lfNotation = formatJoint('LF');
+    const rfNotation = formatJoint('RF');
 
     const timeStr = formatTime(currentTime);
-    const barStr = String(bar).padStart(2, '0');
-    const beatIndex = beat === null ? 0 : beat;
-    const beatStr = String(beatIndex + 1).padStart(2, '0');
+    const barBeatStr = `${String(bar).padStart(2, '0')}:${String(beat + 1).padStart(2, '0')}`;
     
-    const leftFootData = beatData.joints.LF;
-    const rightFootData = beatData.joints.RF;
-
-    // Build the grounding string for the left foot, now including raw angle
-    const groundL_notation = leftFootData?.grounding || 'LF123T12345';
-    const groundL_angle = leftFootData?.angle || 0;
-    const groundL_clock = convertAngleToClock(groundL_angle);
-    // NEW: Add raw angle for debugging and validation
-    const groundL = `${groundL_notation} @ ${groundL_clock} (${Math.round(groundL_angle)}°)`;
-
-    // Build the grounding string for the right foot, now including raw angle
-    const groundR_notation = rightFootData?.grounding || 'RF123T12345';
-    const groundR_angle = rightFootData?.angle || 0;
-    const groundR_clock = convertAngleToClock(groundR_angle);
-    // NEW: Add raw angle for debugging and validation
-    const groundR = `${groundR_notation} @ ${groundR_clock} (${Math.round(groundR_angle)}°)`;
+    let notation = `poSĒQr™: ${timeStr} | ${barBeatStr}`;
+    if (lfNotation) notation += ` | ${lfNotation}`;
+    if (rfNotation) notation += ` | ${rfNotation}`;
     
-    const sound = '--';
-    const syllable = '--';
-    const head = '--';
-    const weightedHip = '--';
-
-    return `${timeStr} | ${barStr}:${beatStr} | Snd:${sound} | Syl:${syllable} | H:${head} | WH:${weightedHip} | GL:${groundL} | GR:${groundR}`;
+    return notation;
 };

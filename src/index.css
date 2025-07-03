@@ -1,13 +1,15 @@
 @font-face {
     font-family: 'DigitalPlay';
-    src: url('/fonts/Digital Play St.ttf') format('truetype');
+    /* CORRECTED: Quotes handle the spaces in the filename. */
+    src: url("/fonts/Digital Play St.ttf") format('truetype');
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'DigitalPlayHollow';
-    src: url('/fonts/Digital Play Hollow St.ttf') format('truetype');
+    /* CORRECTED: Quotes handle the spaces in the filename. */
+    src: url("/fonts/Digital Play Hollow St.ttf") format('truetype');
     font-weight: normal;
     font-style: normal;
 }

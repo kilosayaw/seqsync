@@ -59,3 +59,24 @@ export const FOOT_CONTACT_POINTS = {
         { notation: 'T1', path: '/ground/RT1.png' }, { notation: 'T2', path: '/ground/RT2.png' }, { notation: 'T3', path: '/ground/RT3.png' }, { notation: 'T4', path: '/ground/RT4.png' }, { notation: 'T5', path: '/ground/RT5.png' },
     ]
 };
+
+export const GROUNDING_PRESETS = [
+    // Left Foot Presets (Pads 1-8)
+    { padId: 1, side: 'L', name: 'L Full', notation: 'LF123T12345' },
+    { padId: 2, side: 'L', name: 'L Heel Up', notation: 'LF12T12345' },
+    { padId: 3, side: 'L', name: 'L Toes', notation: 'LFT12345' },
+    { padId: 4, side: 'L', name: 'L Tripod', notation: 'LF123' },
+    { padId: 5, side: 'L', name: 'L Heel', notation: 'LF3' },
+    { padId: 6, side: 'L', name: 'L Blade In', notation: 'LF13T1' },
+    { padId: 7, side: 'L', name: 'L Blade Out', notation: 'LF23T5' },
+    { padId: 8, side: 'L', name: 'L Ungrounded', notation: 'LF0' },
+    // Right Foot Presets (Pads 9-16)
+    { padId: 9, side: 'R', name: 'R Full', notation: 'RF123T12345' },
+    { padId: 10, side: 'R', name: 'R Heel Up', notation: 'RF12T12345' },
+    { padId: 11, side: 'R', name: 'R Toes', notation: 'RFT12345' },
+    { padId: 12, side: 'R', name: 'R Tripod', notation: 'RF123' },
+    { padId: 13, side: 'R', name: 'R Heel', notation: 'RF3' },
+    { padId: 14, side: 'R', name: 'R Blade In', notation: 'RF13T1' },
+    { padId: 15, side: 'R', name: 'R Blade Out', notation: 'RF23T5' },
+    { padId: 16, side: 'R', name: 'R Ungrounded', notation: 'RF0' },
+];

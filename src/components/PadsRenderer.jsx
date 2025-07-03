@@ -7,55 +7,60 @@ import { GROUNDING_PRESETS } from '../utils/constants';
 import './PadsRenderer.css';
 
 const PadsRenderer = ({ side }) => {
-    const { selectedBar, selectedBeat, selectedJoint, setSelectedBeat } = useUIState();
+    const { selectedBar, selectedBeat, footEditState, setSelectedBeat } = useUIState();
     const { songData, updateJointData } = useSequence();
     const { activePadIndex, handlePadDown, handlePadUp } = usePadMapping();
 
-    const isFootEditMode = selectedJoint === 'LF' || selectedJoint === 'RF';
+    const sideKey = side.charAt(0).toUpperCase(); // 'L' or 'R'
+    const isFootEditMode = footEditState.left || footEditState.right;
+    const jointToEdit = footEditState[side] ? `${sideKey}F` : null;
 
     const handlePresetClick = (preset) => {
-        if (selectedBeat === null) return;
         const dataIndex = ((selectedBar - 1) * 16) + selectedBeat;
+        if (dataIndex < 0) return;
+        // When clicking a preset, we know which foot to update.
         const jointIdToUpdate = preset.side === 'L' ? 'LF' : 'RF';
-        console.log(`[PadsRenderer] Preset clicked: ${preset.name}. Updating beat ${dataIndex}`);
+        console.log(`[PadsRenderer-${side}] Preset clicked: ${preset.name}. Updating joint ${jointIdToUpdate} on beat ${dataIndex}`);
         updateJointData(dataIndex, jointIdToUpdate, { grounding: preset.notation });
     };
 
-    const dataIndex = selectedBeat !== null ? ((selectedBar - 1) * 16) + selectedBeat : -1;
-    const currentBeatData = dataIndex >= 0 ? songData[dataIndex] : null;
-
-    // Use a flag to decide which set of pads to show. For now, it's tied to foot edit mode.
-    const showPresets = isFootEditMode;
+    const currentBeatData = songData[((selectedBar - 1) * 16) + selectedBeat];
 
     return (
-        <div className="pads-renderer-container">
-            {showPresets ? (
-                GROUNDING_PRESETS.map(preset => (
-                    <PerformancePad
-                        key={`preset-${preset.padId}`}
-                        mode="preset"
-                        presetData={preset}
-                        onClick={() => handlePresetClick(preset)}
-                        isSelected={currentBeatData?.joints[preset.side === 'L' ? 'LF' : 'RF']?.grounding === preset.notation}
-                    />
-                ))
+        <div className="pads-grid">
+            {isFootEditMode ? (
+                // --- PRESET MODE ---
+                GROUNDING_PRESETS
+                    // If DUAL mode is on, both decks show presets. Filter by side.
+                    // If only one side is on, the other side shows empty pads (or beats).
+                    .filter(p => footEditState[side] && p.side === sideKey)
+                    .map((preset, index) => (
+                        <PerformancePad
+                            key={`preset-${side}-${index}`}
+                            mode="preset"
+                            presetData={preset}
+                            onClick={() => handlePresetClick(preset)}
+                            isSelected={currentBeatData?.joints[preset.side === 'L' ? 'LF' : 'RF']?.grounding === preset.notation}
+                        />
+                    ))
             ) : (
-                Array.from({ length: 16 }, (_, i) => {
-                    const globalBeatIndex = ((selectedBar - 1) * 16) + i;
+                // --- BEAT MODE ---
+                Array.from({ length: 8 }, (_, i) => {
+                    const padOffset = side === 'left' ? 0 : 8;
+                    const globalPadIndex = padOffset + i;
+                    const globalBeatIndex = ((selectedBar - 1) * 16) + globalPadIndex;
                     return (
                         <PerformancePad
-                            key={`beat-${i}`}
+                            key={`beat-${side}-${i}`}
                             mode="beat"
-                            beatNum={i + 1}
+                            beatNum={globalPadIndex + 1}
                             beatData={songData[globalBeatIndex]}
-                            // --- FIX: Pass edit mode state down to each pad ---
-                            isEditMode={isFootEditMode} 
-                            isSelected={selectedBeat === i}
-                            isActive={activePadIndex === i} 
-                            onMouseDown={() => { console.log(`[PadsRenderer] Mouse Down on pad ${i+1}`); handlePadDown(i); }}
-                            onMouseUp={() => { console.log(`[PadsRenderer] Mouse Up on pad ${i+1}`); handlePadUp(i); }}
+                            isSelected={selectedBeat === globalPadIndex}
+                            isActive={activePadIndex === globalPadIndex} 
+                            onMouseDown={() => handlePadDown(globalPadIndex)}
+                            onMouseUp={() => handlePadUp(globalPadIndex)}
                         />
-                    )
+                    );
                 })
             )}
         </div>
