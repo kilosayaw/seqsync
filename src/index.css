@@ -1,13 +1,13 @@
 @font-face {
     font-family: 'DigitalPlay';
-    src: url('/fonts/Digital Play St.ttf') format('truetype');
+    src: url("/fonts/Digital Play St.woff2") format('woff2');
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'DigitalPlayHollow';
-    src: url('/fonts/Digital Play Hollow St.ttf') format('truetype');
+    src: url("/fonts/Digital Play Hollow St.woff2") format('woff2');
     font-weight: normal;
     font-style: normal;
 }

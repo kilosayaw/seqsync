@@ -28,7 +28,7 @@ const createDefaultBarStartTimes = () => {
 export const SequenceProvider = ({ children }) => {
     const [songData, setSongData] = useState(createDefaultSequence());
     const [totalBars, setTotalBars] = useState(1);
-    const [barStartTimes, setBarStartTimes] = useState(createDefaultBarStartTimes()); // Initialized by default
+    const [barStartTimes, setBarStartTimes] = useState(createDefaultBarStartTimes());
 
     const addBar = useCallback(() => {
         setSongData(currentData => {

@@ -1,0 +1,3 @@
+.directional-chevron-container { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; color: var(--color-accent-secondary); pointer-events: none; }
+.chevron-symbol { font-size: 2.5rem; line-height: 1; }
+.chevron-joint { font-size: 0.8rem; font-weight: bold; }

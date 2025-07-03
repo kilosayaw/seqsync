@@ -1,52 +1,38 @@
-import React, { useEffect, useRef } from 'react';
-import WaveSurfer from 'wavesurfer.js';
-import { useMedia } from '../context/MediaContext';
-import { useUIState } from '../context/UIStateContext';
+import React, { useEffect } from 'react';
 import { usePlayback } from '../context/PlaybackContext';
+import { useUIState } from '../context/UIStateContext';
 import './WaveformNavigator.css';
 
 const WaveformNavigator = () => {
-    const waveformRef = useRef(null);
-    const { wavesurferRef } = useMedia();
+    // Get the ref and instance from the one true source: PlaybackContext
+    const { waveformRef, wavesurfer, bpm, isEngineReady } = usePlayback();
     const { setSelectedBar, setSelectedBeat } = useUIState();
-    const { bpm, togglePlay } = usePlayback();
 
     useEffect(() => {
-        if (!waveformRef.current) return;
-        if (!wavesurferRef.current) {
-             const wavesurfer = WaveSurfer.create({
-                container: waveformRef.current,
-                waveColor: 'rgba(200, 200, 200, 0.5)',
-                progressColor: 'rgba(0, 255, 170, 1)',
-                barWidth: 3,
-                barGap: 2,
-                barRadius: 2,
-                height: 80,
-                cursorWidth: 2,
-                cursorColor: '#fff',
-            });
-            wavesurferRef.current = wavesurfer;
+        // Only attach interaction listeners if the REAL engine is ready
+        if (!isEngineReady || !wavesurfer) return;
 
-            wavesurfer.on('interaction', (newTime) => {
-                console.log(`[Waveform] User interaction, seeking to ${newTime.toFixed(3)}s`);
-                wavesurfer.setTime(newTime);
-                
-                const beatsPerSecond = bpm / 60;
-                const totalSixteenths = Math.floor(newTime * beatsPerSecond * 4);
-                const newBar = Math.floor(totalSixteenths / 16) + 1;
-                const newBeatInBar = totalSixteenths % 16;
-                
-                setSelectedBar(newBar);
-                setSelectedBeat(newBeatInBar);
-            });
+        const handleInteraction = (newTime) => {
+            console.log(`[Waveform] User interaction, seeking to ${newTime.toFixed(3)}s`);
+            wavesurfer.setTime(newTime);
+            
+            const totalSixteenths = Math.floor(newTime * (bpm / 60) * 4);
+            const newBar = Math.floor(totalSixteenths / 16) + 1;
+            const newBeatInBar = totalSixteenths % 16;
+            
+            setSelectedBar(newBar);
+            setSelectedBeat(newBeatInBar);
+        };
 
-             wavesurfer.on('play', () => {
-                console.log('[Waveform] Play event triggered.');
-            });
+        wavesurfer.on('interaction', handleInteraction);
+        return () => {
+            if (wavesurfer) {
+                wavesurfer.un('interaction', handleInteraction);
+            }
+        };
+    }, [isEngineReady, wavesurfer, bpm, setSelectedBar, setSelectedBeat]);
 
-        }
-    }, [wavesurferRef, bpm, setSelectedBar, setSelectedBeat, togglePlay]);
-
+    // This component's only job is to provide the div for WaveSurfer to attach to.
     return <div ref={waveformRef} className="waveform-navigator-container"></div>;
 };
 

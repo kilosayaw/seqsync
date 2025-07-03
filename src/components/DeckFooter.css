@@ -1,0 +1,29 @@
+.deck-footer-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+.footer-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+.footer-label {
+    font-size: 0.7rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+}
+.footer-button {
+    background: var(--color-dark-surface-2);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-sm) 0;
+    font-weight: bold;
+}
+.footer-button:disabled {
+    background: var(--color-dark-surface-1);
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
+}
