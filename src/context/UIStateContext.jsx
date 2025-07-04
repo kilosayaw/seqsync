@@ -1,54 +1,66 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { usePlayback } from './PlaybackContext'; // It needs this to call seekToBeat
 
-const UIStateContext = createContext(null);
+const initialUIState = {
+    selectedBar: 1,
+    selectedBeat: 0,
+    activePad: null,
+    footEditState: { left: false, right: false },
+    noteDivision: 16,
+    padPlayMode: 'TRIGGER',
+    setSelectedBar: () => {},
+    setSelectedBeat: () => {},
+    toggleFootEdit: () => {},
+    handlePadDown: () => {},
+    handlePadUp: () => {},
+    setNoteDivision: () => {},
+    setPadPlayMode: () => {},
+};
 
+const UIStateContext = createContext(initialUIState);
 export const useUIState = () => useContext(UIStateContext);
 
 export const UIStateProvider = ({ children }) => {
+    // This hook is not defined in the original code, but it's needed for functionality
+    // If PlaybackContext isn't ready, this will crash. We need to make this robust.
+    const playback = usePlayback();
+
     const [selectedBar, setSelectedBar] = useState(1);
-    const [selectedBeat, setSelectedBeat] = useState(0); 
-    const [selectedJoint, setSelectedJointState] = useState(null);
-    const [isLiveFeed, setIsLiveFeed] = useState(true);
-    const [noteDivision, setNoteDivision] = useState(16);
-    // --- THIS IS THE FIX ---
-    // The default play mode is now 'GATE'.
-    const [padPlayMode, setPadPlayMode] = useState('GATE');
-    const [isPoseEditorOpen, setIsPoseEditorOpen] = useState(false);
-    const [beatToEdit, setBeatToEdit] = useState(null);
-    const [isRecording, setIsRecording] = useState(false);
+    const [selectedBeat, setSelectedBeat] = useState(0);
+    const [activePad, setActivePad] = useState(null);
     const [footEditState, setFootEditState] = useState({ left: false, right: false });
+    const [noteDivision, setNoteDivision] = useState(16);
+    const [padPlayMode, setPadPlayMode] = useState('TRIGGER');
 
-    const handleJointSelect = (jointId) => {
-        setSelectedJointState(prevJoint => prevJoint === jointId ? null : jointId);
-    };
-
-    const toggleFootEdit = (side, mode = 'single') => {
-        if (mode === 'dual') {
-            setFootEditState(prev => {
-                const areBothActive = prev.left && prev.right;
-                return { left: !areBothActive, right: !areBothActive };
-            });
-        } else {
-            setFootEditState(prev => ({
-                ...prev,
-                [side]: !prev[side]
-            }));
+    const handlePadDown = useCallback((padIndex) => {
+        console.log(`[UIState] Pad Down: index ${padIndex} in Bar ${selectedBar}`);
+        setActivePad(padIndex);
+        setSelectedBeat(padIndex);
+        // Safely call seekToBeat only if the context is ready
+        if (playback && playback.seekToBeat) {
+            playback.seekToBeat(selectedBar - 1, padIndex);
         }
-    };
+    }, [selectedBar, playback]);
+
+    const handlePadUp = useCallback(() => {
+        setActivePad(null);
+    }, []);
+
+    const toggleFootEdit = useCallback((side) => {
+        console.log(`[UIState] Toggling foot edit for: ${side}`);
+        setFootEditState(prev => ({ ...prev, [side]: !prev[side] }));
+    }, []);
 
     const value = {
         selectedBar, setSelectedBar,
         selectedBeat, setSelectedBeat,
-        selectedJoint, setSelectedJoint: handleJointSelect,
-        isLiveFeed, setIsLiveFeed,
+        activePad,
+        footEditState, toggleFootEdit,
         noteDivision, setNoteDivision,
         padPlayMode, setPadPlayMode,
-        isPoseEditorOpen, setIsPoseEditorOpen,
-        beatToEdit, setBeatToEdit,
-        isRecording, setIsRecording,
-        footEditState, toggleFootEdit,
+        handlePadDown, handlePadUp,
     };
-    
+
     return (
         <UIStateContext.Provider value={value}>
             {children}

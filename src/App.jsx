@@ -1,30 +1,25 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
+import { MediaProvider } from './context/MediaContext';
+import { SequenceProvider } from './context/SequenceContext';
+import { UIStateProvider } from './context/UIStateContext';
+import { PlaybackProvider } from './context/PlaybackContext';
 import ProLayout from './components/ProLayout';
-import { useMedia } from './context/MediaContext';
-import { usePlayback } from './context/PlaybackContext';
-import { useSequence } from './context/SequenceContext';
+import './App.css'; // Assuming you have an App-level stylesheet
 
 function App() {
-    const { isMediaReady, duration, detectedBpm, mediaUrl } = useMedia();
-    const { initializeEngine } = usePlayback();
-    const { initializeSequenceFromBpm } = useSequence();
-
-    const hasInitializedRef = useRef(false);
-
-    useEffect(() => {
-        if (isMediaReady && mediaUrl && !hasInitializedRef.current) {
-            console.log(`[App] ✅ Media is ready. Orchestrating system update...`);
-            hasInitializedRef.current = true;
-            
-            initializeSequenceFromBpm(duration, detectedBpm);
-            initializeEngine(mediaUrl, detectedBpm);
-        }
-        if (!isMediaReady) {
-            hasInitializedRef.current = false;
-        }
-    }, [isMediaReady, mediaUrl, duration, detectedBpm, initializeEngine, initializeSequenceFromBpm]);
-
-    return <ProLayout />;
+  console.log('[App] Rendering with Context Providers');
+  return (
+    // The order of providers is critical if they depend on each other.
+    <MediaProvider>
+      <SequenceProvider>
+        <UIStateProvider>
+          <PlaybackProvider>
+            <ProLayout />
+          </PlaybackProvider>
+        </UIStateProvider>
+      </SequenceProvider>
+    </MediaProvider>
+  );
 }
 
 export default App;

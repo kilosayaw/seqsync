@@ -1,159 +1,96 @@
-import React, { useRef, useCallback, useEffect, useState } from 'react';
-import { FOOT_HOTSPOT_COORDINATES, BASE_FOOT_PATHS } from '../utils/constants';
-import { useUIState } from '../context/UIStateContext';
+import React, { useRef, useCallback } from 'react';
+import classNames from 'classnames';
+import { FOOT_POINTS } from '../utils/constants'; // Assuming this file exists
 
 const RotarySVG = ({ side, angle, setAngle, activePoints, onPointClick, onDragEnd, isDisabled }) => {
-    const svgSize = 550;
-    const centerX = svgSize / 2;
-    const centerY = svgSize / 2;
-    const newSize = 340;
-    const xOffset = 105;
-    const yOffset = 109;
+    const svgRef = useRef(null);
+    const isDragging = useRef(false);
+    const startAngle = useRef(0);
+    const initialSvgAngle = useRef(0);
 
-    const { footEditState } = useUIState();
-    const sideKey = side.charAt(0).toUpperCase();
-    const allHotspots = FOOT_HOTSPOT_COORDINATES[sideKey];
-    const baseFootPath = BASE_FOOT_PATHS[sideKey];
-    const isEditMode = footEditState[side];
-
-    const [isDragging, setIsDragging] = useState(false);
-    const lastMouseAngleRef = useRef(0);
-    const velocityRef = useRef(0);
-    const animationFrameRef = useRef();
-    const centerRef = useRef({ x: 0, y: 0 });
-
-    const animate = useCallback(() => {
-        velocityRef.current *= 0.95;
-        if (Math.abs(velocityRef.current) < 0.01) {
-            cancelAnimationFrame(animationFrameRef.current);
-            if (typeof onDragEnd === 'function') setAngle(current => { onDragEnd(current); return current; });
-            return;
-        }
-        setAngle(prev => prev + velocityRef.current);
-        animationFrameRef.current = requestAnimationFrame(animate);
-    }, [onDragEnd, setAngle]);
-
-    // --- THIS IS THE JITTER FIX ---
-    const handleMouseMove = useCallback((e) => {
-        if (!isDragging) return;
-        const dx = e.clientX - centerRef.current.x;
-        const dy = e.clientY - centerRef.current.y;
-        
-        // Calculate the raw angle in degrees
-        let currentMouseAngle = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
-        
-        // Normalize the angle to be within a 0-360 range for consistent delta calculation
-        if (currentMouseAngle < 0) {
-            currentMouseAngle += 360;
-        }
-
-        let delta = currentMouseAngle - lastMouseAngleRef.current;
-        
-        // Handle the "wrap-around" issue when crossing the 0/360 degree boundary
-        if (delta > 180) {
-            delta -= 360;
-        } else if (delta < -180) {
-            delta += 360;
-        }
-        
-        // Apply the smooth delta to the component's angle state
-        setAngle(prev => prev + delta);
-        
-        // Update velocity for momentum physics, slightly dampened
-        velocityRef.current = delta * 0.85; 
-        
-        // Store the current normalized angle for the next frame's calculation
-        lastMouseAngleRef.current = currentMouseAngle;
-
-    }, [isDragging, setAngle]);
-
-    const handleMouseUp = useCallback(() => {
-        if (!isDragging) return;
-        setIsDragging(false);
-        if (Math.abs(velocityRef.current) > 0.01) {
-            animationFrameRef.current = requestAnimationFrame(animate);
-        } else if (typeof onDragEnd === 'function') {
-            onDragEnd(angle);
-        }
-    }, [isDragging, animate, angle, onDragEnd]);
+    const getAngle = (e) => {
+        const svg = svgRef.current;
+        if (!svg) return 0;
+        const rect = svg.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const clientX = e.clientX || e.touches[0].clientX;
+        const clientY = e.clientY || e.touches[0].clientY;
+        return Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
+    };
 
     const handleMouseDown = useCallback((e) => {
-        if (isDisabled || e.target.closest('.hotspot-group')) return;
-        e.stopPropagation();
-        setIsDragging(true);
-        cancelAnimationFrame(animationFrameRef.current);
-        velocityRef.current = 0;
-        const rect = e.currentTarget.ownerSVGElement.getBoundingClientRect();
-        centerRef.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-        const dx = e.clientX - centerRef.current.x;
-        const dy = e.clientY - centerRef.current.y;
-        lastMouseAngleRef.current = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
-    }, [isDisabled]);
+        if (isDisabled) return;
+        e.preventDefault();
+        isDragging.current = true;
+        startAngle.current = getAngle(e);
+        initialSvgAngle.current = angle;
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        window.addEventListener('touchmove', handleMouseMove);
+        window.addEventListener('touchend', handleMouseUp);
+    }, [angle, isDisabled]);
 
-    useEffect(() => {
-        if (isDragging) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
+    const handleMouseMove = useCallback((e) => {
+        if (!isDragging.current || isDisabled) return;
+        e.preventDefault();
+        const currentAngle = getAngle(e);
+        const deltaAngle = currentAngle - startAngle.current;
+        setAngle(initialSvgAngle.current + deltaAngle);
+    }, [isDisabled, setAngle]);
+
+    const handleMouseUp = useCallback((e) => {
+        if (isDisabled) return;
+        e.preventDefault();
+        isDragging.current = false;
+        if (onDragEnd) {
+            onDragEnd(angle);
         }
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isDragging, handleMouseMove, handleMouseUp]);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('touchmove', handleMouseMove);
+        window.removeEventListener('touchend', handleMouseUp);
+    }, [angle, isDisabled, onDragEnd]);
 
-    if (!allHotspots) return null;
+    const containerClasses = classNames('rotary-svg-container', { disabled: isDisabled });
+    const points = FOOT_POINTS[side];
 
     return (
-        <svg
-            width={svgSize} height={svgSize}
-            viewBox={`0 0 ${svgSize} ${svgSize}`}
-            className={`rotary-svg-container ${isDisabled ? 'disabled' : ''}`}
-        >
-            <g transform={`rotate(${angle}, ${centerX}, ${centerY})`}>
-                <image href="/ground/foot-wheel.png" x="0" y="0" width={svgSize} height={svgSize} style={{ pointerEvents: 'none' }} />
-                <circle cx={centerX} cy={centerY} r={svgSize / 2} fill="transparent" className="rotary-grab-area" onMouseDown={handleMouseDown} />
-                
-                {isEditMode && (
-                    <image href={baseFootPath} x={xOffset} y={yOffset} width={newSize} height={newSize} className="base-foot-template" />
-                )}
+        <div className={containerClasses}>
+            <svg ref={svgRef} className="rotary-svg" viewBox="-110 -110 220 220" preserveAspectRatio="xMidYMid meet">
+                <g className="base-foot-template">
+                    {/* Your SVG path for the foot outline goes here */}
+                    <path d="M 50,-90 C 70,-90 85,-70 85,-50 C 85,0 40,60 -10,95 C -60,60 -85,0 -85,-50 C -85,-70 -70,-90 -50,-90 z" fill="#fff"/>
+                </g>
 
-                {allHotspots.map(hotspot => (
-                    <g key={hotspot.notation} onClick={() => onPointClick(hotspot.notation)} className="hotspot-group">
-                        {hotspot.type === 'ellipse' ? (
-                            <>
-                                <ellipse
-                                    cx={hotspot.cx} cy={hotspot.cy}
-                                    rx={hotspot.rx} ry={hotspot.ry}
-                                    transform={`rotate(${hotspot.rotation}, ${hotspot.cx}, ${hotspot.cy})`}
-                                    className={`hotspot-indicator ${activePoints.has(hotspot.notation) ? 'active' : 'inactive'}`}
-                                />
-                                <ellipse
-                                    cx={hotspot.cx} cy={hotspot.cy}
-                                    rx={hotspot.rx + 5} ry={hotspot.ry + 5}
-                                    transform={`rotate(${hotspot.rotation}, ${hotspot.cx}, ${hotspot.cy})`}
-                                    fill="transparent"
-                                    className="hotspot-clickable-area"
-                                />
-                            </>
-                        ) : (
-                            <>
-                                <circle
-                                    cx={hotspot.cx} cy={hotspot.cy}
-                                    r={hotspot.r}
-                                    className={`hotspot-indicator ${activePoints.has(hotspot.notation) ? 'active' : 'inactive'}`}
-                                />
-                                <circle
-                                    cx={hotspot.cx} cy={hotspot.cy}
-                                    r={hotspot.r + 5}
-                                    fill="transparent"
-                                    className="hotspot-clickable-area"
-                                />
-                            </>
-                        )}
-                    </g>
-                ))}
-            </g>
-        </svg>
+                <g className="interaction-layer">
+                    {Object.entries(points).map(([key, point]) => (
+                        <g key={key}>
+                            <circle
+                                className={classNames('hotspot-indicator', { active: activePoints.has(key), inactive: !activePoints.has(key) })}
+                                cx={point.x} cy={point.y} r={point.r}
+                            />
+                            <circle
+                                className="hotspot-clickable-area"
+                                cx={point.x} cy={point.y} r={point.r + 5} /* Larger click area */
+                                onClick={() => !isDisabled && onPointClick(key)}
+                            />
+                        </g>
+                    ))}
+                </g>
+
+                <g transform={`rotate(${angle})`}>
+                    <circle
+                        className="rotary-grab-area"
+                        cx="0" cy="0" r="100"
+                        onMouseDown={handleMouseDown}
+                        onTouchStart={handleMouseDown}
+                    />
+                    {/* Optional: Add a visual handle or indicator for rotation */}
+                    <line x1="0" y1="0" x2="0" y2="-90" stroke="#d0d8e0" strokeWidth="2" />
+                </g>
+            </svg>
+        </div>
     );
 };
 

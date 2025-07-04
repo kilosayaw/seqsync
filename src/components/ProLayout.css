@@ -1,22 +1,23 @@
-.pro-layout-container {
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    /* KEY CHANGE: The main layout is now a column */
-    flex-direction: column; 
-    background-color: #1a1a1a;
-    color: #ccc;
-    padding: var(--spacing-md);
-    gap: 0; /* Gap is now handled by margins */
-    font-family: 'Roboto Mono', monospace;
-    overflow: hidden;
+:root {
+    --bg-color: #1a1f25;
+    --panel-color: #2c343f;
+    --border-color: #455162;
+    --glow-color: #00faff;
+    --text-color: #d0d8e0;
 }
 
-/* NEW: This wrapper holds the decks and console horizontally */
+.pro-layout-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Roboto Mono', monospace; /* Add this font from Google Fonts */
+}
+
 .main-content-area {
     display: flex;
-    flex-grow: 1; /* This area will fill the remaining vertical space */
-    gap: var(--spacing-md);
-    min-height: 0; /* Critical for children to shrink properly */
-    width: 100%;
+    flex-grow: 1;
+    padding: 1rem;
+    gap: 1rem;
 }

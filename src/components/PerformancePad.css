@@ -1,57 +1,87 @@
-/* ADD THIS NEW CLASS to your PerformancePad.css */
-.pad-preset-name {
-    font-size: 0.9rem;
-    font-weight: normal;
-    text-align: center;
-    line-height: 1.2;
-    padding: 0 var(--spacing-xs);
-    pointer-events: none;
+.pads-section {
+    flex-grow: 1;
 }
 
-/* --- Existing Styles Below --- */
+.pads-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 0.75rem;
+    height: 100%;
+}
+
 .performance-pad {
-    background-color: #3a3a3c;
-    border: 1px solid #222;
-    border-radius: var(--border-radius-sm);
+    background-color: #222;
+    border: 1px solid #555;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.1s ease-out;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+}
+
+.performance-pad:hover {
+    border-color: var(--glow-color);
+}
+
+.pad-number {
+    color: #888;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.performance-pad.has-data .pad-number {
+    color: #999;
+}
+
+/* State for the editor's target beat */
+.performance-pad.selected {
+    border-color: white;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+/* State for when the user is actively pressing a pad */
+.performance-pad.user-active {
+    background-color: #00aaff;
+    border-color: #66d9ff;
+    transform: scale(0.95);
+    box-shadow: 0 0 10px #00aaff;
+}
+.performance-pad.user-active .pad-number {
+    color: white;
+}
+
+/* State for the live playhead */
+.performance-pad.active {
+    background-color: #33ff99;
+    border-color: #99ffcc;
+    box-shadow: 0 0 10px #33ff99;
+}
+.performance-pad.active .pad-number {
+    color: #111;
+}
+
+.bar-navigator {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.5rem;
-    font-weight: bold;
-    position: relative;
-    overflow: hidden;
-    color: var(--color-text-secondary);
-    transition: all 0.1s ease-in-out;
+    margin-top: 1rem;
+    color: white;
+    font-family: monospace;
 }
-.performance-pad:hover {
-    background-color: #4f4f52;
+.bar-navigator button {
+    background: #333;
+    border: 1px solid #555;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    cursor: pointer;
 }
-.performance-pad.has-data {
-    padding: 4px;
-    background-color: var(--color-dark-surface-3);
+.bar-navigator span {
+    margin: 0 1rem;
 }
-.performance-pad.selected {
-    border-color: var(--color-accent-secondary);
-    box-shadow: 0 0 8px var(--color-accent-secondary);
-    transform: scale(1.02);
-}
-.pad-number {
-    opacity: 0.7;
-}
-.performance-pad.active {
-    background-color: var(--color-accent-primary);
-    border-color: var(--color-accent-primary);
-    box-shadow: 0 0 10px var(--color-accent-primary);
-}
-.performance-pad.active .pad-number,
-.performance-pad.active .pad-preset-name {
-    color: var(--color-dark-bg);
-}
-.performance-pad.disabled {
-    background-color: #2a2a2c;
-    opacity: 0.5;
+.bar-navigator button:disabled {
+    opacity: 0.3;
     cursor: not-allowed;
-}
-.performance-pad.disabled:hover {
-    background-color: #2a2a2c;
 }

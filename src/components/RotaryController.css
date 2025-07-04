@@ -1,25 +1,37 @@
 .rotary-controller-container {
+    /* NEW: These lines are for correct flexbox sizing and centering */
+    flex-grow: 1;
+    min-height: 0; /* Prevents flex item from overflowing */
+
+    /* KEPT & MERGED: These were correct for centering the SVG inside */
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
 }
 
-/* --- Base Foot Template Styling --- */
-/* Visual Layer 1: Faint, grey, non-interactive visual guide. */
+.rotary-svg {
+    /* NEW: Ensures the SVG scales properly within the container */
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+
+/* --- ALL OF YOUR ORIGINAL STYLING IS PRESERVED BELOW --- */
+
+/* Base Foot Template Styling */
 .base-foot-template {
     opacity: 0.15;
     filter: grayscale(100%) brightness(1.5);
     pointer-events: none; /* Ensures it doesn't interfere with clicks */
 }
 
-/* --- Hotspot Indicator Styling --- */
-/* Visual Layer 2: The glowing green circles. */
+/* Hotspot Indicator Styling */
 .hotspot-indicator.active {
     fill: hsl(120, 100%, 50%);
     stroke: hsl(120, 100%, 75%);
     stroke-width: 2px;
-    /* The specified "glow" effect */
     filter: drop-shadow(0 0 5px hsl(120, 100%, 50%)) drop-shadow(0 0 10px hsl(120, 100%, 50%));
     opacity: 0.8;
     transition: opacity 0.1s ease-in-out, fill 0.1s ease-in-out;
@@ -31,21 +43,22 @@
     opacity: 0;
 }
 
-/* --- Interaction Styling --- */
+/* Interaction Styling */
 .hotspot-clickable-area {
-    /* The invisible, larger area that intercepts clicks. */
+    fill: transparent; /* Make the click area invisible */
     cursor: pointer;
 }
 
 .rotary-grab-area {
     cursor: grab;
+    fill: transparent; /* Make the grab area invisible */
 }
 
 .rotary-grab-area:active {
     cursor: grabbing;
 }
 
-/* --- Disabled State --- */
+/* Disabled State Styling */
 .rotary-svg-container.disabled .base-foot-template {
     opacity: 0.05;
 }
@@ -55,10 +68,10 @@
 }
 
 .rotary-svg-container.disabled .hotspot-clickable-area {
-    cursor: default; /* Clicks are not allowed, so don't show pointer */
+    cursor: default;
 }
 
 .rotary-svg-container.disabled .hotspot-indicator.active {
-    opacity: 0.3; /* Dim the active points when disabled */
+    opacity: 0.3;
     filter: none; /* Remove glow when disabled */
 }
