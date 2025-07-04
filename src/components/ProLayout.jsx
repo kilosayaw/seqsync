@@ -1,24 +1,28 @@
 import React from 'react';
-import Deck from './Deck';
-import CenterConsole from './CenterConsole';
-import Waveform from './Waveform';
 import TopNavBar from './TopNavBar';
-import { useKeyboardControls } from '../hooks/useKeyboardControls';
+import WaveformNavigator from './WaveformNavigator';
+import NotationDisplay from './NotationDisplay';
+import CenterConsole from './CenterConsole';
+import Deck from './Deck';
+import { useMedia } from '../context/MediaContext';
 import './ProLayout.css';
 
 const ProLayout = () => {
-    useKeyboardControls();
+    const { isLoading } = useMedia();
 
     return (
         <div className="pro-layout-container">
             <TopNavBar />
-            <Waveform /> 
-            
-            <div className="main-content-area">
-                <Deck side="left" />
-                <CenterConsole />
-                <Deck side="right" />
+            <div className="top-section-container">
+                <WaveformNavigator />
+                <NotationDisplay />
             </div>
+            <div className="main-content-area">
+                <Deck deckId="deck1" />
+                <CenterConsole />
+                <Deck deckId="deck2" />
+            </div>
+            {isLoading && <div className="loading-overlay"><h1>ANALYZING...</h1></div>}
         </div>
     );
 };

@@ -1,0 +1,12 @@
+/* src/components/OptionButtons.css */
+.option-buttons-container {
+    flex-grow: 1; /* Allow this to fill the remaining space next to rotary buttons */
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-sm);
+}
+.option-btn-slot {
+    background-color: var(--color-dark-surface-1);
+    border-radius: var(--border-radius-sm);
+    border: 1px dashed var(--color-border);
+}

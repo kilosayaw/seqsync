@@ -1,87 +1,37 @@
-.pads-section {
-    flex-grow: 1;
-}
-
-.pads-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-    gap: 0.75rem;
-    height: 100%;
-}
-
+/* src/components/PerformancePad.css */
 .performance-pad {
-    background-color: #222;
-    border: 1px solid #555;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.1s ease-out;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+  background-color: var(--color-dark-surface-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  position: relative;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  transition: all 0.1s ease-in-out;
+  cursor: pointer;
 }
-
 .performance-pad:hover {
-    border-color: var(--glow-color);
+  background-color: #4f4f52;
+  border-color: #666;
 }
-
-.pad-number {
-    color: #888;
-    font-size: 1.5rem;
-    font-weight: bold;
-}
-
-.performance-pad.has-data .pad-number {
-    color: #999;
-}
-
-/* State for the editor's target beat */
-.performance-pad.selected {
-    border-color: white;
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-}
-
-/* State for when the user is actively pressing a pad */
-.performance-pad.user-active {
-    background-color: #00aaff;
-    border-color: #66d9ff;
-    transform: scale(0.95);
-    box-shadow: 0 0 10px #00aaff;
-}
-.performance-pad.user-active .pad-number {
-    color: white;
-}
-
-/* State for the live playhead */
 .performance-pad.active {
-    background-color: #33ff99;
-    border-color: #99ffcc;
-    box-shadow: 0 0 10px #33ff99;
+    background-color: var(--color-accent-primary);
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 10px var(--color-accent-primary);
+    color: var(--color-dark-bg);
 }
-.performance-pad.active .pad-number {
-    color: #111;
+.performance-pad.has-data {
+    background-color: var(--color-dark-surface-2);
+    border-color: var(--color-accent-secondary);
 }
-
-.bar-navigator {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 1rem;
-    color: white;
-    font-family: monospace;
+.performance-pad.has-data.active {
+    background-color: var(--color-accent-primary);
+    border-color: var(--color-accent-primary);
 }
-.bar-navigator button {
-    background: #333;
-    border: 1px solid #555;
-    color: white;
-    padding: 0.25rem 0.75rem;
-    cursor: pointer;
-}
-.bar-navigator span {
-    margin: 0 1rem;
-}
-.bar-navigator button:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
+.pad-number {
+    opacity: 0.7;
 }

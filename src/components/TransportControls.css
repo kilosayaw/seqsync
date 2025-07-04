@@ -1,14 +1,85 @@
-/* This is the CSS you provided, which styles your component. */
-.transport-wrapper-compact { display: flex; flex-direction: column; gap: var(--spacing-sm); }
-.file-controls-row, .bar-nav-compact, .main-controls-grid { display: flex; gap: var(--spacing-sm); }
-.file-controls-row .transport-btn-file { flex: 1; display: flex; align-items: center; justify-content: center; gap: var(--spacing-sm); background: var(--color-dark-surface-2); border: 1px solid var(--color-border); color: var(--color-text-secondary); padding: var(--spacing-xs); border-radius: var(--border-radius-sm); font-size: 0.8rem; }
-.live-toggle.active { background: #e63946; color: white; }
-.bar-nav-compact { align-items: center; }
-.bar-display-compact { flex-grow: 1; text-align: center; background: var(--color-dark-bg); padding: var(--spacing-xs); border-radius: var(--border-radius-sm); font-family: var(--font-digital, monospace); color: var(--color-accent-secondary); }
-.transport-btn-arrow { padding: var(--spacing-xs); background: var(--color-dark-surface-2); border: 1px solid var(--color-border); border-radius: var(--border-radius-sm); }
-.main-controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm); }
-.bpm-tap-group, .rec-play-group { display: flex; gap: var(--spacing-xs); }
-.digital-bpm-display { flex-grow: 1; background: var(--color-dark-bg); color: var(--color-accent-primary); font-family: var(--font-digital, monospace); font-size: 2rem; display: flex; justify-content: center; align-items: center; border-radius: var(--border-radius-sm); }
-.tap-btn, .rec-play-btn { flex-basis: 50px; background: var(--color-dark-surface-2); border: 1px solid var(--color-border); border-radius: var(--border-radius-sm); color: var(--color-text-secondary); font-weight: bold; }
-.rec-play-btn { font-size: 1.2rem; }
-.record-btn.active { background: #e63946; color: white; }
+/* src/components/TransportControls.css */
+.transport-controls-container {
+    display: grid;
+    grid-template-columns: auto 1fr auto; /* BPM | Navigation | Playback */
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background-color: var(--color-dark-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    height: 60px; /* Give it a fixed height */
+    flex-shrink: 0;
+}
+
+/* Sections */
+.bpm-section,
+.navigation-section,
+.playback-section {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    height: 100%;
+}
+.navigation-section {
+    justify-content: center;
+}
+.playback-section {
+    justify-content: flex-end;
+}
+
+/* Individual Elements */
+.digital-display {
+    background: var(--color-dark-bg);
+    color: var(--color-accent-primary);
+    font-family: var(--font-digital, monospace);
+    font-size: 2.5rem;
+    padding: 0 var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+.bar-display {
+  text-align: center;
+  font-family: var(--font-digital, monospace);
+  color: var(--color-text-secondary);
+  font-size: 1.2rem;
+  min-width: 140px;
+}
+
+.transport-btn {
+  background: var(--color-dark-surface-3);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  aspect-ratio: 1 / 1; /* Make buttons square */
+  font-size: 1rem;
+}
+.transport-btn.tap-btn {
+    aspect-ratio: initial; /* Let tap button be wider */
+    padding: 0 var(--spacing-md);
+}
+.transport-btn.play-btn {
+    font-size: 1.5rem;
+    background-color: var(--color-accent-primary);
+    color: var(--color-dark-bg);
+}
+.transport-btn.rec-btn.active {
+    background-color: var(--color-accent-red);
+    color: white;
+}
+.transport-btn.cycle-btn.active {
+    background-color: var(--color-accent-secondary);
+    color: var(--color-dark-bg);
+}
+.transport-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

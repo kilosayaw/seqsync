@@ -1,60 +1,58 @@
-import React, { useRef } from 'react';
-import { useMedia } from '../context/MediaContext';
-import { useUIState } from '../context/UIStateContext';
+import React from 'react';
 import { usePlayback } from '../context/PlaybackContext';
+import { useUIState } from '../context/UIStateContext';
 import { useSequence } from '../context/SequenceContext';
+import { useMedia } from '../context/MediaContext';
 import { useTapTempo } from '../hooks/useTapTempo';
-import { FaPlay, FaPause, FaFolderOpen, FaArrowLeft, FaArrowRight, FaCircle, FaSave, FaFolder, FaVideo } from 'react-icons/fa';
+import { FaPlay, FaPause, FaArrowLeft, FaArrowRight, FaCircle, FaSyncAlt, FaStepBackward, FaStepForward } from 'react-icons/fa'; // Added new icons
 import './TransportControls.css';
 
 const TransportControls = () => {
-    const { loadMedia } = useMedia();
-    const { isPlaying, isRecording, togglePlay, toggleRecording, bpm, setBpm } = usePlayback();
-    const { isLiveFeed, setIsLiveFeed, selectedBar, setSelectedBar } = useUIState();
+    const { isPlaying, isRecording, togglePlay, setIsRecording } = usePlayback();
+    const { selectedBar, setSelectedBar, isCycling, setIsCycling, cycleStartBar, setCycleStartBar, cycleEndBar, setCycleEndBar } = useUIState();
     const { totalBars } = useSequence();
-    const { tap } = useTapTempo(setBpm);
-    const fileInputRef = useRef(null);
+    const { detectedBpm } = useMedia();
+    
+    const { tap } = useTapTempo(null);
 
-    const handleFileChange = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            loadMedia(file);
-        }
+    const handleCycleToggle = () => setIsCycling(prev => !prev);
+    const handleSetLoopStart = () => {
+        setCycleStartBar(selectedBar);
+        if (cycleEndBar < selectedBar) setCycleEndBar(selectedBar);
+    };
+    const handleSetLoopEnd = () => {
+        setCycleEndBar(selectedBar);
+        if (cycleStartBar > selectedBar) setCycleStartBar(selectedBar);
     };
 
+    // Placeholder functions for beat stepping
+    const handleBeatBack = () => console.log('Beat Back');
+    const handleBeatFwd = () => console.log('Beat Fwd');
+
     return (
-        <div className="transport-wrapper-compact">
-            <div className="file-controls-row">
-                <button className="transport-btn-file" onClick={() => fileInputRef.current.click()}>
-                    <FaFolderOpen /> <span>Media</span>
-                </button>
-                <button className={`transport-btn-file live-toggle ${isLiveFeed ? 'active' : ''}`} onClick={() => setIsLiveFeed(p => !p)}>
-                    <FaVideo /> <span>Live</span>
-                </button>
-                <button className="transport-btn-file" onClick={() => console.log('load seq')}>
-                    <FaFolder /> <span>Load</span>
-                </button>
-                <button className="transport-btn-file" onClick={() => console.log('save seq')}>
-                    <FaSave /> <span>Save</span>
-                </button>
-            </div>
-             <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="audio/*,video/*" />
-            
-            <div className="bar-nav-compact">
-                <button className="transport-btn-arrow" onClick={() => setSelectedBar(p => Math.max(1, p - 1))} disabled={selectedBar <= 1}><FaArrowLeft /></button>
-                <div className="bar-display-compact">BAR {String(selectedBar).padStart(2, '0')} of {String(totalBars || 0).padStart(2, '0')}</div>
-                <button className="transport-btn-arrow" onClick={() => setSelectedBar(p => Math.min(totalBars, p + 1))} disabled={selectedBar >= totalBars}><FaArrowRight /></button>
+        <div className="transport-controls-container">
+            <div className="bpm-section">
+                <div className="digital-display">{String(Math.round(detectedBpm || 0)).padStart(3, '0')}</div>
+                <button className="transport-btn tap-btn" onClick={tap}>TAP</button>
             </div>
             
-            <div className="main-controls-grid">
-                <div className="bpm-tap-group">
-                    <div className="digital-bpm-display">{String(Math.round(bpm)).padStart(3, '0')}</div>
-                    <button className="tap-btn" onClick={tap}>TAP</button>
-                </div>
-                <div className="rec-play-group">
-                    <button className={`rec-play-btn record-btn ${isRecording ? 'active' : ''}`} onClick={toggleRecording}><FaCircle /></button>
-                    <button className={`rec-play-btn play-btn`} onClick={togglePlay}>{isPlaying ? <FaPause/> : <FaPlay/>}</button>
-                </div>
+            <div className="navigation-section">
+                <button className="transport-btn nav-btn" onClick={() => setSelectedBar(p => Math.max(1, p - 1))} disabled={selectedBar <= 1 || totalBars === 0}>
+                    <FaArrowLeft />
+                </button>
+                <button className="transport-btn nav-btn" onClick={handleBeatBack}><FaStepBackward /></button>
+                <div className="bar-display">BAR {String(selectedBar).padStart(2, '0')} / {String(totalBars || 0).padStart(2, '0')}</div>
+                <button className="transport-btn nav-btn" onClick={handleBeatFwd}><FaStepForward /></button>
+                <button className="transport-btn nav-btn" onClick={() => setSelectedBar(p => Math.min(totalBars, p + 1))} disabled={selectedBar >= totalBars || totalBars === 0}>
+                    <FaArrowRight />
+                </button>
+            </div>
+
+            <div className="playback-section">
+                <button className={`transport-btn cycle-btn ${isCycling ? 'active' : ''}`} onClick={handleCycleToggle}><FaSyncAlt /></button>
+                {/* We can add In/Out buttons back later if needed */}
+                <button className={`transport-btn rec-btn ${isRecording ? 'active' : ''}`} onClick={() => setIsRecording(p => !p)}><FaCircle /></button>
+                <button className="transport-btn play-btn" onClick={togglePlay}>{isPlaying ? <FaPause/> : <FaPlay/>}</button>
             </div>
         </div>
     );

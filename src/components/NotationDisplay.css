@@ -28,3 +28,11 @@
     flex-grow: 1; /* Allow content to fill space */
     text-align: left;
 }
+
+.notation-display-placeholder {
+    height: 30px; /* 1/3 of waveform height */
+    flex-shrink: 0;
+    background-color: var(--color-dark-surface-1);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--border-radius-sm);
+}

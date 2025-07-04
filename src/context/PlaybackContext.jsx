@@ -1,80 +1,47 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { useSequence } from './SequenceContext.jsx';
-import WaveSurfer from 'wavesurfer.js';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useMedia } from './MediaContext'; // CORRECTED
+import { useUIState } from './UIStateContext';
 
-const defaultPlaybackState = {
-    waveformRef: { current: null },
-    play: () => console.warn('PlaybackContext not ready'),
-    pause: () => console.warn('PlaybackContext not ready'),
-    loadAudio: () => console.warn('PlaybackContext not ready'),
-    seekToBeat: () => console.warn('PlaybackContext not ready'),
-    isPlaying: false, isReady: false, activeBeat: 1, currentBar: 1,
-};
-
-const PlaybackContext = createContext(defaultPlaybackState);
+const PlaybackContext = createContext(null);
 export const usePlayback = () => useContext(PlaybackContext);
 
 export const PlaybackProvider = ({ children }) => {
-    const { sequence } = useSequence();
-    const { metadata, timeSignature, bars } = sequence;
+    const { wavesurferInstance, duration } = useMedia(); // CORRECTED
     const [isPlaying, setIsPlaying] = useState(false);
-    const [isReady, setIsReady] = useState(false);
-    const [activeBeat, setActiveBeat] = useState(1);
-    const [currentBar, setCurrentBar] = useState(1);
-    const wavesurfer = useRef(null);
-    const waveformRef = useRef(null);
-    const animationFrameId = useRef(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
 
-    const animationLoop = useCallback(() => {
-        if (!wavesurfer.current) return;
-        const time = wavesurfer.current.getCurrentTime();
-        const beatsPerSecond = metadata.bpm / 60;
-        const totalBeats = time * beatsPerSecond;
-        const bar = Math.floor(totalBeats / timeSignature.beats) + 1;
-        const beat = (totalBeats % timeSignature.beats) + 1;
-        if (bar <= bars.length) setCurrentBar(bar);
-        setActiveBeat(beat);
-        animationFrameId.current = requestAnimationFrame(animationLoop);
-    }, [metadata.bpm, timeSignature.beats, bars.length]);
-
-    const play = () => { if (isReady && wavesurfer.current) { wavesurfer.current.play(); setIsPlaying(true); console.log('[PlaybackContext] Play command issued.'); } };
-    const pause = () => { if (wavesurfer.current) { wavesurfer.current.pause(); setIsPlaying(false); console.log('[PlaybackContext] Pause command issued.'); } };
-
-    const loadAudio = useCallback((url) => {
-        if (wavesurfer.current) {
-            console.log(`[PlaybackContext] Loading new media: ${url}`);
-            setIsReady(false);
-            wavesurfer.current.load(url);
-        }
-    }, []);
-
-    // NEW: The Cue Point function. It calculates the precise time for a given beat and seeks.
-    const seekToBeat = useCallback((barIndex, beatIndex) => {
-        if (!wavesurfer.current || !isReady) return;
-        
-        const secondsPerBeat = 60 / metadata.bpm;
-        const secondsPerSixteenth = secondsPerBeat / timeSignature.subdivision;
-        const beatsInPriorBars = barIndex * (timeSignature.beats * timeSignature.subdivision);
-        const targetTime = (beatsInPriorBars + beatIndex) * secondsPerSixteenth;
-        const duration = wavesurfer.current.getDuration();
-
-        if (targetTime < duration) {
-            console.log(`[PlaybackContext] Seeking to B${barIndex+1}:${beatIndex+1} (Time: ${targetTime.toFixed(2)}s)`);
-            wavesurfer.current.seekTo(targetTime / duration);
-        }
-    }, [metadata.bpm, timeSignature.subdivision, timeSignature.beats, isReady]);
+    const handleAudioProcess = useCallback((time) => { setCurrentTime(time); }, []);
 
     useEffect(() => {
-        // WaveSurfer initialization logic... (as it was in the final successful fix)
-        // This logic is sound and does not need to change.
-    }, []);
+        const ws = wavesurferInstance;
+        if (!ws) return;
+        const onPlay = () => setIsPlaying(true);
+        const onPause = () => setIsPlaying(false);
+        const onFinish = () => { setIsPlaying(false); setCurrentTime(0); };
+        const onSeek = (time) => setCurrentTime(ws.getCurrentTime());
+        ws.on('play', onPlay);
+        ws.on('pause', onPause);
+        ws.on('finish', onFinish);
+        ws.on('audioprocess', handleAudioProcess);
+        ws.on('seeking', onSeek);
+        return () => {
+            ws.un('play', onPlay); ws.un('pause', onPause); ws.un('finish', onFinish);
+            ws.un('audioprocess', handleAudioProcess); ws.un('seeking', onSeek);
+        };
+    }, [wavesurferInstance, handleAudioProcess]);
+    
+    const play = useCallback(() => { wavesurferInstance?.play(); }, [wavesurferInstance]);
+    const pause = useCallback(() => { wavesurferInstance?.pause(); }, [wavesurferInstance]);
+    const togglePlay = useCallback(() => { wavesurferInstance?.playPause(); }, [wavesurferInstance]);
+    
+    const seekToTime = useCallback((time) => {
+        if (wavesurferInstance && duration > 0) {
+            wavesurferInstance.setTime(Math.max(0, Math.min(time, duration)));
+        }
+    }, [wavesurferInstance, duration]);
+    
+    const value = { isPlaying, isRecording, setIsRecording, currentTime, play, pause, togglePlay, seekToTime };
 
-    useEffect(() => {
-        if (isPlaying) { animationFrameId.current = requestAnimationFrame(animationLoop); } 
-        else { if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current); }
-        return () => { if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current); };
-    }, [isPlaying, animationLoop]);
-
-    const value = { waveformRef, play, pause, loadAudio, seekToBeat, isPlaying, isReady, activeBeat, currentBar };
     return <PlaybackContext.Provider value={value}>{children}</PlaybackContext.Provider>;
 };

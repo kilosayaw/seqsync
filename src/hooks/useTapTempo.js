@@ -1,4 +1,3 @@
-// src/hooks/useTapTempo.js
 import { useRef, useCallback } from 'react';
 
 const MAX_TAP_INTERVAL = 2000; // 2 seconds
@@ -14,7 +13,6 @@ export const useTapTempo = (onBpmChange) => {
             const interval = now - lastTapTimeRef.current;
             intervalsRef.current.push(interval);
             
-            // Keep only the last 4 intervals for a rolling average
             if (intervalsRef.current.length > 4) {
                 intervalsRef.current.shift();
             }
@@ -26,7 +24,6 @@ export const useTapTempo = (onBpmChange) => {
                 onBpmChange(Math.round(newBpm));
             }
         } else {
-            // If it's the first tap or the last tap was too long ago, reset.
             intervalsRef.current = [];
         }
 

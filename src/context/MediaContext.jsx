@@ -1,75 +1,85 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { useSequence } from './SequenceContext.jsx';
-import { usePlayback } from './PlaybackContext.jsx';
-import Aubio from 'aubiojs'; // Assuming aubiojs is correctly set up
+import Aubio from 'aubiojs';
+import WaveSurfer from 'wavesurfer.js';
 
-const MediaContext = createContext(null);
+// Exporting the raw context for resilience
+export const MediaContext = createContext(null);
+
+// Exporting the custom hook is our established best practice
 export const useMedia = () => useContext(MediaContext);
 
 export const MediaProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const { updateMetadata, resizeSequence } = useSequence();
-    const { loadAudio } = usePlayback(); // Get the load function from PlaybackContext
+    const [isMediaReady, setIsMediaReady] = useState(false);
+    const [duration, setDuration] = useState(0);
+    const [detectedBpm, setDetectedBpm] = useState(null);
+    const [mediaFile, setMediaFile] = useState(null);
+    const [firstBeatOffset, setFirstBeatOffset] = useState(0);
+    const [wavesurferInstance, setWavesurferInstance] = useState(null);
 
-    const runBeatDetection = async (audioBuffer) => {
-        console.log("[MediaContext] Starting beat detection...");
-        // This excellent beat detection logic is preserved entirely.
+    const analyzeAudio = useCallback(async (audioBuffer) => {
+        console.log("[MediaContext] Analyzing audio...");
         const aubio = await Aubio();
         const sampleRate = audioBuffer.sampleRate;
-        const tempo = new aubio.Tempo(4096, 512, sampleRate);
         const channelData = audioBuffer.getChannelData(0);
         const frameCount = Math.floor(channelData.length / 512);
-        let allBpms = [];
+
+        const tempo = new aubio.Tempo(4096, 512, sampleRate);
+        const bpms = [];
         for (let i = 0; i < frameCount; i++) {
             const frame = channelData.subarray(i * 512, (i + 1) * 512);
-            if (tempo.do(frame)) { allBpms.push(tempo.getBpm()); }
+            if (tempo.do(frame)) { bpms.push(tempo.getBpm()); }
         }
-        if (allBpms.length > 0) {
-            allBpms.sort((a, b) => a - b);
-            let medianBpm = allBpms[Math.floor(allBpms.length / 2)];
-            while (medianBpm < 60) { medianBpm *= 2; }
-            const finalBpm = Math.round(medianBpm);
-            console.log(`[MediaContext] Beat detection complete. Final BPM: ${finalBpm}`);
-            return finalBpm;
+        if (bpms.length > 0) {
+            bpms.sort((a, b) => a - b);
+            let finalBpm = bpms[Math.floor(bpms.length / 2)];
+            while (finalBpm < 60) { finalBpm *= 2; }
+            setDetectedBpm(Math.round(finalBpm));
+        } else {
+            setDetectedBpm(120);
         }
-        console.warn("[MediaContext] No beats detected. Defaulting to 120 BPM.");
-        return 120;
-    };
+
+        const onset = new aubio.Onset('default', 4096, 512, sampleRate);
+        const onsets = [];
+        for (let i = 0; i < frameCount; i++) {
+            const frame = channelData.subarray(i * 512, (i + 1) * 512);
+            if (onset.do(frame)) { onsets.push(onset.getLast()); }
+        }
+        const firstOnsetSample = onsets.length > 0 ? onsets[0] : 0;
+        setFirstBeatOffset(firstOnsetSample / sampleRate);
+        
+        setIsMediaReady(true);
+        setIsLoading(false);
+    }, []);
 
     const loadMedia = useCallback(async (file) => {
-        if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
-            console.error("Unsupported file type.");
-            return;
-        }
+        if (!wavesurferInstance || !file.type.startsWith('audio/')) return;
+
         setIsLoading(true);
-        console.log(`[MediaContext] Loading file: ${file.name}`);
+        setIsMediaReady(false);
+        setMediaFile(file);
+        const blobUrl = URL.createObjectURL(file);
 
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const arrayBuffer = await file.arrayBuffer();
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            
-            const detectedBpm = await runBeatDetection(audioBuffer);
-            const trackDuration = audioBuffer.duration;
-            const blobUrl = URL.createObjectURL(file);
-
-            // 1. Update the sequence data
-            updateMetadata({ bpm: detectedBpm, url: blobUrl, title: file.name });
-            const totalBars = Math.ceil(((trackDuration / 60) * detectedBpm) / 4);
-            resizeSequence(totalBars);
-            
-            // 2. Load the audio into the playback engine
-            loadAudio(blobUrl);
-
+            await wavesurferInstance.load(blobUrl);
+            const audioBuffer = wavesurferInstance.getDecodedData();
+            if (audioBuffer) {
+                setDuration(audioBuffer.duration);
+                analyzeAudio(audioBuffer);
+            } else {
+                throw new Error("WaveSurfer could not decode audio data.");
+            }
         } catch (error) {
-            console.error("[MediaContext] Error processing media file:", error);
-        } finally {
+            console.error("Error processing media file:", error);
             setIsLoading(false);
         }
-    }, [updateMetadata, resizeSequence, loadAudio]);
-    
-    // We only need to expose the isLoading state and the loadMedia function.
-    const value = { isLoading, loadMedia };
+    }, [wavesurferInstance, analyzeAudio]);
 
+    const value = { 
+        isLoading, loadMedia, isMediaReady, duration, 
+        detectedBpm, mediaFile, firstBeatOffset, 
+        wavesurferInstance, setWavesurferInstance
+    };
+    
     return <MediaContext.Provider value={value}>{children}</MediaContext.Provider>;
 };

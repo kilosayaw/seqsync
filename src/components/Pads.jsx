@@ -1,46 +1,39 @@
 import React from 'react';
-import classNames from 'classnames';
+import PerformancePad from './PerformancePad';
 import { useUIState } from '../context/UIStateContext';
-import { usePlayback } from '../context/PlaybackContext';
+import { useSequence } from '../context/SequenceContext';
 import { usePadMapping } from '../hooks/usePadMapping';
-import './PerformancePad.css';
+import { usePlayback } from '../context/PlaybackContext';
+import './Pads.css';
 
 const Pads = ({ side }) => {
-    const { selectedBar, selectedBeat, activePad, handlePadDown, handlePadUp } = useUIState();
-    const { isPlaying, activeBeat, currentBar } = usePlayback();
-    const { playheadPadIndex } = usePadMapping(selectedBar, activeBeat, currentBar);
-
-    const padOffset = side === 'left' ? 0 : 8; // Left deck shows pads 0-7, Right shows 8-15
+    const { selectedBar, activePad } = useUIState();
+    const { songData, STEPS_PER_BAR } = useSequence();
+    const { activePadIndex, handlePadDown, handlePadUp } = usePadMapping();
+    const { isPlaying } = usePlayback();
+    
+    const padOffset = side === 'left' ? 0 : STEPS_PER_BAR / 2;
 
     return (
-        <div className="pads-section">
-            <div className="pads-grid">
-                {Array.from({ length: 8 }).map((_, index) => {
-                    const padIndex = padOffset + index; // Calculate the global pad index (0-15)
-
-                    const isPlayheadOnPad = isPlaying && padIndex === playheadPadIndex;
-                    const isUserPressingPad = padIndex === activePad;
-                    const isSelectedForEdit = padIndex === selectedBeat;
-
-                    const padClasses = classNames('performance-pad', {
-                        'active': isPlayheadOnPad,
-                        'user-active': isUserPressingPad,
-                        'selected': isSelectedForEdit && !isUserPressingPad,
-                    });
-
-                    return (
-                        <div
-                            key={padIndex}
-                            className={padClasses}
-                            onMouseDown={() => handlePadDown(padIndex)}
-                            onMouseUp={() => handlePadUp(padIndex)}
-                            onMouseLeave={() => handlePadUp(padIndex)}
-                        >
-                            <span className="pad-number">{padIndex + 1}</span>
-                        </div>
-                    );
-                })}
-            </div>
+        <div className="pads-container">
+            {Array.from({ length: STEPS_PER_BAR / 2 }).map((_, i) => {
+                const padIndexInBar = padOffset + i;
+                const globalStepIndex = ((selectedBar - 1) * STEPS_PER_BAR) + padIndexInBar;
+                const beatData = songData.length > globalStepIndex ? songData[globalStepIndex] : null;
+                const isCurrentlyPlaying = isPlaying && padIndexInBar === activePadIndex;
+                const isUserPressing = activePad === padIndexInBar;
+                
+                return (
+                    <PerformancePad
+                        key={padIndexInBar}
+                        beatNum={i + 1}
+                        beatData={beatData}
+                        isActive={isCurrentlyPlaying || isUserPressing}
+                        onMouseDown={() => handlePadDown(padIndexInBar, selectedBar)}
+                        onMouseUp={handlePadUp}
+                    />
+                );
+            })}
         </div>
     );
 };

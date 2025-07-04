@@ -1,18 +1,22 @@
+/* src/components/Deck.css */
 .deck {
     flex: 1;
     display: flex;
-    background-color: transparent; /* Decks are just containers now */
+    gap: var(--spacing-sm);
+    min-width: 0;
+    min-height: 0;
 }
 
-.deck-main-row {
-    display: flex;
-    gap: 1rem;
-    width: 100%;
-}
-
-.deck-center-column {
-    flex-grow: 1; /* This makes the center column take up available space */
+.deck-main-column {
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--spacing-sm);
+    min-width: 0;
+}
+
+.deck-controls-area {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
 }

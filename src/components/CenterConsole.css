@@ -1,11 +1,15 @@
+/* src/components/CenterConsole.css */
 .center-console {
-    flex-basis: 30%; /* Give it a defined width in the center */
-    min-width: 300px; /* Prevent it from getting too small */
     display: flex;
     flex-direction: column;
-    background-color: var(--panel-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
-    gap: 1rem;
+    gap: var(--spacing-sm);
+    width: 420px; /* Increased width for better proportions */
+    flex-shrink: 0;
+}
+
+.main-display-area {
+    flex-grow: 1;
+    background-color: var(--color-dark-surface-1);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
 }

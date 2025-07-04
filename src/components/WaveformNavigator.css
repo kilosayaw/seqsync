@@ -1,10 +1,14 @@
-.waveform-navigator-container {
-    width: 100%;
-    height: 90px;
-    background-color: var(--color-dark-surface-1);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-xs);
-    margin-bottom: var(--spacing-md);
-    cursor: text; /* Indicates scrubbable area */
+/* src/components/WaveformNavigator.css */
+.waveform-navigator {
+  background-color: var(--color-dark-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  height: 90px; /* Fixed height for waveform row */
+  flex-shrink: 0;
+}
+.waveform {
+  width: 100%;
 }
