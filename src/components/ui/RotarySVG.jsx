@@ -1,7 +1,7 @@
 // src/components/RotaryController/RotarySVG.jsx
 import React from 'react';
 import classNames from 'classnames';
-import { BASE_FOOT_PATHS, FOOT_HOTSPOT_COORDINATES } from '../utils/constants';
+import { BASE_FOOT_PATHS, FOOT_HOTSPOT_COORDINATES } from '../../utils/constants';
 import './RotaryController.css';
 
 const RotarySVG = ({

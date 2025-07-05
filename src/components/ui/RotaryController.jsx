@@ -1,10 +1,10 @@
 // src/components/RotaryController.jsx
 import React, { useEffect, useState } from 'react';
-import { useUIState } from '../context/UIStateContext';
-import { useSequence } from '../context/SequenceContext';
-import { usePlayback } from '../context/PlaybackContext';
-import { getPointsFromNotation, resolveNotationFromPoints } from '../utils/notationUtils';
-import { useDampedTurntableDrag } from '../hooks/useDampedTurntableDrag';
+import { useUIState } from '../../context/UIStateContext';
+import { useSequence } from '../../context/SequenceContext';
+import { usePlayback } from '../../context/PlaybackContext';
+import { getPointsFromNotation, resolveNotationFromPoints } from '../../utils/notationUtils';
+import { useDampedTurntableDrag } from '../../hooks/useDampedTurntableDrag';
 import RotarySVG from './RotarySVG';
 import './RotaryController.css';
 

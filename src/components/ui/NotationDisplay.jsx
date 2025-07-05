@@ -1,9 +1,9 @@
 // src/components/NotationDisplay.jsx
 import React from 'react';
-import { useSequence } from '../context/SequenceContext';
-import { usePlayback } from '../context/PlaybackContext';
-import { useUIState } from '../context/UIStateContext';
-import { formatFullNotation } from '../utils/notationUtils';
+import { useSequence } from '../../context/SequenceContext';
+import { usePlayback } from '../../context/PlaybackContext';
+import { useUIState } from '../../context/UIStateContext';
+import { formatFullNotation } from '../../utils/notationUtils';
 import './NotationDisplay.css';
 
 const NotationDisplay = () => {

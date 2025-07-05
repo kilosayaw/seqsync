@@ -1,8 +1,8 @@
 // src/components/DeckJointList.jsx
 import React from 'react';
-import { useUIState } from '../context/UIStateContext';
-import { JOINT_LIST } from '../utils/constants';
-import { useLongPress } from '../hooks/useLongPress'; // Import the new hook
+import { useUIState } from '../../context/UIStateContext';
+import { JOINT_LIST } from '../../utils/constants';
+import { useLongPress } from '../../hooks/useLongPress'; // Import the new hook
 import './DeckJointList.css';
 
 const DeckJointList = ({ side }) => {

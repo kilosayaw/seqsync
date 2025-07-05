@@ -3,7 +3,8 @@ import { MediaProvider } from './context/MediaContext';
 import { SequenceProvider } from './context/SequenceContext';
 import { UIStateProvider } from './context/UIStateContext';
 import { PlaybackProvider } from './context/PlaybackContext';
-import ProLayout from './components/ProLayout';
+import { MotionProvider } from './context/MotionContext'; // Added for future motion analysis
+import ProLayout from './components/layout/ProLayout'; // Updated path
 import './App.css';
 
 function App() {
@@ -12,7 +13,9 @@ function App() {
       <SequenceProvider>
         <UIStateProvider>
           <PlaybackProvider>
-            <ProLayout />
+            <MotionProvider>
+              <ProLayout />
+            </MotionProvider>
           </PlaybackProvider>
         </UIStateProvider>
       </SequenceProvider>

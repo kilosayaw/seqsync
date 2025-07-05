@@ -1,8 +1,8 @@
 // src/components/FullWidthNotation/FullWidthNotation.jsx
 import React from 'react';
-import { useSequence } from '../context/SequenceContext';
-import { usePlayback } from '../context/PlaybackContext';
-import { useUIState } from '../context/UIStateContext';
+import { useSequence } from '../../context/SequenceContext';
+import { usePlayback } from '../../context/PlaybackContext';
+import { useUIState } from '../../context/UIStateContext';
 import './FullWidthNotation.css';
 
 const FullWidthNotation = () => {

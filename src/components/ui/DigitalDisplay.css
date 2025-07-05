@@ -1,0 +1,33 @@
+.digital-display-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-dark-surface-3);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--color-border);
+    height: 70px; /* Give it a fixed height */
+}
+
+.digital-display-label {
+    font-family: var(--font-primary);
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.digital-display-value {
+    font-family: var(--font-digital);
+    font-size: 2.5rem;
+    color: var(--color-accent-green);
+    line-height: 1;
+    background-color: #000000;
+    width: 100%;
+    text-align: center;
+    border-radius: var(--border-radius-sm);
+    padding: 2px 0;
+}

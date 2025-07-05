@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { useMedia } from '../context/MediaContext'; // CORRECTED
+import { useMedia } from '../../context/MediaContext'; // CORRECTED
 import { FaFolderOpen, FaSave, FaFolder } from 'react-icons/fa';
 import './TopNavBar.css';
 

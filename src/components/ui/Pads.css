@@ -1,0 +1,8 @@
+.pads-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    width: 100%;
+    height: 100%; /* Make the grid fill the parent .pads-group */
+}

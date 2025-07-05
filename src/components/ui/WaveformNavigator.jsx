@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import WaveSurfer from 'wavesurfer.js';
-import { useMedia } from '../context/MediaContext'; // CORRECTED
-import { usePlayback } from '../context/PlaybackContext';
+import { useMedia } from '../../context/MediaContext'; // CORRECTED
+import { usePlayback } from '../../context/PlaybackContext';
 import './WaveformNavigator.css';
 
 const WaveformNavigator = () => {

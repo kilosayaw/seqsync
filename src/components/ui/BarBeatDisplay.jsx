@@ -1,7 +1,7 @@
 // src/components/BarBeatDisplay.jsx
 import React from 'react';
-import { usePlayback } from '../context/PlaybackContext';
-import { formatTime } from '../utils/formatTime';
+import { usePlayback } from '../../context/PlaybackContext';
+import { formatTime } from '../../utils/formatTime';
 import './BarBeatDisplay.css';
 
 const BarBeatDisplay = () => {

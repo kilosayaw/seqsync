@@ -1,8 +1,7 @@
 .pitch-slider-placeholder {
-    grid-area: slider; /* Assign to the 'slider' grid area */
     width: 30px;
+    flex-shrink: 0; /* Prevents the column from shrinking */
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
     border: 1px solid var(--color-border);
-    flex-shrink: 0;
 }

@@ -1,9 +1,9 @@
 import React, { useContext } from 'react';
 import PerformancePad from './PerformancePad';
-import { usePadMapping } from '../hooks/usePadMapping';
-import { usePlayback } from '../context/PlaybackContext';
-import { useSequence } from '../context/SequenceContext'; // CORRECTED
-import { MediaContext } from '../context/MediaContext';
+import { usePadMapping } from '../../hooks/usePadMapping';
+import { usePlayback } from '../../context/PlaybackContext';
+import { useSequence } from '../../context/SequenceContext'; // CORRECTED
+import { MediaContext } from '../../context/MediaContext';
 import './PadsRenderer.css';
 
 const PadsRenderer = ({ deckId }) => {
