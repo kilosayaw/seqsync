@@ -1,10 +1,12 @@
 .pro-layout-container {
     display: grid;
+    /* DEFINITIVE FIX: Each row is given an explicit or proportional size */
     grid-template-rows:
-        var(--top-nav-height)
-        var(--waveform-height)
-        var(--notation-display-height)
-        1fr;
+        var(--top-nav-height)          /* Row 1: Top Nav */
+        var(--waveform-height)       /* Row 2: Waveform (NOW VISIBLE) */
+        var(--notation-display-height) /* Row 3: Notation */
+        1fr;                           /* Row 4: Main Content (takes all remaining space) */
+    
     height: 100vh;
     width: 100vw;
     background-color: var(--color-dark-bg);
@@ -13,9 +15,10 @@
     overflow: hidden;
 }
 
+
 .main-content-area {
     display: grid;
-    min-height: 0;
+    min-height: 0; /* Critical for grid children to shrink correctly */
     grid-template-columns: 1fr auto 1fr;
     gap: var(--spacing-md);
 }

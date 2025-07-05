@@ -19,10 +19,12 @@ const LeftDeck = () => {
                 <DeckJointList side="left" />
             </div>
 
-            {/* DEFINITIVE FIX: The left deck uses the standard, simpler pads-group */}
+            {/* This now matches the structure of the RightDeck's pad area */ }
             <div className="pads-group">
                 <OptionButtons />
-                <Pads side="left" />
+                <div className="pads-container">
+                    <Pads side="left" />
+                </div>
             </div>
         </div>
     );
