@@ -4,7 +4,7 @@ import { useUIState } from '../context/UIStateContext';
 import { useSequence } from '../context/SequenceContext';
 import { usePlayback } from '../context/PlaybackContext';
 import { getPointsFromNotation, resolveNotationFromPoints } from '../utils/notationUtils';
-import { useTurntableDrag } from '../hooks/useTurntableDrag'; // Import your drag hook
+import { useDampedTurntableDrag } from '../hooks/useDampedTurntableDrag';
 import RotarySVG from './RotarySVG';
 import './RotaryController.css';
 
@@ -17,18 +17,15 @@ const RotaryController = ({ deckId }) => {
     const sideKey = side.charAt(0).toUpperCase();
     const jointId = `${sideKey}F`;
 
-    // Determine the current beat/pad to edit
     const beatToDisplay = isPlaying ? currentBeat : (activePad ?? 0);
     const globalIndex = ((selectedBar - 1) * STEPS_PER_BAR) + beatToDisplay;
 
-    // Get current grounding and angle data from the sequence
     const currentGrounding = songData[globalIndex]?.joints[jointId]?.grounding || `${jointId}123T12345`;
     const currentAngle = songData[globalIndex]?.joints[jointId]?.angle || 0;
     
     const [angle, setAngle] = useState(currentAngle);
     const [activePoints, setActivePoints] = useState(new Set());
 
-    // Update local state when the global sequence data changes
     useEffect(() => {
         setAngle(currentAngle);
         setActivePoints(getPointsFromNotation(currentGrounding));
@@ -36,32 +33,31 @@ const RotaryController = ({ deckId }) => {
     
     const isEditing = editMode === side || editMode === 'both';
 
-    // Handler for saving the rotation angle
     const handleDragEnd = (finalAngle) => {
         if (isEditing && globalIndex > -1) {
-            updateJointData(globalIndex, jointId, { angle: finalAngle });
+            const normalizedAngle = (finalAngle % 360 + 540) % 360 - 180;
+            updateJointData(globalIndex, jointId, { angle: normalizedAngle });
         }
     };
 
-    // Use your turntable drag hook
-    const { handleMouseDown: handleWheelMouseDown } = useTurntableDrag(angle, setAngle, handleDragEnd);
+    const { handleMouseDown } = useDampedTurntableDrag(angle, setAngle, handleDragEnd);
 
-    // Handler for clicking on hotspots
-    const handleHotspotClick = (notation) => {
+    // --- DEFINITIVE FIX FOR DESELECTION ---
+    const handleHotspotClick = (shortNotation) => {
         if (!isEditing) return;
 
-        const pointNotation = notation.replace(sideKey, '').replace('F','');
+        // Create a new Set from the current state to ensure we're not mutating it directly.
         const newActivePoints = new Set(activePoints);
 
-        if (newActivePoints.has(pointNotation)) {
-            newActivePoints.delete(pointNotation);
+        // The logic is now a simple, robust toggle.
+        if (newActivePoints.has(shortNotation)) {
+            newActivePoints.delete(shortNotation);
         } else {
-            newActivePoints.add(pointNotation);
+            newActivePoints.add(shortNotation);
         }
         
+        // Update both the local visual state and the global sequence data.
         setActivePoints(newActivePoints);
-        
-        // Update the sequence data immediately
         const newGroundingNotation = resolveNotationFromPoints(newActivePoints, side);
         updateJointData(globalIndex, jointId, { grounding: newGroundingNotation });
     };
@@ -74,7 +70,7 @@ const RotaryController = ({ deckId }) => {
                 activePoints={activePoints}
                 onHotspotClick={handleHotspotClick}
                 isEditing={isEditing}
-                handleWheelMouseDown={handleWheelMouseDown} // Pass down the drag handler
+                handleWheelMouseDown={handleMouseDown} // This is correctly passed now.
             />
         </div>
     );

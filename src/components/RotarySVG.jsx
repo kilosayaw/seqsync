@@ -1,6 +1,6 @@
-// src/components/RotarySVG.jsx
+// src/components/RotaryController/RotarySVG.jsx
 import React from 'react';
-// CORRECTED PATH: Goes up one level to `src`, then into `utils`.
+import classNames from 'classnames';
 import { BASE_FOOT_PATHS, FOOT_HOTSPOT_COORDINATES } from '../utils/constants';
 import './RotaryController.css';
 
@@ -19,9 +19,18 @@ const RotarySVG = ({
     return (
         <div className="rotary-svg-wrapper">
             <svg viewBox="0 0 550 550" className="rotary-svg">
-                {/* Rotating Group */}
+                <defs>
+                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="10" result="coloredBlur" />
+                        <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                </defs>
+
+                {/* --- The Rotating Group --- */}
                 <g transform={`rotate(${angle}, 275, 275)`} onMouseDown={handleWheelMouseDown} className="rotary-wheel-grab-area">
+                    
                     <image href="/ground/foot-wheel.png" x="0" y="0" width="550" height="550" />
+                    
                     {isEditing && (
                         <image 
                             href={footImage} 
@@ -29,43 +38,35 @@ const RotarySVG = ({
                             className="base-foot-img"
                         />
                     )}
+
+                    {/* --- THE DEFINITIVE VISUALS FIX --- */}
+                    {/* This loop now renders the glowing dots correctly inside the rotating group. */}
                     {hotspots.map(spot => {
                         const isActive = activePoints.has(spot.notation);
-                        if (!isActive) return null;
+                        if (!isActive) return null; // Only render active points
 
+                        const indicatorClasses = classNames('hotspot-indicator', { 'active': isActive });
                         if (spot.type === 'ellipse') {
-                            return <ellipse key={spot.notation} className="hotspot-indicator" cx={spot.cx} cy={spot.cy} rx={spot.rx} ry={spot.ry} transform={`rotate(${spot.rotation || 0}, ${spot.cx}, ${spot.cy})`} />;
+                            return <ellipse key={spot.notation} className={indicatorClasses} cx={spot.cx} cy={spot.cy} rx={spot.rx} ry={spot.ry} transform={`rotate(${spot.rotation || 0}, ${spot.cx}, ${spot.cy})`} />;
                         } else {
-                            return <circle key={spot.notation} className="hotspot-indicator" cx={spot.cx} cy={spot.cy} r={spot.r} />;
+                            return <circle key={spot.notation} className={indicatorClasses} cx={spot.cx} cy={spot.cy} r={spot.r} />;
                         }
                     })}
                 </g>
-
-                {/* Stationary Clickable Hotspots */}
+                
+                {/* --- The Separate, Stationary Interaction Layer --- */}
+                {/* This layer is invisible and does NOT rotate. */}
                 {isEditing && (
-                    <g className="hotspot-interaction-layer">
+                     <g className="interaction-layer">
                         {hotspots.map(spot => {
+                            const handleClick = (e) => {
+                                e.stopPropagation();
+                                onHotspotClick(spot.notation);
+                            };
                             if (spot.type === 'ellipse') {
-                                return (
-                                    <ellipse
-                                        key={`${spot.notation}-click`}
-                                        className="hotspot-clickable-area"
-                                        cx={spot.cx} cy={spot.cy}
-                                        rx={spot.rx} ry={spot.ry}
-                                        transform={`rotate(${spot.rotation || 0}, ${spot.cx}, ${spot.cy})`}
-                                        onClick={() => onHotspotClick(spot.notation)}
-                                    />
-                                );
+                                return <ellipse key={`${spot.notation}-click`} className="hotspot-clickable-area" cx={spot.cx} cy={spot.cy} rx={spot.rx} ry={spot.ry} transform={`rotate(${spot.rotation || 0}, ${spot.cx}, ${spot.cy})`} onMouseDown={handleClick} />;
                             } else {
-                                return (
-                                    <circle
-                                        key={`${spot.notation}-click`}
-                                        className="hotspot-clickable-area"
-                                        cx={spot.cx} cy={spot.cy}
-                                        r={spot.r}
-                                        onClick={() => onHotspotClick(spot.notation)}
-                                    />
-                                );
+                                return <circle key={`${spot.notation}-click`} className="hotspot-clickable-area" cx={spot.cx} cy={spot.cy} r={spot.r} onMouseDown={handleClick} />;
                             }
                         })}
                     </g>
