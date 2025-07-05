@@ -1,37 +1,56 @@
 .transport-controls-container {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    gap: var(--spacing-md);
+    gap: var(--spacing-xs);
+    width: 100%;
 }
 
-.transport-btn {
-    background-color: var(--color-dark-surface-3);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-    border-radius: var(--border-radius-sm);
-    width: 60px;
-    height: 45px;
+/* Base styles for all buttons in the transport area */
+.transport-btn, .tap-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
-.transport-btn:hover {
+/* NEW: Specific style for the box-less icon buttons */
+.icon-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    width: 35px;
+    height: 35px;
+    padding: 0; /* No padding on icon-only buttons */
+}
+
+.icon-btn:hover {
+    color: var(--color-accent-primary);
+}
+
+/* Styles for the distinct, boxed buttons */
+.record-btn {
+    background-color: var(--color-dark-surface-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--color-accent-red);
+    height: 35px;
+    width: 35px;
+}
+
+.record-btn:hover {
     background-color: #4f4f52;
-    color: var(--color-text-primary);
-    border-color: var(--color-text-secondary);
+    border-color: var(--color-accent-red);
 }
 
 .play-btn {
     background-color: var(--color-accent-blue);
+    border: 1px solid var(--color-accent-blue);
+    border-radius: var(--border-radius-sm);
     color: white;
-    width: 80px; /* Larger as requested */
-    height: 60px;
-    font-size: 2rem;
-    border-color: var(--color-accent-blue);
+    width: 60px;
+    height: 45px;
 }
 
 .play-btn:hover {
@@ -39,12 +58,18 @@
 }
 
 .tap-button {
-    background: var(--color-dark-surface-3);
+    background-color: var(--color-dark-surface-3);
     border: 1px solid var(--color-border);
-    color: var(--color-text-primary);
     border-radius: var(--border-radius-sm);
+    color: var(--color-text-secondary);
     font-weight: bold;
-    font-size: 1.2rem;
-    height: 45px;
-    width: 80px;
+    font-size: 0.9rem;
+    height: 35px;
+    padding: 0 var(--spacing-sm);
+}
+
+.tap-button:hover {
+    background-color: #4f4f52;
+    color: var(--color-text-primary);
+    border-color: var(--color-text-secondary);
 }

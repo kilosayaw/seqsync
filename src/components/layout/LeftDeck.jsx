@@ -7,27 +7,25 @@ import OptionButtons from '../ui/OptionButtons';
 import Pads from '../ui/Pads';
 import './Deck.css';
 
-// The main column for a deck, containing the interactive elements.
-const DeckMainColumn = ({ deckId, side }) => (
-    <div className="deck-main-column">
-        <div className="turntable-group">
-            <RotaryButtons />
-            <RotaryController deckId={deckId} />
-        </div>
-        <div className="pads-group">
-            <OptionButtons />
-            <Pads side={side} />
-        </div>
-    </div>
-);
-
 const LeftDeck = () => {
     return (
-        // The `data-side` attribute is used by Deck.css to control the order of children
+        // The container is now a vertical flex column
         <div className="deck-container" data-side="left">
-            <PitchSlider />
-            <DeckMainColumn deckId="deck1" side="left" />
-            <DeckJointList side="left" />
+            {/* The top row contains the turntable and its direct side controls */}
+            <div className="deck-top-row">
+                <PitchSlider />
+                <div className="turntable-group">
+                    <RotaryButtons />
+                    <RotaryController deckId="deck1" />
+                </div>
+                <DeckJointList side="left" />
+            </div>
+
+            {/* The pads group is now a direct child, allowing it to span the full width */}
+            <div className="pads-group">
+                <OptionButtons side="left" /> {/* Pass prop */}
+                <Pads side="left" />
+            </div>
         </div>
     );
 };

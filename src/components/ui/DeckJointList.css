@@ -1,31 +1,26 @@
 .deck-joint-list-container {
-    width: 90px;
-    flex-shrink: 0; /* Prevents the column from shrinking */
+    width: 77px; /* REDUCED width */
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 8px; /* Tighter gap */
 }
 
 .joint-list-btn {
     width: 100%;
-    padding: var(--spacing-sm) 0;
+    aspect-ratio: 1.8 / 0.8; /* Force square shape */
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
-    font-weight: bold;
+    font-size: 1rem; /* REDUCED font size */
+    font-weight: normal;
     cursor: pointer;
     transition: all 0.2s ease;
     background-color: var(--color-dark-surface-2);
     color: var(--color-text-secondary);
+    font-family: var(--font-digital);
+    padding: 0;
 }
 
-.joint-list-btn:hover {
-    border-color: var(--color-text-primary);
-    color: var(--color-text-primary);
-}
-
-.joint-list-btn.selected {
-    background-color: var(--color-accent-primary);
-    color: var(--color-dark-bg);
-    border-color: var(--color-accent-primary);
-}
+/* other styles (.hover, .selected) remain the same */
+.joint-list-btn:hover { border-color: var(--color-text-primary); color: var(--color-text-primary); }
+.joint-list-btn.selected { background-color: var(--color-accent-primary); color: var(--color-dark-bg); border-color: var(--color-accent-primary); }

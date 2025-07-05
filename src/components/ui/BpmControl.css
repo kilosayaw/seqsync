@@ -1,0 +1,61 @@
+.bpm-control-container {
+    display: flex;
+    flex-direction: column; /* Stacks the display and button vertically */
+    width: 100%;
+    height: 100%;
+    gap: var(--spacing-xs); /* Space between display and tap button */
+}
+
+/* The new display part of the module */
+.bpm-display-module {
+    flex-grow: 1; /* Allows the display to take up available space */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-dark-surface-3);
+    border-radius: var(--border-radius-sm);
+    padding: 2px;
+    border: 1px solid var(--color-border);
+    min-height: 0; /* Important for flex children */
+}
+
+.bpm-display-label {
+    font-family: var(--font-primary);
+    font-size: 0.5rem;
+    font-weight: bold;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+}
+
+.bpm-display-value {
+    font-family: var(--font-digital);
+    font-size: 1.2rem; /* Sized to fit comfortably */
+    color: var(--color-accent-green);
+    line-height: 1;
+    background-color: #000;
+    width: 100%;
+    text-align: center;
+    border-radius: 2px;
+    padding: 2px 0;
+}
+
+/* The new TAP button style */
+.bpm-tap-button {
+    flex-shrink: 0;
+    width: 100%;
+    height: 16px; /* A shorter, wider button */
+    padding: 0;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-dark-surface-2);
+    color: var(--color-text-secondary);
+    font-family: var(--font-primary);
+    font-weight: bold;
+    font-size: 0.6rem;
+    border-radius: 2px;
+}
+
+.bpm-tap-button:hover {
+    border-color: var(--color-text-primary);
+    color: var(--color-text-primary);
+}

@@ -1,43 +1,21 @@
-// src/components/BarBeatDisplay.jsx
 import React from 'react';
+import DigitalDisplay from './DigitalDisplay';
 import { usePlayback } from '../../context/PlaybackContext';
-import { formatTime } from '../../utils/formatTime';
+import { formatTime } from '../../utils/notationUtils';
 import './BarBeatDisplay.css';
 
 const BarBeatDisplay = () => {
-    const { isPlaying, currentTime, bpm, bar, beat } = usePlayback();
-
-    // Use live data if playing, default to 1 otherwise
-    const displayBar = isPlaying ? bar : 1;
-    const displayBeat = isPlaying ? beat : 1;
+    const { currentTime } = usePlayback();
+    // Placeholder data
+    const bar = "01";
+    const beat = "01";
 
     return (
         <div className="bar-beat-display-container">
-            {/* Each module is now a self-contained flex column */}
-            <div className="display-module">
-                <span className="readout-label">BAR</span>
-                <div className="readout-box">
-                    <span className="readout-value">{String(displayBar).padStart(2, '0')}</span>
-                </div>
-            </div>
-            <div className="display-module time-module">
-                <span className="readout-label">TIME</span>
-                <div className="readout-box">
-                    <span className="readout-value-large">{formatTime(currentTime)}</span>
-                </div>
-            </div>
-            <div className="display-module">
-                <span className="readout-label">BEAT</span>
-                <div className="readout-box">
-                    <span className="readout-value">{String(displayBeat).padStart(2, '0')}</span>
-                </div>
-            </div>
-            <div className="display-module">
-                <span className="readout-label">BPM</span>
-                <div className="readout-box">
-                    <span className="readout-value">{String(Math.round(bpm))}</span>
-                </div>
-            </div>
+            <DigitalDisplay label="BAR" value={bar} />
+            {/* The time display is now wider */}
+            <DigitalDisplay label="TIME" value={formatTime(currentTime)} className="time-display" />
+            <DigitalDisplay label="BEAT" value={beat} />
         </div>
     );
 };

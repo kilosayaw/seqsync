@@ -1,36 +1,5 @@
-.notation-display-compact {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    width: 100%;
-    background-color: var(--color-dark-surface-1);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-xs) var(--spacing-md);
-    margin-bottom: var(--spacing-md);
-    min-height: 40px; /* Reduced height */
-}
-
-.notation-label {
-    color: var(--color-text-secondary);
-    font-size: 0.8rem;
-    font-weight: bold;
-    flex-shrink: 0; /* Prevent label from shrinking */
-}
-
-.notation-content {
-    color: var(--color-text-primary);
-    font-family: 'Roboto Mono', monospace;
-    font-size: 0.9rem;
-    background-color: #111;
-    padding: 2px var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    flex-grow: 1; /* Allow content to fill space */
-    text-align: left;
-}
-
 .notation-display-container {
-    height: 30px;
+    height: 40px;
     flex-shrink: 0;
     background-color: var(--color-dark-surface-1);
     border: 1px solid var(--color-border);
@@ -38,9 +7,14 @@
     padding: 0 var(--spacing-md);
     display: flex;
     align-items: center;
-    font-family: var(--font-monospace, monospace);
+    justify-content: flex-start; /* Correctly aligns content to the left */
+    font-family: var(--font-primary);
     color: var(--color-text-secondary);
-    font-size: 0.9rem;
+    font-size: 1rem;
     overflow: hidden;
     white-space: nowrap;
+}
+
+.notation-text {
+    letter-spacing: 1px;
 }

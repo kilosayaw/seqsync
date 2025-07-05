@@ -1,8 +1,18 @@
+/* This is the container for the 8 performance pads */
 .pads-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(2, 1fr);
     gap: var(--spacing-md);
     width: 100%;
-    height: 100%; /* Make the grid fill the parent .pads-group */
+    
+    /* 
+    *   THE DEFINITIVE FIX:
+    *   Instead of `height: 100%`, we use `flex-grow: 1`.
+    *   Since its parent (.pads-group) is a flex column, this tells the
+    *   pads grid to take up ALL available vertical space within that parent,
+    *   effectively making the pads larger or smaller based on the parent's height.
+    */
+    flex-grow: 1;
+    min-height: 0; /* Prevents overflow within the flex container */
 }

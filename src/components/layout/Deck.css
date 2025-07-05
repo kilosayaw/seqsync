@@ -1,5 +1,7 @@
+/* The main container for a full deck (turntable + pads) */
 .deck-container {
     display: flex;
+    flex-direction: column; /* Stack the top row and pads vertically */
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
@@ -8,44 +10,45 @@
     flex-grow: 1;
 }
 
-.deck-main-column {
-    flex-grow: 1;
+/* This container holds the slider, turntable, and joint list */
+.deck-top-row {
     display: flex;
-    flex-direction: column;
     gap: var(--spacing-md);
-    min-width: 0;
-}
-
-/* --- THE DEFINITIVE LAYOUT SWAP LOGIC --- */
-/* For Left Deck: Slider (1), Main (2), List (3) */
-.deck-container[data-side="left"] > .pitch-slider-placeholder { order: 1; }
-.deck-container[data-side="left"] > .deck-main-column { order: 2; }
-.deck-container[data-side="left"] > .deck-joint-list-container { order: 3; }
-
-/* For Right Deck: List (1), Main (2), Slider (3) */
-.deck-container[data-side="right"] > .deck-joint-list-container { order: 1; }
-.deck-container[data-side="right"] > .deck-main-column { order: 2; }
-.deck-container[data-side="right"] > .pitch-slider-placeholder { order: 3; }
-/* --- End Swap Logic --- */
-
-
-.turntable-group,
-.pads-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    background-color: var(--color-dark-surface-2);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-md);
-    border: 1px solid var(--color-border);
-}
-
-.turntable-group {
-    flex-grow: 1; 
+    flex-grow: 1; /* Make the top row take the available space */
     min-height: 0;
 }
 
-.pads-group {
-    height: 200px; /* Fixed height for the pads area */
+/* Sizing for the side controls */
+.deck-joint-list-container,
+.pitch-slider-placeholder {
     flex-shrink: 0;
+}
+
+/* Allow the turntable group to take all remaining available space */
+.turntable-group {
+    flex-grow: 1;
+    min-width: 0; /* Allow the turntable group to shrink if needed */
+    justify-content: center; /* Center the turntable vertically */
+    align-items: center; /* Center the turntable horizontally */
+}
+
+.pads-group {
+    flex-shrink: 0;
+    height: 200px; /* Maintain fixed height for the pads area */
+}
+
+/* Add these new rules to src/components/layout/Deck.css */
+
+.right-pads-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 40px 1fr; /* Top row for slots, bottom for pads */
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm); /* Tighter padding for this group */
+}
+
+/* This new wrapper will make the pads span the full bottom row */
+.pads-container-wrapper {
+    grid-column: 1 / 5; /* Span all 4 columns */
+    grid-row: 2 / 3;    /* Occupy the 2nd row */
 }
