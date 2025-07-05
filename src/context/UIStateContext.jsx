@@ -5,25 +5,19 @@ const UIStateContext = createContext(null);
 export const useUIState = () => useContext(UIStateContext);
 
 export const UIStateProvider = ({ children }) => {
-  const [selectedBar, setSelectedBar] = useState(1);
-  const [selectedJoint, setSelectedJoint] = useState(null);
-  const [noteDivision, setNoteDivision] = useState(NOTE_DIVISIONS[0].value);
-  
-  // NEW: State for TRIGGER vs GATE mode
-  const [padPlayMode, setPadPlayMode] = useState('TRIGGER'); // 'TRIGGER' or 'GATE'
-  const [activePad, setActivePad] = useState(null); // Which pad is currently being held down
+    const [selectedBar, setSelectedBar] = useState(1);
+    const [selectedJoint, setSelectedJoint] = useState(null);
+    const [noteDivision, setNoteDivision] = useState(NOTE_DIVISIONS[0].value);
+    const [padPlayMode, setPadPlayMode] = useState('TRIGGER');
+    const [activePad, setActivePad] = useState(null);
 
-  const value = {
-    selectedBar, setSelectedBar,
-    selectedJoint, setSelectedJoint,
-    noteDivision, setNoteDivision,
-    padPlayMode, setPadPlayMode,
-    activePad, setActivePad,
-  };
+    const value = {
+        selectedBar, setSelectedBar,
+        selectedJoint, setSelectedJoint,
+        noteDivision, setNoteDivision,
+        padPlayMode, setPadPlayMode,
+        activePad, setActivePad,
+    };
 
-  return (
-    <UIStateContext.Provider value={value}>
-      {children}
-    </UIStateContext.Provider>
-  );
+    return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
 };

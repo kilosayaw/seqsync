@@ -1,47 +1,27 @@
 import { useCallback, useRef } from 'react';
 
-export const useLongPress = (
-    onClick,
-    onLongPress,
-    { ms = 300 } = {}
-) => {
+export const useLongPress = (onClick, onLongPress, { ms = 400 } = {}) => {
     const timerRef = useRef();
-    const isLongPressSent = useRef(false);
+    const isLongPressTriggered = useRef(false);
 
-    const start = useCallback((event) => {
-        isLongPressSent.current = false;
+    const start = useCallback((e) => {
+        isLongPressTriggered.current = false;
         timerRef.current = setTimeout(() => {
-            onLongPress(event);
-            isLongPressSent.current = true;
+            onLongPress(e);
+            isLongPressTriggered.current = true;
         }, ms);
     }, [onLongPress, ms]);
 
-    const clear = useCallback(() => {
-        if (timerRef.current) {
-            clearTimeout(timerRef.current);
+    const clear = useCallback((e) => {
+        if (!isLongPressTriggered.current) {
+            onClick(e);
         }
-    }, []);
-    
-    const handleMouseUp = useCallback(() => {
-        if (!isLongPressSent.current) {
-            onClick();
-        }
-        clear();
-    }, [onClick, clear]);
-
-    const handleMouseDown = useCallback((event) => {
-        console.log('[useLongPress] Mouse Down, starting timer...');
-        start(event);
-    }, [start]);
-    
-    const handleMouseLeave = useCallback(() => {
-        console.log('[useLongPress] Mouse Leave, clearing timer.');
-        clear();
-    }, [clear]);
+        clearTimeout(timerRef.current);
+    }, [onClick]);
 
     return {
-        onMouseDown: handleMouseDown,
-        onMouseUp: handleMouseUp,
-        onMouseLeave: handleMouseLeave,
+        onMouseDown: start,
+        onMouseUp: clear,
+        onMouseLeave: () => clearTimeout(timerRef.current),
     };
 };

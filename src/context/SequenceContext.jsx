@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useMedia } from './MediaContext';
-import { JOINT_LIST } from '../utils/constants'; // We will need to update constants.js
+import { JOINT_LIST } from '../utils/constants';
 
 const SequenceContext = createContext(null);
 export const useSequence = () => useContext(SequenceContext);
@@ -10,14 +10,10 @@ const STEPS_PER_BAR = 16;
 const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
-        joints[joint.id] = {
-            rotation: 'NEU', angle: 0, position: 'EXT', flexion: 0,
-            grounding: null, directionalMove: null, transition: null,
-        };
+        joints[joint.id] = { rotation: 'NEU', angle: 0, position: 'EXT', flexion: 0, grounding: null, directionalMove: null, transition: null };
     });
     if (joints['LF']) joints['LF'].grounding = 'LF123T12345';
     if (joints['RF']) joints['RF'].grounding = 'RF123T12345';
-    
     return { bar, beat: beatInBar, joints };
 };
 
@@ -34,9 +30,7 @@ export const SequenceProvider = ({ children }) => {
         const totalBeats = (trackDuration / 60) * bpm;
         const calculatedTotalBars = Math.ceil(totalBeats / 4);
         setTotalBars(calculatedTotalBars);
-        const newSongData = Array.from({ length: calculatedTotalBars * STEPS_PER_BAR }, (_, i) => 
-            createBeatData(Math.floor(i / STEPS_PER_BAR) + 1, i % STEPS_PER_BAR)
-        );
+        const newSongData = Array.from({ length: calculatedTotalBars * STEPS_PER_BAR }, (_, i) => createBeatData(Math.floor(i / STEPS_PER_BAR) + 1, i % STEPS_PER_BAR));
         setSongData(newSongData);
         const timePerSixteenth = 15 / bpm;
         setBarStartTimes(Array.from({ length: calculatedTotalBars }, (_, i) => i * STEPS_PER_BAR * timePerSixteenth));
@@ -53,9 +47,8 @@ export const SequenceProvider = ({ children }) => {
     const updateJointData = useCallback((globalBeatIndex, jointId, jointDataUpdate) => {
         setSongData(prevData => {
             const newData = [...prevData];
-            const beatData = newData[globalBeatIndex];
-            if (beatData?.joints?.[jointId]) {
-                beatData.joints[jointId] = { ...beatData.joints[jointId], ...jointDataUpdate };
+            if (newData[globalBeatIndex]?.joints?.[jointId]) {
+                newData[globalBeatIndex].joints[jointId] = { ...newData[globalBeatIndex].joints[jointId], ...jointDataUpdate };
             }
             return newData;
         });

@@ -1,22 +1,32 @@
+/* src/components/BarBeatDisplay.css */
 .bar-beat-display-container {
     display: grid;
-    grid-template-columns: 1fr 1.5fr 1fr;
-    gap: var(--spacing-sm);
-    font-family: var(--font-digital, monospace);
-    color: var(--color-accent-primary);
+    grid-template-columns: 1fr 2fr 1fr; /* Time display is twice as wide */
+    gap: var(--spacing-md);
+    font-family: var(--font-digital, 'DS-Digital', monospace);
+    color: var(--color-accent-secondary);
 }
 .readout-box {
     background: var(--color-dark-bg);
     border-radius: var(--border-radius-sm);
-    padding: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-xs);
     text-align: center;
-}
-.bar-display, .beat-display {
-    font-size: 2.5rem;
-}
-.time-display {
-    font-size: 1.3rem; /* REDUCED size to prevent overflow */
     display: flex;
+    flex-direction: column;
     justify-content: center;
-    align-items: center;
+}
+.readout-label {
+    font-size: 0.7rem;
+    color: var(--color-text-secondary);
+    font-family: sans-serif;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+.readout-value {
+    font-size: 2.5rem;
+    line-height: 1.1;
+}
+.readout-value-large {
+    font-size: 2rem;
+    line-height: 1.1;
 }

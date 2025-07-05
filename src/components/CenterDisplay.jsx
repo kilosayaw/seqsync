@@ -1,11 +1,13 @@
 import React from 'react';
+import BarBeatDisplay from './BarBeatDisplay';
+import TransportControls from './TransportControls';
 import './CenterDisplay.css';
 
 const CenterDisplay = () => {
     return (
-        <div className="center-display">
-            {/* This will hold the video feed or motion tracker */}
-            <div className="media-player-placeholder">MEDIA PLAYER</div>
+        <div className="center-display-container">
+            <BarBeatDisplay />
+            <TransportControls />
         </div>
     );
 };

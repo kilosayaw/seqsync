@@ -1,2 +1,8 @@
-/* src/components/PitchSlider.css */
-.pitch-slider-placeholder { width: 40px; background-color: var(--color-dark-surface-2); border-radius: var(--border-radius-md); border: 1px solid var(--color-border); }
+.pitch-slider-placeholder {
+    grid-area: slider; /* Assign to the 'slider' grid area */
+    width: 30px;
+    background-color: var(--color-dark-surface-2);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-border);
+    flex-shrink: 0;
+}

@@ -10,17 +10,18 @@
     overflow: hidden;
 }
 
-.top-section-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    flex-shrink: 0; /* Prevent this section from shrinking */
-}
-
 .main-content-area {
-    flex-grow: 1; /* This area takes all remaining vertical space */
+    flex-grow: 1;
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    /* The definitive 7-column grid for perfect alignment */
+    grid-template-columns: 
+        auto      /* Pitch Slider L */
+        1fr       /* Deck L */
+        auto      /* Joint List L */
+        auto      /* Center Console */
+        auto      /* Joint List R */
+        1fr       /* Deck R */
+        auto;     /* Pitch Slider R */
     gap: var(--spacing-md);
     min-height: 0;
 }

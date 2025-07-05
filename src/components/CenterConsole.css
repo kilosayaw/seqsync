@@ -1,15 +1,8 @@
 /* src/components/CenterConsole.css */
 .center-console {
+    width: 450px; /* A good, fixed width for the console */
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
-    width: 420px; /* Increased width for better proportions */
-    flex-shrink: 0;
-}
-
-.main-display-area {
-    flex-grow: 1;
-    background-color: var(--color-dark-surface-1);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-md);
 }

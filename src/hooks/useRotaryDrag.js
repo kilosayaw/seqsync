@@ -11,12 +11,13 @@ export const useRotaryDrag = (onDragEnd) => {
     const dy = e.clientY - centerRef.current.y;
     const rad = Math.atan2(dy, dx);
     const deg = rad * (180 / Math.PI);
-    setAngle(deg + 90);
+    setAngle(deg + 90); // +90 to align 0 degrees to the top
   }, [isDragging]);
 
   const handleMouseUp = useCallback(() => {
     if (isDragging) {
       setIsDragging(false);
+      // On release, call the provided callback with the final angle
       if (onDragEnd) {
         setAngle(currentAngle => {
             onDragEnd(currentAngle);
@@ -29,6 +30,7 @@ export const useRotaryDrag = (onDragEnd) => {
   const handleMouseDown = useCallback((e) => {
     e.stopPropagation(); 
     setIsDragging(true);
+    // Calculate the center of the SVG element at the start of the drag
     const rect = e.currentTarget.ownerSVGElement.getBoundingClientRect();
     centerRef.current = {
       x: rect.left + rect.width / 2,

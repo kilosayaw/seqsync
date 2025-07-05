@@ -36,6 +36,27 @@ export function calculateLimbPlaneNormal(p1, p2) {
     return v_normalize(normal);
 }
 
+export const getRotationalLimits = (groundingNotation) => {
+    // --- THIS IS THE SOCKET FOR YOUR DOMAIN EXPERTISE ---
+    // For now, we will return placeholder values.
+    // In the future, you will provide the precise calculations here based on your system.
+
+    if (!groundingNotation || groundingNotation.endsWith('0')) {
+        // Ungrounded - full rotation
+        return { minAngle: -360, maxAngle: 360 }; 
+    }
+    if (groundingNotation.endsWith('123T12345')) {
+        // Fully planted foot - most restricted
+        return { minAngle: -45, maxAngle: 45 };
+    }
+    if (groundingNotation.includes('3')) {
+        // Heel is down - more stable
+        return { minAngle: -90, maxAngle: 90 };
+    }
+
+    // Default for any other partial grounding
+    return { minAngle: -180, maxAngle: 180 };
+};
 
 
 /**

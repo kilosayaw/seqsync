@@ -9,6 +9,6 @@
     border-radius: var(--border-radius-md);
     border: 1px solid var(--color-border);
     flex-shrink: 0;
-    /* CORE CHANGE: This makes the pads responsive and large */
-    aspect-ratio: 2 / 1; 
+    /* CORE CHANGE: This height + the option button height matches the center console's bottom section */
+    height: 120px; 
 }

@@ -1,10 +1,9 @@
-/* src/components/RotaryButtons.css */
 .rotary-buttons-container {
+    grid-area: buttons; /* Assign to the 'buttons' grid area */
     display: flex;
-    flex-direction: column; /* Stack them vertically */
+    flex-direction: row;
     gap: var(--spacing-xs);
-    flex-shrink: 0;
-    width: 80px; /* Give them a fixed width */
+    height: 35px;
 }
 .rotary-btn {
     flex: 1; 
@@ -12,6 +11,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-sm);
     color: var(--color-text-secondary);
-    font-size: 0.7rem; font-weight: bold;
+    font-size: 0.7rem;
+    font-weight: bold;
     cursor: pointer;
 }

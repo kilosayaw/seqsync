@@ -1,9 +1,8 @@
 @font-face {
-    font-family: 'DigitalPlay';
-    /* CORRECTED: Quotes handle the spaces in the filename. */
-    src: url("/fonts/Digital Play St.ttf") format('truetype');
-    font-weight: normal;
-    font-style: normal;
+  font-family: 'DigitalPlay';
+  src: url('/fonts/Digital Play St.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
 }
 
 @font-face {
@@ -16,7 +15,7 @@
 
 :root {
   --font-primary: 'Roboto Mono', monospace;
-  --font-digital: 'DigitalPlay', monospace; /* Use the new font */
+  --font-digital: 'DigitalPlay', monospace;
   --font-digital-hollow: 'DigitalPlayHollow', monospace;
 
   --color-dark-bg: #121212;

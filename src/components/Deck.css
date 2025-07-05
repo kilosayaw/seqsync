@@ -15,8 +15,14 @@
     min-width: 0;
 }
 
-.deck-controls-area {
-    display: flex;
-    gap: var(--spacing-sm);
-    flex-shrink: 0;
-}
+/* --- The Definitive Layout Logic --- */
+
+/* Default order for LEFT DECK: [Slider, List, Main] */
+.deck-left .pitch-slider-placeholder { order: 1; }
+.deck-left .deck-joint-list-container { order: 2; }
+.deck-left .deck-main-column { order: 3; }
+
+/* REVERSE the order for RIGHT DECK: [Main, List, Slider] */
+.deck-right .deck-main-column { order: 1; }
+.deck-right .deck-joint-list-container { order: 2; }
+.deck-right .pitch-slider-placeholder { order: 3; }

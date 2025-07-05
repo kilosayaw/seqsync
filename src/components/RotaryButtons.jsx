@@ -1,4 +1,3 @@
-// src/components/RotaryButtons.jsx
 import React from 'react';
 import './RotaryButtons.css';
 

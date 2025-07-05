@@ -1,29 +1,19 @@
-import React, { useRef, useEffect, useContext } from 'react';
+import React, { useRef, useEffect } from 'react';
 import WaveSurfer from 'wavesurfer.js';
-import { MediaContext } from '../context/MediaContext';
+import { useMedia } from '../context/MediaContext'; // CORRECTED
 import { usePlayback } from '../context/PlaybackContext';
 import './WaveformNavigator.css';
 
 const WaveformNavigator = () => {
     const waveformRef = useRef(null);
-    const { setWavesurferInstance } = useContext(MediaContext);
+    const { setWavesurferInstance } = useMedia(); // CORRECTED
     const { seekToTime } = usePlayback();
-    
-    // --- CORE FIX: Part 1 ---
-    // Create a ref to hold the latest version of the seekToTime function.
-    // This ref itself is stable and will not cause re-renders.
     const seekToTimeRef = useRef(seekToTime);
 
-    // This small effect ensures our ref always has the most recent seekToTime function
-    // without triggering other, more expensive effects.
     useEffect(() => {
         seekToTimeRef.current = seekToTime;
     }, [seekToTime]);
 
-
-    // --- CORE FIX: Part 2 ---
-    // This effect now ONLY depends on the stable setWavesurferInstance function.
-    // It will run exactly once on component mount, breaking the infinite loop.
     useEffect(() => {
         if (waveformRef.current) {
             const ws = WaveSurfer.create({
@@ -38,18 +28,12 @@ const WaveformNavigator = () => {
                 normalize: true,
             });
             setWavesurferInstance(ws);
-
-            // The event listener now calls the function via the stable ref.
-            // This ensures it always uses the latest logic without being a dependency.
             ws.on('seeking', (timeInSeconds) => {
                 seekToTimeRef.current(timeInSeconds);
             });
-            
-            return () => {
-                ws.destroy();
-            };
+            return () => { ws.destroy(); };
         }
-    }, [setWavesurferInstance]); // Dependency array is now stable.
+    }, [setWavesurferInstance]);
 
     return (
         <div className="waveform-navigator">

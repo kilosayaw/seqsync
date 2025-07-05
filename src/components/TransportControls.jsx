@@ -1,58 +1,33 @@
 import React from 'react';
 import { usePlayback } from '../context/PlaybackContext';
-import { useUIState } from '../context/UIStateContext';
-import { useSequence } from '../context/SequenceContext';
-import { useMedia } from '../context/MediaContext';
 import { useTapTempo } from '../hooks/useTapTempo';
-import { FaPlay, FaPause, FaArrowLeft, FaArrowRight, FaCircle, FaSyncAlt, FaStepBackward, FaStepForward } from 'react-icons/fa'; // Added new icons
+import { FaPlay, FaPause, FaCircle, FaStop, FaStepBackward, FaBackward, FaForward, FaStepForward } from 'react-icons/fa';
 import './TransportControls.css';
 
 const TransportControls = () => {
-    const { isPlaying, isRecording, togglePlay, setIsRecording } = usePlayback();
-    const { selectedBar, setSelectedBar, isCycling, setIsCycling, cycleStartBar, setCycleStartBar, cycleEndBar, setCycleEndBar } = useUIState();
-    const { totalBars } = useSequence();
-    const { detectedBpm } = useMedia();
-    
-    const { tap } = useTapTempo(null);
-
-    const handleCycleToggle = () => setIsCycling(prev => !prev);
-    const handleSetLoopStart = () => {
-        setCycleStartBar(selectedBar);
-        if (cycleEndBar < selectedBar) setCycleEndBar(selectedBar);
-    };
-    const handleSetLoopEnd = () => {
-        setCycleEndBar(selectedBar);
-        if (cycleStartBar > selectedBar) setCycleStartBar(selectedBar);
-    };
-
-    // Placeholder functions for beat stepping
-    const handleBeatBack = () => console.log('Beat Back');
-    const handleBeatFwd = () => console.log('Beat Fwd');
+    const { isPlaying, togglePlay, stop, isRecording, setIsRecording, bpm, setPlaybackSpeed } = usePlayback();
+    const { tap } = useTapTempo(setPlaybackSpeed);
 
     return (
         <div className="transport-controls-container">
-            <div className="bpm-section">
-                <div className="digital-display">{String(Math.round(detectedBpm || 0)).padStart(3, '0')}</div>
-                <button className="transport-btn tap-btn" onClick={tap}>TAP</button>
-            </div>
-            
-            <div className="navigation-section">
-                <button className="transport-btn nav-btn" onClick={() => setSelectedBar(p => Math.max(1, p - 1))} disabled={selectedBar <= 1 || totalBars === 0}>
-                    <FaArrowLeft />
-                </button>
-                <button className="transport-btn nav-btn" onClick={handleBeatBack}><FaStepBackward /></button>
-                <div className="bar-display">BAR {String(selectedBar).padStart(2, '0')} / {String(totalBars || 0).padStart(2, '0')}</div>
-                <button className="transport-btn nav-btn" onClick={handleBeatFwd}><FaStepForward /></button>
-                <button className="transport-btn nav-btn" onClick={() => setSelectedBar(p => Math.min(totalBars, p + 1))} disabled={selectedBar >= totalBars || totalBars === 0}>
-                    <FaArrowRight />
-                </button>
+            {/* The transport buttons are now on the left */}
+            <div className="button-controls-row">
+                <button className="transport-btn"><FaStepBackward /></button>
+                <button className="transport-btn"><FaBackward /></button>
+                <button className={`transport-btn record-btn ${isRecording ? 'active' : ''}`} onClick={() => setIsRecording(p => !p)}><FaCircle /></button>
+                <button className="transport-btn play-btn" onClick={togglePlay}>{isPlaying ? <FaPause /> : <FaPlay />}</button>
+                <button className="transport-btn" onClick={stop}><FaStop /></button>
+                <button className="transport-btn"><FaForward /></button>
+                <button className="transport-btn"><FaStepForward /></button>
             </div>
 
-            <div className="playback-section">
-                <button className={`transport-btn cycle-btn ${isCycling ? 'active' : ''}`} onClick={handleCycleToggle}><FaSyncAlt /></button>
-                {/* We can add In/Out buttons back later if needed */}
-                <button className={`transport-btn rec-btn ${isRecording ? 'active' : ''}`} onClick={() => setIsRecording(p => !p)}><FaCircle /></button>
-                <button className="transport-btn play-btn" onClick={togglePlay}>{isPlaying ? <FaPause/> : <FaPlay/>}</button>
+            {/* The BPM controls are now on the right */}
+            <div className="bpm-controls-row">
+                <div className="bpm-display">
+                    <span className="bpm-value">{Math.round(bpm)}</span>
+                    <span className="bpm-label">BPM</span>
+                </div>
+                <button className="tap-button" onClick={tap}>TAP</button>
             </div>
         </div>
     );

@@ -31,7 +31,7 @@ const TopNavBar = () => {
                 {mediaFile ? mediaFile.name : 'No Media Loaded'}
             </div>
             <div className="nav-group-right">
-                {/* Placeholder for future controls */}
+                {/* Placeholder */}
             </div>
         </nav>
     );
