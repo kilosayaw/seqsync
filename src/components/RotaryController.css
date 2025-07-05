@@ -33,11 +33,7 @@
     opacity: 0;
 }
 
-.hotspot-clickable-area {
-    fill: transparent;
-    cursor: pointer;
-    transition: fill 0.1s ease;
-}
+
 .hotspot-clickable-area:hover {
     fill: rgba(0, 255, 127, 0.3); /* Spring green hover effect */
 }
@@ -67,21 +63,28 @@
     box-shadow: 0 0 15px 5px var(--color-accent-red-transparent);
 }
 
-.hotspot-indicator {
-    fill: #0f0; /* Glowing green */
-    opacity: 0; /* Hidden by default */
-    transition: opacity 0.1s ease-in-out;
-    pointer-events: none; /* Make sure they don't block joystick interaction */
-}
 .hotspot-indicator.active {
     opacity: 0.75;
     filter: url(#glow);
-}
-.base-foot-img {
-    opacity: 0.5;
 }
 
 .rotary-wheel-grab-area { fill: transparent; cursor: grab; }
 .rotary-wheel-grab-area:active { cursor: grabbing; }
 .joystick-grab-area { fill: transparent; cursor: default; } /* The joystick area itself is not draggable */
 .joystick-area { cursor: crosshair; }
+
+.base-foot-img {
+    opacity: 0.4;
+    pointer-events: none; /* The image itself is not clickable */
+}
+
+.hotspot-indicator {
+    fill: #00ff7f; /* Glowing green */
+    filter: drop-shadow(0 0 8px #00ff7f);
+    pointer-events: none;
+}
+
+.hotspot-clickable-area {
+    fill: transparent;
+    cursor: pointer;
+}

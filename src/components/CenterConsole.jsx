@@ -1,13 +1,14 @@
+// src/components/CenterConsole.jsx
 import React from 'react';
 import CenterDisplay from './CenterDisplay';
-import CrossFader from './Crossfader';
+import Crossfader from './Crossfader';
 import './CenterConsole.css';
 
 const CenterConsole = () => {
     return (
         <div className="center-console">
             <CenterDisplay />
-            <CrossFader />
+            <Crossfader />
         </div>
     );
 };

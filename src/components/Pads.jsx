@@ -1,3 +1,4 @@
+// src/components/Pads.jsx
 import React from 'react';
 import PerformancePad from './PerformancePad';
 import { useUIState } from '../context/UIStateContext';
@@ -7,9 +8,9 @@ import { usePlayback } from '../context/PlaybackContext';
 import './Pads.css';
 
 const Pads = ({ side }) => {
-    const { selectedBar, activePad } = useUIState();
+    const { selectedBar, activePad, setSelectedPad } = useUIState(); // Assuming setSelectedPad exists
     const { songData, STEPS_PER_BAR } = useSequence();
-    const { activePadIndex, handlePadDown, handlePadUp } = usePadMapping();
+    const { activePadIndex } = usePadMapping();
     const { isPlaying } = usePlayback();
     
     const padOffset = side === 'left' ? 0 : STEPS_PER_BAR / 2;
@@ -29,8 +30,8 @@ const Pads = ({ side }) => {
                         beatNum={i + 1}
                         beatData={beatData}
                         isActive={isCurrentlyPlaying || isUserPressing}
-                        onMouseDown={() => handlePadDown(padIndexInBar, selectedBar)}
-                        onMouseUp={handlePadUp}
+                        onMouseDown={() => setSelectedPad && setSelectedPad(padIndexInBar)}
+                        onMouseUp={() => setSelectedPad && setSelectedPad(null)}
                     />
                 );
             })}

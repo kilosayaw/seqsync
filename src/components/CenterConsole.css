@@ -1,8 +1,8 @@
 /* src/components/CenterConsole.css */
 .center-console {
-    width: 450px; /* A good, fixed width for the console */
+    width: 450px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
 }

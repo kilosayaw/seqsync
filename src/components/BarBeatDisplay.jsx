@@ -1,38 +1,42 @@
+// src/components/BarBeatDisplay.jsx
 import React from 'react';
-import { useUIState } from '../context/UIStateContext';
 import { usePlayback } from '../context/PlaybackContext';
-import { useSequence } from '../context/SequenceContext';
-import { formatTime } from '../utils/notationUtils.js';
+import { formatTime } from '../utils/formatTime';
 import './BarBeatDisplay.css';
 
 const BarBeatDisplay = () => {
-    const { selectedBar } = useUIState();
-    const { isPlaying, currentTime, bpm } = usePlayback();
-    const { STEPS_PER_BAR } = useSequence();
+    const { isPlaying, currentTime, bpm, bar, beat } = usePlayback();
 
-    let displayBar = selectedBar;
-    let displayBeat = 1; // Default to 1
-
-    if (isPlaying && bpm > 0) {
-        const beatsPerSecond = bpm / 60;
-        const totalSixteenths = Math.floor(currentTime * beatsPerSecond * 4);
-        displayBar = Math.floor(totalSixteenths / STEPS_PER_BAR) + 1;
-        displayBeat = (totalSixteenths % STEPS_PER_BAR) + 1;
-    }
+    // Use live data if playing, default to 1 otherwise
+    const displayBar = isPlaying ? bar : 1;
+    const displayBeat = isPlaying ? beat : 1;
 
     return (
         <div className="bar-beat-display-container">
-            <div className="readout-box">
+            {/* Each module is now a self-contained flex column */}
+            <div className="display-module">
                 <span className="readout-label">BAR</span>
-                <span className="readout-value">{String(displayBar).padStart(2, '0')}</span>
+                <div className="readout-box">
+                    <span className="readout-value">{String(displayBar).padStart(2, '0')}</span>
+                </div>
             </div>
-            <div className="readout-box time-display">
+            <div className="display-module time-module">
                 <span className="readout-label">TIME</span>
-                <span className="readout-value-large">{formatTime(currentTime)}</span>
+                <div className="readout-box">
+                    <span className="readout-value-large">{formatTime(currentTime)}</span>
+                </div>
             </div>
-            <div className="readout-box">
+            <div className="display-module">
                 <span className="readout-label">BEAT</span>
-                <span className="readout-value">{String(displayBeat).padStart(2, '0')}</span>
+                <div className="readout-box">
+                    <span className="readout-value">{String(displayBeat).padStart(2, '0')}</span>
+                </div>
+            </div>
+            <div className="display-module">
+                <span className="readout-label">BPM</span>
+                <div className="readout-box">
+                    <span className="readout-value">{String(Math.round(bpm))}</span>
+                </div>
             </div>
         </div>
     );

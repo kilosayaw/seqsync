@@ -1,34 +1,28 @@
+// src/components/TransportControls.jsx
 import React from 'react';
 import { usePlayback } from '../context/PlaybackContext';
 import { useTapTempo } from '../hooks/useTapTempo';
-import { FaPlay, FaPause, FaCircle, FaStop, FaStepBackward, FaBackward, FaForward, FaStepForward } from 'react-icons/fa';
+import { FaPlay, FaPause, FaCircle, FaStop, FaBackward, FaForward, FaFastBackward, FaFastForward } from 'react-icons/fa';
 import './TransportControls.css';
 
 const TransportControls = () => {
-    const { isPlaying, togglePlay, stop, isRecording, setIsRecording, bpm, setPlaybackSpeed } = usePlayback();
+    const { isPlaying, togglePlay, stop, setPlaybackSpeed } = usePlayback();
     const { tap } = useTapTempo(setPlaybackSpeed);
 
     return (
         <div className="transport-controls-container">
-            {/* The transport buttons are now on the left */}
-            <div className="button-controls-row">
-                <button className="transport-btn"><FaStepBackward /></button>
-                <button className="transport-btn"><FaBackward /></button>
-                <button className={`transport-btn record-btn ${isRecording ? 'active' : ''}`} onClick={() => setIsRecording(p => !p)}><FaCircle /></button>
-                <button className="transport-btn play-btn" onClick={togglePlay}>{isPlaying ? <FaPause /> : <FaPlay />}</button>
-                <button className="transport-btn" onClick={stop}><FaStop /></button>
-                <button className="transport-btn"><FaForward /></button>
-                <button className="transport-btn"><FaStepForward /></button>
+            <div className="transport-button-group">
+                <button className="transport-btn" title="Seek to Start"><FaFastBackward /></button>
+                <button className="transport-btn" title="-1 Bar"><FaBackward /></button>
+                <button className="transport-btn record-btn" title="Record"><FaCircle /></button>
+                <button className="transport-btn play-btn" onClick={togglePlay} title="Play/Pause">
+                    {isPlaying ? <FaPause /> : <FaPlay />}
+                </button>
+                <button className="transport-btn" onClick={stop} title="Stop"><FaStop /></button>
+                <button className="transport-btn" title="+1 Bar"><FaForward /></button>
+                <button className="transport-btn" title="Seek to End"><FaFastForward /></button>
             </div>
-
-            {/* The BPM controls are now on the right */}
-            <div className="bpm-controls-row">
-                <div className="bpm-display">
-                    <span className="bpm-value">{Math.round(bpm)}</span>
-                    <span className="bpm-label">BPM</span>
-                </div>
-                <button className="tap-button" onClick={tap}>TAP</button>
-            </div>
+            <button className="tap-button" onClick={tap}>TAP</button>
         </div>
     );
 };

@@ -1,32 +1,55 @@
 /* src/components/BarBeatDisplay.css */
 .bar-beat-display-container {
-    display: grid;
-    grid-template-columns: 1fr 2fr 1fr; /* Time display is twice as wide */
-    gap: var(--spacing-md);
-    font-family: var(--font-digital, 'DS-Digital', monospace);
-    color: var(--color-accent-secondary);
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
 }
-.readout-box {
-    background: var(--color-dark-bg);
-    border-radius: var(--border-radius-sm);
-    padding: var(--spacing-sm) var(--spacing-xs);
-    text-align: center;
+
+.display-module {
+    flex: 1 1 0px; /* Allow modules to flex */
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    align-items: center;
+    gap: 4px;
 }
+
+.time-module {
+    flex-grow: 1.5; /* Give time display more space */
+}
+
 .readout-label {
     font-size: 0.7rem;
     color: var(--color-text-secondary);
-    font-family: sans-serif;
+    font-family: var(--font-primary, sans-serif);
     font-weight: bold;
-    letter-spacing: 1px;
+    text-transform: uppercase;
 }
+
+.readout-box {
+    background: #000;
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-sm) 0;
+    border: 1px solid var(--color-border);
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 45px; /* Consistent height */
+}
+
+.readout-value, .readout-value-large {
+    font-family: var(--font-digital, monospace);
+    line-height: 1;
+    color: var(--color-accent-green);
+    text-align: center;
+    /* FIX: This forces the numbers to have the same width, preventing jitter. */
+    font-variant-numeric: tabular-nums;
+}
+
 .readout-value {
-    font-size: 2.5rem;
-    line-height: 1.1;
-}
-.readout-value-large {
     font-size: 2rem;
-    line-height: 1.1;
+}
+
+.readout-value-large {
+    font-size: 1.8rem;
 }

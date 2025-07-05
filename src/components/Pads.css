@@ -1,14 +1,9 @@
 /* src/components/Pads.css */
 .pads-container {
     display: grid;
+    /* This makes the pads fill the full width */
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(2, 1fr);
-    gap: var(--spacing-sm);
-    background-color: var(--color-dark-surface-2);
-    padding: var(--spacing-sm);
-    border-radius: var(--border-radius-md);
-    border: 1px solid var(--color-border);
-    flex-shrink: 0;
-    /* CORE CHANGE: This height + the option button height matches the center console's bottom section */
-    height: 120px; 
+    gap: var(--spacing-md); /* Larger gap for larger pads */
+    width: 100%;
 }
