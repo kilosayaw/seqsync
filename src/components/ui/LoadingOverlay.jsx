@@ -5,7 +5,7 @@ const LoadingOverlay = () => {
     return (
         <div className="loading-overlay">
             <div className="spinner"></div>
-            <p>Processing Media...</p>
+            <p>ANALYZING AUDIO...</p>
         </div>
     );
 };

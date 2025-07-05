@@ -11,6 +11,7 @@ const TopNavBar = () => {
         fileInputRef.current.click();
     };
 
+    // This handler now correctly calls the loadMedia function from context.
     const handleFileChange = (event) => {
         const file = event.target.files[0];
         if (file) {
@@ -23,16 +24,20 @@ const TopNavBar = () => {
             <div className="nav-group-left">
                 <div className="logo">SĒQsync</div>
                 <button className="nav-btn" onClick={handleMediaClick}><FaFolderOpen /> Media</button>
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="audio/*" />
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange} 
+                    style={{ display: 'none' }} 
+                    accept="audio/*" 
+                />
                 <button className="nav-btn"><FaFolderOpen /> Load SEQ</button>
                 <button className="nav-btn"><FaSave /> Save SEQ</button>
             </div>
             <div className="song-title-display">
                 {mediaFile ? mediaFile.name : 'No Media Loaded'}
             </div>
-            <div className="nav-group-right">
-                {/* Future elements can go here */}
-            </div>
+            <div className="nav-group-right" />
         </nav>
     );
 };

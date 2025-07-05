@@ -1,37 +1,30 @@
-import React, { useRef, useEffect } from 'react';
-import WaveSurfer from 'wavesurfer.js';
+import React, { useEffect } from 'react';
 import { useMedia } from '../../context/MediaContext';
-import './WaveformNavigator.css';
+// We no longer need to import usePlayback here.
 
 const WaveformNavigator = () => {
-    const waveformRef = useRef(null);
-    const { setWavesurferInstance } = useMedia();
+    // Its ONLY jobs are to get the ref and instance from the MediaContext.
+    const { waveformContainerRef, wavesurferInstance } = useMedia();
 
+    // This effect now only handles the click interaction.
     useEffect(() => {
-        if (waveformRef.current) {
-            const ws = WaveSurfer.create({
-                container: waveformRef.current,
-                waveColor: '#637381',
-                progressColor: '#00ab55',
-                cursorColor: '#ffffff',
-                barWidth: 3,
-                barRadius: 3,
-                responsive: true,
-                height: 60, // The internal height of the waveform
-                normalize: true,
-            });
-            setWavesurferInstance(ws);
-            
-            // Note: We removed the seek logic from here as it should be handled
-            // by the PlaybackContext to avoid circular dependencies.
+        const ws = wavesurferInstance;
+        if (ws) {
+            const handleClick = (progress) => {
+                ws.setTime(progress * ws.getDuration());
+            };
+            ws.on('interaction', handleClick);
 
-            return () => { ws.destroy(); };
+            return () => {
+                ws.un('interaction', handleClick);
+            };
         }
-    }, [setWavesurferInstance]);
+    }, [wavesurferInstance]);
 
     return (
         <div className="waveform-navigator-container">
-            <div ref={waveformRef} className="waveform" />
+            {/* The ref is attached here, but the instance is created in the context. */}
+            <div ref={waveformContainerRef} className="waveform" />
         </div>
     );
 };

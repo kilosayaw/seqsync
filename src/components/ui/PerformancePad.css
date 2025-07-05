@@ -5,14 +5,11 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative;
-  overflow: hidden;
   color: var(--color-text-secondary);
   transition: all 0.1s ease-in-out;
   cursor: pointer;
-  font-family: var(--font-digital); /* APPLYING CUSTOM FONT */
-  font-size: 2rem; /* Increased font size for the number */
-  font-weight: normal; /* Digital font looks better not bolded */
+  font-family: var(--font-digital);
+  font-size: 2rem;
 }
 
 .performance-pad:hover {
@@ -20,21 +17,18 @@
   border-color: #666;
 }
 
-.performance-pad.active {
+/* Style for the playback pulse */
+.performance-pad.pulsing {
     background-color: var(--color-accent-primary);
     border-color: var(--color-accent-primary);
     box-shadow: 0 0 10px var(--color-accent-primary);
     color: var(--color-dark-bg);
 }
 
-.performance-pad.has-data {
-    background-color: var(--color-dark-surface-2);
-    border-color: var(--color-accent-secondary);
+/* DEFINITIVE STYLE: This is for the actively selected pad for editing. */
+.performance-pad.selected {
+    background-color: var(--color-dark-bg);
+    border: 2px solid var(--color-accent-green);
+    color: var(--color-accent-green);
+    transform: scale(0.95); /* Add a slight press-in effect */
 }
-
-.performance-pad.has-data.active {
-    background-color: var(--color-accent-primary);
-    border-color: var(--color-accent-primary);
-}
-
-/* We no longer need the .pad-number span, the number is direct content */

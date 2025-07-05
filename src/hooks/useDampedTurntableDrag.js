@@ -13,19 +13,14 @@ export const useDampedTurntableDrag = (angle, setAngle, onDragEnd) => {
     const startMouseAngleRef = useRef(0);
     const animationFrameRef = useRef();
 
-    // --- THE DEFINITIVE FIX ---
-    // The 'animate' function is now correctly defined INSIDE the custom hook.
     const animate = useCallback(() => {
         if (Math.abs(velocityRef.current) > VELOCITY_THRESHOLD) {
-            // Apply the spin and damping
             setAngle(prev => prev + velocityRef.current);
             velocityRef.current *= DAMPING_FACTOR;
             animationFrameRef.current = requestAnimationFrame(animate);
         } else {
-            // Spin has stopped
             velocityRef.current = 0;
             if (onDragEnd) {
-                // Use a functional update to get the absolute latest angle when drag ends.
                 setAngle(latestAngle => {
                     onDragEnd(latestAngle);
                     return latestAngle;
@@ -41,9 +36,10 @@ export const useDampedTurntableDrag = (angle, setAngle, onDragEnd) => {
         const currentMouseAngle = (Math.atan2(dy, dx) * (180 / Math.PI)) + 90;
 
         const mouseAngleDelta = currentMouseAngle - startMouseAngleRef.current;
-        const newAngle = startAngleRef.current + mouseAngleDelta;
+        let newAngle = startAngleRef.current + mouseAngleDelta;
         
         let delta = newAngle - lastAngleRef.current;
+        // Handle angle wrapping for smooth velocity calculation
         if (delta > 180) delta -= 360;
         if (delta < -180) delta += 360;
         
@@ -77,7 +73,6 @@ export const useDampedTurntableDrag = (angle, setAngle, onDragEnd) => {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
         } else {
-            // When dragging stops, start the animation.
             if (Math.abs(velocityRef.current) > VELOCITY_THRESHOLD) {
                 animationFrameRef.current = requestAnimationFrame(animate);
             }

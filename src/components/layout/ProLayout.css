@@ -1,12 +1,10 @@
 .pro-layout-container {
     display: grid;
-    /* DEFINITIVE FINAL GRID: All 4 main rows are explicitly defined */
     grid-template-rows:
         var(--top-nav-height)
         var(--waveform-height)
         var(--notation-display-height)
-        1fr; /* Main content takes all remaining space */
-    
+        1fr;
     height: 100vh;
     width: 100vw;
     background-color: var(--color-dark-bg);

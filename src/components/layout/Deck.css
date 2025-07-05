@@ -1,33 +1,22 @@
 .deck-container {
-    /* DEFINITIVE FIX: Switching to a 2-row Grid for precise vertical control */
     display: grid;
-    
-    /* 
-    *   THIS IS THE PRIMARY CONTROL FOR PAD SIZE:
-    *   The first row (1fr) is for the turntable area and will take up all flexible space.
-    *   The second row is for the pads area.
-    *
-    *   - To make the pads SMALLER, decrease the '160px' value (e.g., to '140px').
-    *   - To make the pads LARGER, increase the '160px' value (e.g., to '180px').
-    *   This will automatically resize the turntable area to fit.
-    */
-    grid-template-rows: 1fr 160px;
-    
+    /* This defines the two vertical sections of a deck */
+    grid-template-rows: 1fr 150px; /* Turntable Area | Pads Area */
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
-    border-radius: var(--border-radius-md);
+    border-radius: 8px;
     min-width: 0;
-    min-height: 0; /* Prevents grid overflow issues */
+    min-height: 0;
 }
 
 .deck-top-row {
     display: flex;
     gap: var(--spacing-md);
-    min-height: 0; /* Allows this flex container to shrink correctly inside the grid row */
+    min-height: 0;
 }
 
-/* --- The Flexbox ordering logic for horizontal elements remains the same and is correct --- */
+/* Horizontal ordering rules */
 .deck-container[data-side="left"] .deck-top-row > .pitch-slider-container { order: 1; }
 .deck-container[data-side="left"] .deck-top-row > .turntable-group { order: 2; }
 .deck-container[data-side="left"] .deck-top-row > .deck-joint-list-container { order: 3; }
@@ -35,7 +24,6 @@
 .deck-container[data-side="right"] .deck-top-row > .deck-joint-list-container { order: 1; }
 .deck-container[data-side="right"] .deck-top-row > .turntable-group { order: 2; }
 .deck-container[data-side="right"] .deck-top-row > .pitch-slider-container { order: 3; }
-/* --- End Swap Logic --- */
 
 .turntable-group {
     flex-grow: 1;
@@ -44,16 +32,29 @@
     flex-direction: column;
     gap: var(--spacing-sm);
     background-color: var(--color-dark-surface-2);
-    border-radius: var(--border-radius-md);
+    border-radius: 8px;
     padding: var(--spacing-md);
     border: 1px solid var(--color-border);
-    
-    /* This will now correctly center the wheel vertically */
-    justify-content: center; 
+    justify-content: center; /* This centers the wheel vertically */
 }
 
-/* This is the container for the bottom row elements */
-.deck-bottom-row {
+/* Base styles for the bottom section of BOTH decks */
+.pads-group {
+    background-color: var(--color-dark-surface-2);
+    border-radius: 8px;
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 35px 1fr; /* Slots | Pads */
+    gap: var(--spacing-sm);
+}
+
+.option-buttons-container { grid-area: 1 / 1 / 2 / 5; } /* Span top row */
+.pads-container { grid-area: 2 / 1 / 3 / 5; } /* Span bottom row */
+
+/* Specific layout for the RIGHT deck's bottom section */
+.deck-bottom-row.right-deck-bottom-row {
     display: flex;
     gap: var(--spacing-md);
 }
@@ -61,31 +62,9 @@
 .circular-bpm-wrapper {
     flex-shrink: 0;
     width: 90px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
-.deck-bottom-row > .pads-group {
+.right-deck-bottom-row > .pads-group {
     flex-grow: 1;
     min-width: 0;
 }
-
-/* This is the container for the option slots and the pads */
-.pads-group {
-    height: 100%;
-    background-color: var(--color-dark-surface-2);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-md);
-    border: 1px solid var(--color-border);
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: 40px 1fr;
-    gap: var(--spacing-sm);
-    grid-template-areas:
-        "slots slots slots slots"
-        "pads  pads  pads  pads";
-}
-
-.option-buttons-container { grid-area: slots; }
-.pads-container { grid-area: pads; }

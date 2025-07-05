@@ -1,4 +1,5 @@
 .digital-display-wrapper {
+    /* ... existing styles ... */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -7,12 +8,13 @@
     border-radius: var(--border-radius-sm);
     padding: 2px;
     border: 1px solid var(--color-border);
-    height: 45px; /* REDUCED height */
+    height: 45px;
 }
 
+/* ... existing styles ... */
 .digital-display-label {
     font-family: var(--font-primary);
-    font-size: 0.5rem; /* REDUCED label size */
+    font-size: 0.5rem;
     font-weight: bold;
     color: var(--color-text-secondary);
     text-transform: uppercase;
@@ -20,16 +22,19 @@
 
 .digital-display-value {
     font-family: var(--font-digital);
-    font-size: 1.5rem; /* REDUCED font size */
+    font-size: 1.5rem;
     color: var(--color-accent-green);
     line-height: 1;
-    background-color: #000000;
+    background-color: #000;
     width: 100%;
     text-align: center;
     border-radius: 2px;
     padding: 2px 0;
+    
+    /* DEFINITIVE JITTER FIX: This CSS property makes numbers take up the same space. */
+    font-variant-numeric: tabular-nums;
 }
 
 .digital-display-wrapper.time-display .digital-display-value {
-    font-size: 1.4rem; /* Further reduction for the widest element */
+    font-size: 1.4rem;
 }

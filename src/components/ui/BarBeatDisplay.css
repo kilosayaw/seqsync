@@ -1,6 +1,6 @@
 .bar-beat-display-container {
     display: grid;
-    /* Correct 3-column layout */
+    /* Grid layout for 3 elements, giving TIME the most space */
     grid-template-columns: 1fr 2.5fr 1fr;
     gap: var(--spacing-sm);
     width: 100%;

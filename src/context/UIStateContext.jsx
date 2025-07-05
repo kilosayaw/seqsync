@@ -6,20 +6,25 @@ export const useUIState = () => useContext(UIStateContext);
 
 export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
-    const [selectedJoint, setSelectedJoint] = useState(null); // This will still be used for other joints
+    const [selectedJoint, setSelectedJoint] = useState(null);
     const [noteDivision, setNoteDivision] = useState(NOTE_DIVISIONS[0].value);
+    
+    // DEFINITIVE FIX: The initial state for "no pad selected" is null.
     const [activePad, setActivePad] = useState(null);
     
-    // NEW STATE: Manages which deck's grounding is being edited.
-    const [editMode, setEditMode] = useState('none'); // 'none', 'left', 'right'
+    const [editMode, setEditMode] = useState('none');
 
     const value = {
         selectedBar, setSelectedBar,
         selectedJoint, setSelectedJoint,
         noteDivision, setNoteDivision,
         activePad, setActivePad,
-        editMode, setEditMode, // Expose the new state and its setter
+        editMode, setEditMode,
     };
 
-    return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
+    return (
+        <UIStateContext.Provider value={value}>
+            {children}
+        </UIStateContext.Provider>
+    );
 };
