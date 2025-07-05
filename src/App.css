@@ -41,9 +41,9 @@
   --border-radius-sm: 4px;
   --border-radius-md: 8px;
   
-  --top-nav-height: 50px;
-  --waveform-height: 80px;
-  --notation-display-height: 30px;
+  --top-nav-height: 45px;
+  --waveform-height: 60px;
+  --notation-display-height: 35px;
 }
 
 *,

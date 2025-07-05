@@ -1,26 +1,63 @@
 .deck-joint-list-container {
-    width: 77px; /* REDUCED width */
+    width: 60px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Tighter gap */
+    
+    /* 
+    *   THIS IS THE CONTROL FOR EVEN SPACING:
+    *   Adjust this 'gap' value to increase or decrease the space
+    *   between ALL buttons in this column, including the BPM button.
+    */
+    gap: 6px; 
+}
+
+/* This new wrapper holds the standard joint buttons */
+.joint-buttons-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .joint-list-btn {
     width: 100%;
-    aspect-ratio: 1.8 / 0.8; /* Force square shape */
+    aspect-ratio: 1 / 0.5;
+    /* ... other styles remain the same */
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-sm);
-    font-size: 1rem; /* REDUCED font size */
+    font-size: 1rem;
     font-weight: normal;
     cursor: pointer;
-    transition: all 0.2s ease;
     background-color: var(--color-dark-surface-2);
     color: var(--color-text-secondary);
     font-family: var(--font-digital);
     padding: 0;
 }
 
-/* other styles (.hover, .selected) remain the same */
+/* ... .joint-list-btn:hover, .joint-list-btn.selected styles remain the same */
 .joint-list-btn:hover { border-color: var(--color-text-primary); color: var(--color-text-primary); }
 .joint-list-btn.selected { background-color: var(--color-accent-primary); color: var(--color-dark-bg); border-color: var(--color-accent-primary); }
+
+
+/* This new wrapper pushes the BPM control to the bottom of the column */
+.bpm-control-wrapper {
+    margin-top: auto; /* This is the magic that pushes it down */
+    padding-top: var(--spacing-md); /* Adds space between RF button and the circle */
+}
+
+.circular-bpm-button {
+    margin-top: auto; /* Pushes it to the bottom */
+    width: 56px;
+    height: 56px;
+    /* ... other circular button styles remain the same */
+    flex-shrink: 0;
+    border-radius: 50%;
+    background-color: var(--color-dark-surface-3);
+    border: 2px solid var(--color-border);
+    color: var(--color-text-secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    cursor: pointer;
+}

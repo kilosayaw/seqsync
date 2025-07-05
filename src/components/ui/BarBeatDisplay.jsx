@@ -13,7 +13,6 @@ const BarBeatDisplay = () => {
     return (
         <div className="bar-beat-display-container">
             <DigitalDisplay label="BAR" value={bar} />
-            {/* The time display is now wider */}
             <DigitalDisplay label="TIME" value={formatTime(currentTime)} className="time-display" />
             <DigitalDisplay label="BEAT" value={beat} />
         </div>

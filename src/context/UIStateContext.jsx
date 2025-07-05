@@ -1,4 +1,3 @@
-// src/context/UIStateContext.jsx
 import React, { createContext, useContext, useState } from 'react';
 import { NOTE_DIVISIONS } from '../utils/constants';
 
@@ -7,22 +6,19 @@ export const useUIState = () => useContext(UIStateContext);
 
 export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
-    const [selectedJoint, setSelectedJoint] = useState(null);
+    const [selectedJoint, setSelectedJoint] = useState(null); // This will still be used for other joints
     const [noteDivision, setNoteDivision] = useState(NOTE_DIVISIONS[0].value);
-    const [padPlayMode, setPadPlayMode] = useState('TRIGGER');
     const [activePad, setActivePad] = useState(null);
     
-    // NEW STATE: Manages which deck is being edited. Can be 'none', 'left', 'right', or 'both'.
-    const [editMode, setEditMode] = useState('none');
+    // NEW STATE: Manages which deck's grounding is being edited.
+    const [editMode, setEditMode] = useState('none'); // 'none', 'left', 'right'
 
     const value = {
         selectedBar, setSelectedBar,
         selectedJoint, setSelectedJoint,
         noteDivision, setNoteDivision,
-        padPlayMode, setPadPlayMode,
         activePad, setActivePad,
-        // NEW: Expose editMode state and its setter
-        editMode, setEditMode,
+        editMode, setEditMode, // Expose the new state and its setter
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;

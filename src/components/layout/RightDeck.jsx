@@ -4,7 +4,7 @@ import DeckJointList from '../ui/DeckJointList';
 import RotaryController from '../ui/RotaryController';
 import RotaryButtons from '../ui/RotaryButtons';
 import Pads from '../ui/Pads';
-import BpmModule from '../ui/BpmModule';
+import OptionButtons from '../ui/OptionButtons';
 import './Deck.css';
 
 const RightDeck = () => {
@@ -19,14 +19,9 @@ const RightDeck = () => {
                 <PitchSlider />
             </div>
 
-            <div className="pads-group right-pads-group">
-                <div className="option-btn-slot"><BpmModule /></div>
-                <div className="option-btn-slot" />
-                <div className="option-btn-slot" />
-                <div className="option-btn-slot" />
-                <div className="pads-container-wrapper">
-                    <Pads side="right" />
-                </div>
+            <div className="pads-group">
+                <OptionButtons />
+                <Pads side="right" />
             </div>
         </div>
     );

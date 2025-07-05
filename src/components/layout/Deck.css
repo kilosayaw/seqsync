@@ -1,54 +1,91 @@
-/* The main container for a full deck (turntable + pads) */
 .deck-container {
-    display: flex;
-    flex-direction: column; /* Stack the top row and pads vertically */
+    /* DEFINITIVE FIX: Switching to a 2-row Grid for precise vertical control */
+    display: grid;
+    
+    /* 
+    *   THIS IS THE PRIMARY CONTROL FOR PAD SIZE:
+    *   The first row (1fr) is for the turntable area and will take up all flexible space.
+    *   The second row is for the pads area.
+    *
+    *   - To make the pads SMALLER, decrease the '160px' value (e.g., to '140px').
+    *   - To make the pads LARGER, increase the '160px' value (e.g., to '180px').
+    *   This will automatically resize the turntable area to fit.
+    */
+    grid-template-rows: 1fr 160px;
+    
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
     border-radius: var(--border-radius-md);
     min-width: 0;
-    flex-grow: 1;
+    min-height: 0; /* Prevents grid overflow issues */
 }
 
-/* This container holds the slider, turntable, and joint list */
 .deck-top-row {
     display: flex;
     gap: var(--spacing-md);
-    flex-grow: 1; /* Make the top row take the available space */
-    min-height: 0;
+    min-height: 0; /* Allows this flex container to shrink correctly inside the grid row */
 }
 
-/* Sizing for the side controls */
-.deck-joint-list-container,
-.pitch-slider-placeholder {
-    flex-shrink: 0;
-}
+/* --- The Flexbox ordering logic for horizontal elements remains the same and is correct --- */
+.deck-container[data-side="left"] .deck-top-row > .pitch-slider-container { order: 1; }
+.deck-container[data-side="left"] .deck-top-row > .turntable-group { order: 2; }
+.deck-container[data-side="left"] .deck-top-row > .deck-joint-list-container { order: 3; }
 
-/* Allow the turntable group to take all remaining available space */
+.deck-container[data-side="right"] .deck-top-row > .deck-joint-list-container { order: 1; }
+.deck-container[data-side="right"] .deck-top-row > .turntable-group { order: 2; }
+.deck-container[data-side="right"] .deck-top-row > .pitch-slider-container { order: 3; }
+/* --- End Swap Logic --- */
+
 .turntable-group {
     flex-grow: 1;
-    min-width: 0; /* Allow the turntable group to shrink if needed */
-    justify-content: center; /* Center the turntable vertically */
-    align-items: center; /* Center the turntable horizontally */
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    background-color: var(--color-dark-surface-2);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border);
+    
+    /* This will now correctly center the wheel vertically */
+    justify-content: center; 
 }
 
-.pads-group {
+/* This is the container for the bottom row elements */
+.deck-bottom-row {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.circular-bpm-wrapper {
     flex-shrink: 0;
-    height: 200px; /* Maintain fixed height for the pads area */
+    width: 90px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* Add these new rules to src/components/layout/Deck.css */
+.deck-bottom-row > .pads-group {
+    flex-grow: 1;
+    min-width: 0;
+}
 
-.right-pads-group {
+/* This is the container for the option slots and the pads */
+.pads-group {
+    height: 100%;
+    background-color: var(--color-dark-surface-2);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: 40px 1fr; /* Top row for slots, bottom for pads */
+    grid-template-rows: 40px 1fr;
     gap: var(--spacing-sm);
-    padding: var(--spacing-sm); /* Tighter padding for this group */
+    grid-template-areas:
+        "slots slots slots slots"
+        "pads  pads  pads  pads";
 }
 
-/* This new wrapper will make the pads span the full bottom row */
-.pads-container-wrapper {
-    grid-column: 1 / 5; /* Span all 4 columns */
-    grid-row: 2 / 3;    /* Occupy the 2nd row */
-}
+.option-buttons-container { grid-area: slots; }
+.pads-container { grid-area: pads; }

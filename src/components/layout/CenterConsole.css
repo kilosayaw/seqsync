@@ -3,12 +3,18 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm); /* Tighter gap for vertical space */
+    gap: var(--spacing-md); /* Gap between video, controls, and crossfader */
+    min-height: 0;
+    
+    /* DEFINITIVE GUTTER FIX: Apply padding to the main container */
+    background-color: var(--color-dark-surface-1);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
 }
 
 .video-feed-placeholder {
-    flex-grow: 1;
-    min-height: 0; /* Allows this to shrink */
+    flex: 1 1 300px;
+    min-height: 0;
     background-color: #000;
     border-radius: var(--border-radius-md);
     border: 1px solid var(--color-border);
@@ -22,11 +28,21 @@
 }
 
 .center-controls-group {
-    flex-shrink: 0;
+    flex-shrink: 0; 
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm); /* Tighter gap between displays and transport */
-    background-color: var(--color-dark-surface-1);
-    padding: var(--spacing-sm); /* Reduced padding */
+    gap: var(--spacing-md);
+    /* Padding is now handled by the parent, so we can remove it here if desired,
+       or keep it for a "double-bezel" effect. Let's keep it for consistency. */
+    background-color: var(--color-dark-surface-2);
+    padding: var(--spacing-md);
     border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.bar-beat-display-container {
+    display: grid;
+    grid-template-columns: 1fr 2.5fr 1fr;
+    gap: var(--spacing-sm);
+    width: 100%;
 }

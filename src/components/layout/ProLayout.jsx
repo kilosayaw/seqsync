@@ -1,5 +1,6 @@
 import React from 'react';
 import TopNavBar from '../ui/TopNavBar';
+import WaveformNavigator from '../ui/WaveformNavigator'; // Re-imported
 import NotationDisplay from '../ui/NotationDisplay';
 import CenterConsole from './CenterConsole';
 import LeftDeck from './LeftDeck';
@@ -14,6 +15,7 @@ const ProLayout = () => {
     return (
         <div className="pro-layout-container">
             <TopNavBar />
+            <WaveformNavigator /> {/* Placed in the correct order */}
             <NotationDisplay />
             <main className="main-content-area">
                 <LeftDeck />

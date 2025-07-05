@@ -1,0 +1,31 @@
+.circular-bpm-button {
+    flex-shrink: 0;
+    width: 56px; /* Sized to fit within the 60px column */
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--color-dark-surface-3);
+    border: 2px solid var(--color-border);
+    color: var(--color-text-secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.circular-bpm-button:hover {
+    border-color: var(--color-text-primary);
+}
+
+.circular-bpm-button:active {
+    border-color: var(--color-accent-primary);
+    background-color: var(--color-dark-surface-2);
+}
+
+.circular-bpm-value {
+    font-family: var(--font-digital);
+    font-size: 1.4rem; /* Resized font */
+    color: var(--color-accent-green);
+    line-height: 1;
+}

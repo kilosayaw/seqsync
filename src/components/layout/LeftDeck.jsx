@@ -21,7 +21,6 @@ const LeftDeck = () => {
                 <DeckJointList side="left" />
             </div>
 
-            {/* The pads group is now a direct child, allowing it to span the full width */}
             <div className="pads-group">
                 <OptionButtons side="left" /> {/* Pass prop */}
                 <Pads side="left" />

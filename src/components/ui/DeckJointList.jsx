@@ -1,67 +1,43 @@
-// src/components/DeckJointList.jsx
 import React from 'react';
 import { useUIState } from '../../context/UIStateContext';
 import { JOINT_LIST } from '../../utils/constants';
-import { useLongPress } from '../../hooks/useLongPress'; // Import the new hook
+import { useLongPress } from '../../hooks/useLongPress';
+import CircularBpmControl from './CircularBpmControl';
 import './DeckJointList.css';
 
 const DeckJointList = ({ side }) => {
-    const { selectedJoint, setSelectedJoint, editMode, setEditMode } = useUIState();
+    const { editMode, setEditMode } = useUIState();
     
     const sideKey = side.charAt(0).toUpperCase();
     const jointsForSide = JOINT_LIST.filter(j => j.id.startsWith(sideKey));
 
-    const handleFootClick = (jointId) => {
-        const targetSide = jointId.startsWith('L') ? 'left' : 'right';
-        // Toggle 'editMode' for the specific side
-        setEditMode(prev => prev === targetSide ? 'none' : targetSide);
-        // Toggle the 'selectedJoint' as well for visual feedback
-        setSelectedJoint(prev => prev === jointId ? null : jointId);
-    };
-
-    const handleFootLongPress = () => {
-        // Long press always activates 'both' edit mode
-        setEditMode('both');
-        // Select both foot joints for visual feedback
-        setSelectedJoint('both_feet'); 
-    };
-
-    const handleRegularJointClick = (jointId) => {
-        // Regular joints just set the selected joint and turn off foot editing
-        setSelectedJoint(prev => prev === jointId ? null : jointId);
-        setEditMode('none');
-    };
-
     return (
         <div className="deck-joint-list-container">
+            {/* The joint buttons are now rendered directly inside the container */}
             {jointsForSide.map(joint => {
                 const isFootButton = joint.id.endsWith('F');
-                let isSelected = false;
-
-                if (editMode === 'both' && isFootButton) {
-                    // If in 'both' mode, both foot buttons are active
-                    isSelected = true;
-                } else {
-                    // Otherwise, a button is active if it's the selected one
-                    isSelected = selectedJoint === joint.id;
-                }
-
-                // Use the long-press hook only for foot buttons
-                const longPressEvents = isFootButton
-                    ? useLongPress(() => handleFootClick(joint.id), handleFootLongPress)
-                    : {};
+                const handleShortClick = () => setEditMode(prev => (prev === side ? 'none' : side));
+                const handleLongPress = () => setEditMode('both');
+                const longPressEvents = isFootButton ? useLongPress(handleShortClick, handleLongPress) : {};
+                const regularClickEvent = !isFootButton ? { onClick: () => setEditMode('none') } : {};
+                const isSelected = isFootButton && (editMode === side || editMode === 'both');
                 
                 return (
                     <button 
                         key={joint.id} 
                         className={`joint-list-btn ${isSelected ? 'selected' : ''}`}
-                        // Assign the correct handler based on the button type
-                        {...(isFootButton ? longPressEvents : { onClick: () => handleRegularJointClick(joint.id) })}
+                        {...longPressEvents}
+                        {...regularClickEvent}
                     >
-                        {joint.name}
+                        {joint.id}
                     </button>
                 );
             })}
+
+            {/* The BPM control is also a direct child, so 'gap' will apply to it */}
+            {side === 'right' && (
+                <CircularBpmControl />
+            )}
         </div>
     );
 };

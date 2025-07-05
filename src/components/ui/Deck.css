@@ -1,6 +1,36 @@
-.pads-group {
-    flex-shrink: 0;
-    height: 160px;
+.deck-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    background-color: var(--color-dark-surface-1);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    min-width: 0;
+    flex-grow: 1;
+}
+
+.deck-top-row {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-grow: 1;
+    min-height: 0;
+}
+
+/* --- THE DEFINITIVE LAYOUT SWAP LOGIC --- */
+
+/* For Left Deck: Slider (1), Main (2), List (3) */
+.deck-container[data-side="left"] .deck-top-row > .pitch-slider-container { order: 1; }
+.deck-container[data-side="left"] .deck-top-row > .turntable-group { order: 2; }
+.deck-container[data-side="left"] .deck-top-row > .deck-joint-list-container { order: 3; }
+
+/* For Right Deck: List (1), Main (2), Slider (3) */
+.deck-container[data-side="right"] .deck-top-row > .deck-joint-list-container { order: 1; }
+.deck-container[data-side="right"] .deck-top-row > .turntable-group { order: 2; }
+.deck-container[data-side="right"] .deck-top-row > .pitch-slider-container { order: 3; }
+/* --- End Swap Logic --- */
+
+/* Base styling for the two main functional groups */
+.turntable-group {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
@@ -8,23 +38,38 @@
     border-radius: var(--border-radius-md);
     padding: var(--spacing-md);
     border: 1px solid var(--color-border);
+    flex-grow: 1;
+    min-width: 0;
+    justify-content: center;
+}
+
+/* The definitive, final style for the pads group */
+.pads-group {
+    flex-shrink: 0;
+    height: 160px;
+    background-color: var(--color-dark-surface-2);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border);
     
-    /* NEW: This will be a grid to position the BPM module */
+    /* This defines the two-tiered layout */
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: 40px 1fr; /* Top row for slots, bottom for pads */
-    /* Let's define the grid areas for clarity */
+    gap: var(--spacing-sm); /* This is the gap between the slots and the pads */
+    
+    /* Grid areas for organizational clarity */
     grid-template-areas:
         "slots slots slots slots"
         "pads  pads  pads  pads";
 }
 
-/* Position the OptionButtons in the 'slots' area */
+/* Positions the OptionButtons component in the 'slots' area */
 .option-buttons-container {
     grid-area: slots;
 }
 
-/* Position the Pads in the 'pads' area */
+/* Positions the Pads component in the 'pads' area */
 .pads-container {
     grid-area: pads;
 }

@@ -1,0 +1,14 @@
+.waveform-navigator-container {
+    background-color: var(--color-dark-surface-1);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    height: var(--waveform-height); /* Controlled by App.css variable */
+    flex-shrink: 0;
+}
+
+.waveform {
+  width: 100%;
+}

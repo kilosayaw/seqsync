@@ -1,18 +1,20 @@
 .notation-display-container {
     height: 40px;
     flex-shrink: 0;
-    background-color: var(--color-dark-surface-1);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-md);
     padding: 0 var(--spacing-md);
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Correctly aligns content to the left */
+    justify-content: flex-start;
     font-family: var(--font-primary);
     color: var(--color-text-secondary);
     font-size: 1rem;
     overflow: hidden;
     white-space: nowrap;
+
+    /* DEFINITIVE FIX: Applying the standard container style, same as the decks */
+    background-color: var(--color-dark-surface-1);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-border);
 }
 
 .notation-text {
