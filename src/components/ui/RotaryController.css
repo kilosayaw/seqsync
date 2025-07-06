@@ -7,7 +7,10 @@
 .rotary-svg-wrapper { width: 100%; height: 100%; }
 .rotary-svg { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-/* The invisible, draggable part of the wheel */
+
+
+
+
 .rotary-wheel-grab-area {
     fill: transparent;
     cursor: grab;
@@ -19,7 +22,7 @@
 /* The faint, non-interactive foot template image */
 .base-foot-img {
     opacity: 0.4;
-    pointer-events: none;
+    pointer-events: none; /* This element cannot be clicked. */
 }
 
 /* The glowing green dots that are VISIBLE but NOT interactive */
@@ -27,15 +30,17 @@
     fill: #00ff7f;
     opacity: 0.8;
     filter: url(#glow);
-    pointer-events: none; /* These are purely visual */
+    pointer-events: none; /* These dots are purely visual. */
 }
+
 
 /* The invisible, clickable area for each hotspot */
 .hotspot-clickable-area {
-    fill: transparent;
+    fill: transparent; /* Make it invisible */
     cursor: pointer;
     transition: fill 0.15s ease-out;
 }
 .hotspot-clickable-area:hover {
-    fill: rgba(0, 255, 127, 0.3); /* Provides the hover ghosting effect */
+    /* Provide a visual "ghosting" effect on hover to confirm it's being targeted. */
+    fill: rgba(0, 255, 127, 0.3); 
 }

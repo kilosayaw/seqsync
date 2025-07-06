@@ -10,6 +10,7 @@ const STEPS_PER_BAR = 16;
 const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
+        // Default to ungrounded state
         joints[joint.id] = { angle: 0, grounding: `${joint.id.charAt(0)}F0` };
     });
     return { bar, beat: beatInBar, joints };
@@ -21,16 +22,21 @@ export const SequenceProvider = ({ children }) => {
     const [songData, setSongData] = useState(createDefaultSequence());
     const [totalBars, setTotalBars] = useState(1);
     const [barStartTimes, setBarStartTimes] = useState([0]);
-    const { isMediaReady, duration, detectedBpm, firstBeatOffset } = useMedia();
+    // Depend on the media context for analysis results
+    const { isMediaReady, duration, detectedBpm } = useMedia();
 
-    // THE CORE LOGIC: This effect runs when media is ready and builds our sequence grid.
+    // THE FIX: This effect now correctly rebuilds the sequence when new media is loaded.
     useEffect(() => {
         if (isMediaReady && duration > 0 && detectedBpm) {
-            console.log("SequenceContext: Initializing sequence for new media.");
+            console.log("[SequenceContext] Media is ready. Initializing sequence...");
+            
             const beatsPerMinute = detectedBpm;
-            const totalBeats = (duration / 60) * beatsPerMinute;
-            const calculatedTotalBars = Math.ceil(totalBeats / 4);
+            // A beat is a quarter note. 4 beats per bar.
+            const totalBeatsInSong = (duration / 60) * beatsPerMinute;
+            const calculatedTotalBars = Math.ceil(totalBeatsInSong / 4);
+            
             setTotalBars(calculatedTotalBars);
+            console.log(`[SequenceContext] Detected BPM: ${detectedBpm}, Duration: ${duration.toFixed(2)}s. Calculated Total Bars: ${calculatedTotalBars}`);
 
             const totalSixteenths = calculatedTotalBars * STEPS_PER_BAR;
             const newSongData = Array.from({ length: totalSixteenths }, (_, i) => 
@@ -40,18 +46,19 @@ export const SequenceProvider = ({ children }) => {
 
             // Calculate the start time of each bar
             const timePerBar = (60 / beatsPerMinute) * 4;
-            const newBarStartTimes = Array.from({ length: calculatedTotalBars }, (_, i) => 
-                (i * timePerBar) + firstBeatOffset
-            );
+            const newBarStartTimes = Array.from({ length: calculatedTotalBars }, (_, i) => i * timePerBar);
             setBarStartTimes(newBarStartTimes);
-            console.log(`Sequence initialized: ${calculatedTotalBars} bars.`);
+
+            console.log(`[SequenceContext] Sequence initialized with ${calculatedTotalBars} bars.`);
+
         } else {
-            // Reset to default if no media
+            // Reset to a single bar if no media is loaded
             setSongData(createDefaultSequence());
             setTotalBars(1);
             setBarStartTimes([0]);
         }
-    }, [isMediaReady, duration, detectedBpm, firstBeatOffset]);
+    }, [isMediaReady, duration, detectedBpm]);
+
 
     const updateJointData = useCallback((globalBeatIndex, jointId, jointDataUpdate) => {
         setSongData(prevData => {

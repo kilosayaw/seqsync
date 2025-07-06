@@ -1,16 +1,24 @@
+// src/components/ui/WaveformNavigator.jsx
 import React, { useEffect } from 'react';
 import { useMedia } from '../../context/MediaContext';
-// We no longer need to import usePlayback here.
+import { formatTime } from '../../utils/notationUtils';
 
 const WaveformNavigator = () => {
-    // Its ONLY jobs are to get the ref and instance from the MediaContext.
     const { waveformContainerRef, wavesurferInstance } = useMedia();
 
-    // This effect now only handles the click interaction.
     useEffect(() => {
         const ws = wavesurferInstance;
         if (ws) {
-            const handleClick = (progress) => {
+            const handleClick = (progress, e) => {
+                // Check if the click event originated from a user interaction
+                if (e) {
+                    const duration = ws.getDuration();
+                    const clickedTime = progress * duration;
+                    console.log(
+                        `[Waveform] User clicked at ${formatTime(clickedTime)} ` +
+                        `(${(progress * 100).toFixed(2)}%)`
+                    );
+                }
                 ws.setTime(progress * ws.getDuration());
             };
             ws.on('interaction', handleClick);
@@ -23,7 +31,6 @@ const WaveformNavigator = () => {
 
     return (
         <div className="waveform-navigator-container">
-            {/* The ref is attached here, but the instance is created in the context. */}
             <div ref={waveformContainerRef} className="waveform" />
         </div>
     );

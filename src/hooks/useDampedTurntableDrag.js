@@ -49,10 +49,13 @@ export const useDampedTurntableDrag = (angle, setAngle, onDragEnd) => {
     }, [isDragging, setAngle]);
 
     const handleMouseUp = useCallback(() => {
+        // **DIAGNOSTIC LOG 2:** This should fire when you release the mouse after dragging the wheel.
+        console.log('[DragHook] Mouse Up detected. Setting isDragging to false.');
         setIsDragging(false);
     }, []);
 
     const handleMouseDown = useCallback((e) => {
+        console.log('%c[DragHook] Mouse Down on wheel. Starting drag.', 'color: orange;');
         e.stopPropagation();
         cancelAnimationFrame(animationFrameRef.current);
         velocityRef.current = 0;
@@ -73,16 +76,24 @@ export const useDampedTurntableDrag = (angle, setAngle, onDragEnd) => {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
         } else {
-            if (Math.abs(velocityRef.current) > VELOCITY_THRESHOLD) {
-                animationFrameRef.current = requestAnimationFrame(animate);
+            // This 'else' block runs when isDragging becomes false (on mouse up).
+            if (Math.abs(velocityRef.current) > 0.05) {
+                // Coasting animation starts
+            } else {
+                // If not coasting, the drag is officially over.
+                if (onDragEnd) {
+                    // **DIAGNOSTIC LOG 4:** This confirms the final callback is being triggered.
+                    console.log(`%c[DragHook] Drag ended. Calling onDragEnd with final angle: ${lastAngleRef.current.toFixed(2)}`, 'color: cyan');
+                    onDragEnd(lastAngleRef.current);
+                }
             }
         }
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
-            cancelAnimationFrame(animationFrameRef.current);
+            //...
         };
-    }, [isDragging, handleMouseMove, handleMouseUp, animate]);
+    }, [isDragging, handleMouseMove, handleMouseUp, animate, onDragEnd]);
 
     return { handleMouseDown };
 };

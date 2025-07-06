@@ -29,3 +29,11 @@
     color: var(--color-accent-green);
     line-height: 1;
 }
+
+.circular-bpm-button.selected {
+    border-color: var(--color-accent-green);
+    background-color: var(--color-dark-surface-1);
+}
+.circular-bpm-button.selected .circular-bpm-value {
+    color: var(--color-text-primary);
+}

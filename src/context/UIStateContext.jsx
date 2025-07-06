@@ -1,3 +1,4 @@
+// src/context/UIStateContext.jsx
 import React, { createContext, useContext, useState } from 'react';
 import { NOTE_DIVISIONS } from '../utils/constants';
 
@@ -6,19 +7,17 @@ export const useUIState = () => useContext(UIStateContext);
 
 export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
-    const [selectedJoint, setSelectedJoint] = useState(null);
-    const [noteDivision, setNoteDivision] = useState(NOTE_DIVISIONS[0].value);
     
-    // DEFINITIVE FIX: The initial state for "no pad selected" is null.
+    // This is the single source of truth for which pad is selected.
+    // It must start as null (no pad selected).
     const [activePad, setActivePad] = useState(null);
     
+    // This controls which foot is being edited.
     const [editMode, setEditMode] = useState('none');
 
     const value = {
         selectedBar, setSelectedBar,
-        selectedJoint, setSelectedJoint,
-        noteDivision, setNoteDivision,
-        activePad, setActivePad,
+        activePad, setActivePad, // Provide the state and the setter
         editMode, setEditMode,
     };
 

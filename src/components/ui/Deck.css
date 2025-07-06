@@ -1,62 +1,57 @@
+/* This is the main container for a single deck (left or right) */
 .deck-container {
-    display: grid;
-    /* DEFINITIVE FIX: This gives the pads a fixed height and the turntable the rest */
-    grid-template-rows: 1fr 150px; /* Row 1: Turntable Area | Row 2: Pads Area */
+    display: flex; /* Deck is a horizontal flex container */
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
-    border-radius: 8px;
+    border-radius: var(--border-radius-md);
     min-width: 0;
     min-height: 0;
 }
 
-.deck-top-row {
-    display: flex;
-    gap: var(--spacing-md);
-    min-height: 0;
-}
+/* Horizontal ordering for left vs right deck */
+.deck-container[data-side="left"] > .pitch-slider-container { order: 1; }
+.deck-container[data-side="left"] > .deck-main-column { order: 2; }
+.deck-container[data-side="left"] > .deck-joint-list-container { order: 3; }
 
-/* Horizontal ordering logic remains correct */
-.deck-container[data-side="left"] .deck-top-row > .pitch-slider-container { order: 1; }
-.deck-container[data-side="left"] .deck-top-row > .turntable-group { order: 2; }
-.deck-container[data-side="left"] .deck-top-row > .deck-joint-list-container { order: 3; }
+.deck-container[data-side="right"] > .deck-joint-list-container { order: 1; }
+.deck-container[data-side="right"] > .deck-main-column { order: 2; }
+.deck-container[data-side="right"] > .pitch-slider-container { order: 3; }
 
-.deck-container[data-side="right"] .deck-top-row > .deck-joint-list-container { order: 1; }
-.deck-container[data-side="right"] .deck-top-row > .turntable-group { order: 2; }
-.deck-container[data-side="right"] .deck-top-row > .pitch-slider-container { order: 3; }
 
-.turntable-group {
+/* This is the central column holding the turntable AND pads */
+.deck-main-column {
     flex-grow: 1;
     min-width: 0;
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
+    flex-direction: column; /* Stacks turntable on top of pads */
+    gap: var(--spacing-md);
+}
+
+.turntable-group {
+    flex-grow: 1; /* Allows turntable area to fill available vertical space */
+    min-height: 0;
     background-color: var(--color-dark-surface-2);
-    border-radius: 8px;
-    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
     border: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
     justify-content: center;
+    gap: var(--spacing-sm);
 }
 
-/* Sizing for the Rotary Controller itself */
-.rotary-controller-container {
-    width: 100%;
-    max-width: 280px; /* This gives it a max size but allows it to shrink */
-    aspect-ratio: 1 / 1;
-    margin: auto;
-}
-
-/* Pads area container */
 .pads-group {
-    height: 100%; /* Fill the 150px grid row */
+    flex-shrink: 0; /* Prevents pads from being squashed */
+    height: 160px;  /* A predictable, fixed height */
     background-color: var(--color-dark-surface-2);
-    border-radius: 8px;
+    border-radius: var(--border-radius-md);
     padding: var(--spacing-md);
     border: 1px solid var(--color-border);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: 35px 1fr; /* Slots | Pads */
-    gap: var(--spacing-xs);
+    grid-template-rows: 35px 1fr; /* Row for options, row for pads */
+    gap: var(--spacing-sm);
 }
 
 .option-buttons-container { grid-area: 1 / 1 / 2 / 5; }
