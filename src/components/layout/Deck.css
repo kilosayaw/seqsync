@@ -1,0 +1,70 @@
+/*
+  File: src/components/layout/Deck.css
+  Description: Styles for the main Left and Right Deck layout containers.
+  This file is structured to support the component logic in LeftDeck.jsx and RightDeck.jsx.
+*/
+
+/* The main container for a single deck (left or right) */
+.deck-container {
+    display: flex;
+    flex-direction: column; /* This is the key: stacks the top-row above the pads-group */
+    gap: var(--spacing-md);
+    background-color: var(--color-dark-surface-1);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    min-width: 0;
+    min-height: 0;
+    flex: 1; /* Allows the deck to take up available space in the main grid */
+}
+
+/* This row contains the turntable, joint list, and pitch slider */
+.deck-top-row {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-grow: 1; /* This row will expand vertically to fill available space */
+    min-height: 0;
+}
+
+/* --- HORIZONTAL ORDERING LOGIC --- */
+
+/* For the Left Deck: [Pitch] [Turntable] [Joints] */
+.deck-container[data-side="left"] .deck-top-row > .pitch-slider-container { order: 1; }
+.deck-container[data-side="left"] .deck-top-row > .turntable-group { order: 2; }
+.deck-container[data-side="left"] .deck-top-row > .deck-joint-list-container { order: 3; }
+
+/* For the Right Deck: [Joints] [Turntable] [Pitch] */
+.deck-container[data-side="right"] .deck-top-row > .deck-joint-list-container { order: 1; }
+.deck-container[data-side="right"] .deck-top-row > .turntable-group { order: 2; }
+.deck-container[data-side="right"] .deck-top-row > .pitch-slider-container { order: 3; }
+
+/* The container for the turntable and its top buttons */
+.turntable-group {
+    flex-grow: 1; /* Expands horizontally to fill space */
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    background-color: var(--color-dark-surface-2);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm);
+    border: 1px solid var(--color-border);
+    justify-content: center;
+}
+
+/* The container for the performance pads and their option buttons */
+.pads-group {
+    flex-shrink: 0; /* Prevents this group from being squashed */
+    height: 160px;  /* A predictable, fixed height */
+    background-color: var(--color-dark-surface-2);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 35px 1fr; /* Defines a row for options and a row for pads */
+    gap: var(--spacing-sm);
+}
+
+/* Grid area assignments for children of .pads-group */
+.option-buttons-container { grid-area: 1 / 1 / 2 / 5; }
+.pads-container { grid-area: 2 / 1 / 3 / 5; }

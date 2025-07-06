@@ -1,21 +1,24 @@
+/* src/components/ui/OptionButtons.css */
+
 .option-buttons-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
     height: 100%;
+    width: 100%;
 }
 
 .option-btn {
-    flex: 1; 
-    background-color: var(--color-dark-surface-1); /* Slightly darker to distinguish */
+    background-color: var(--color-dark-surface-3);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-sm);
     color: var(--color-text-secondary);
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     font-weight: bold;
     cursor: pointer;
     padding: 0;
     transition: all 0.2s ease;
+    font-family: var(--font-primary);
 }
 
 .option-btn:hover {

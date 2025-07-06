@@ -34,13 +34,16 @@
 }
 
 
+
 /* The invisible, clickable area for each hotspot */
 .hotspot-clickable-area {
-    fill: transparent; /* Make it invisible */
+    fill: transparent;
     cursor: pointer;
     transition: fill 0.15s ease-out;
+
+    /* THE CSS FIX: This forces the browser to treat this shape as a primary click target. */
+    pointer-events: all; 
 }
 .hotspot-clickable-area:hover {
-    /* Provide a visual "ghosting" effect on hover to confirm it's being targeted. */
-    fill: rgba(0, 255, 127, 0.3); 
+    fill: rgba(0, 255, 127, 0.3);
 }

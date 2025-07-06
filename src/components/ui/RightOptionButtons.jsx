@@ -1,18 +1,17 @@
+// src/components/ui/RightOptionButtons.jsx
 import React from 'react';
-import './OptionButtons.css'; // Assuming this file exists and is styled
+import './OptionButtons.css'; // This component imports its OWN stylesheet.
 
-// This is the component logic
 const RightOptionButtons = () => {
-    // Future logic for Presets, Modes, etc. will go here.
+    const logClick = (buttonName) => console.log(`[OptionBtn] Right button "${buttonName}" clicked.`);
     return (
         <div className="option-buttons-container">
-            <button className="option-btn">PRESETS</button>
-            <button className="option-btn">ROTATE</button>
-            <button className="option-btn">STRIKE</button>
-            <button className="option-btn">LIVE</button>
+            <button className="option-btn" onClick={() => logClick('PRESETS')}>PRESETS</button>
+            <button className="option-btn" onClick={() => logClick('ROTATE')}>ROTATE</button>
+            <button className="option-btn" onClick={() => logClick('STRIKE')}>STRIKE</button>
+            <button className="option-btn" onClick={() => logClick('LIVE')}>LIVE</button>
         </div>
     );
 };
 
-// THE CRITICAL FIX: Exporting the component as the default for this file.
 export default RightOptionButtons;

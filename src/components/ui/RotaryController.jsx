@@ -1,7 +1,7 @@
 // src/components/ui/RotaryController.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useUIState } from '../../context/UIStateContext';
-import { useSequence } from '../../context/SequenceContext'; // Logic restored
+import { useSequence } from '../../context/SequenceContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { getPointsFromNotation, resolveNotationFromPoints } from '../../utils/notationUtils';
 import { useDampedTurntableDrag } from '../../hooks/useDampedTurntableDrag';
@@ -15,19 +15,15 @@ const RotaryController = ({ deckId }) => {
     
     const side = deckId === 'deck1' ? 'left' : 'right';
     const jointId = `${side.charAt(0).toUpperCase()}F`;
-
-    // Determine which beat's data to display: the live playhead or the selected pad.
     const beatIndexToDisplay = isPlaying ? (currentBeat ?? 0) : (activePad ?? 0);
     const globalIndex = ((selectedBar - 1) * STEPS_PER_BAR) + beatIndexToDisplay;
 
-    // Read the current state from the master songData array
     const currentGrounding = songData[globalIndex]?.joints?.[jointId]?.grounding || `${jointId}0`;
     const currentAngle = songData[globalIndex]?.joints?.[jointId]?.angle || 0;
     
     const [angle, setAngle] = useState(currentAngle);
     const [activePoints, setActivePoints] = useState(new Set());
 
-    // Effect to update the local state when the global state changes
     useEffect(() => {
         setAngle(currentAngle);
         setActivePoints(getPointsFromNotation(currentGrounding));
@@ -35,7 +31,6 @@ const RotaryController = ({ deckId }) => {
     
     const isEditing = editMode === side || editMode === 'both';
 
-    // Callback to save the final angle after dragging
     const handleDragEnd = useCallback((finalAngle) => {
         if (isEditing && activePad !== null) {
             const indexToUpdate = ((selectedBar - 1) * STEPS_PER_BAR) + activePad;
@@ -45,30 +40,20 @@ const RotaryController = ({ deckId }) => {
 
     const { handleMouseDown } = useDampedTurntableDrag(angle, setAngle, handleDragEnd);
 
-    // Callback to update grounding notation when a hotspot is clicked
     const handleHotspotClick = (shortNotation) => {
         if (!isEditing || activePad === null) {
             console.warn(`[Hotspot] Click ignored. EditMode: ${isEditing}, ActivePad: ${activePad}`);
             return;
         }
-
+        
         const indexToUpdate = ((selectedBar - 1) * STEPS_PER_BAR) + activePad;
         const newActivePoints = new Set(activePoints);
 
-        if (newActivePoints.has(shortNotation)) {
-            newActivePoints.delete(shortNotation);
-        } else {
-            newActivePoints.add(shortNotation);
-        }
-
-        const newGroundingNotation = resolveNotationFromPoints(newActivePoints, side);
+        if (newActivePoints.has(shortNotation)) newActivePoints.delete(shortNotation);
+        else newActivePoints.add(shortNotation);
         
-        console.log(
-            `%c[Hotspot] Clicked: '${shortNotation}' on ${side.toUpperCase()} foot. | ` +
-            `Pad: ${activePad + 1} | ` +
-            `New Notation: ${newGroundingNotation}`,
-            'color: #00b0ff'
-        );
+        const newGroundingNotation = resolveNotationFromPoints(newActivePoints, side);
+        console.log(`%c[Hotspot] Clicked '${shortNotation}'. New notation: ${newGroundingNotation}`, 'color: limegreen');
         
         setActivePoints(newActivePoints);
         updateJointData(indexToUpdate, jointId, { grounding: newGroundingNotation });
