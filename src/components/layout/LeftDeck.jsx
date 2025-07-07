@@ -1,11 +1,10 @@
 // src/components/layout/LeftDeck.jsx
-
 import React from 'react';
 import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
 import RotaryController from '../ui/RotaryController/RotaryController';
 import RotaryButtons from '../ui/RotaryButtons';
-import Pads from '../ui/Pads';
+import PerformancePad from '../ui/PerformancePad';
 import OptionButtons from '../ui/OptionButtons';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -14,27 +13,39 @@ import { useMedia } from '../../context/MediaContext';
 import './Deck.css';
 
 const LeftDeck = () => {
-    // --- Logic is now centralized here, same as RightDeck ---
-    const { selectedBar, setActivePad } = useUIState();
-    const { barStartTimes, STEPS_PER_BAR } = useSequence();
-    const { isPlaying, seekToTime, bpm } = usePlayback();
+    const { selectedBar, setSelectedBar, setActivePad, noteDivision } = useUIState();
+    const { barStartTimes, STEPS_PER_BAR, totalBars } = useSequence();
+    const { isPlaying, currentBar, currentBeat, seekToTime, bpm } = usePlayback();
     const { isMediaReady } = useMedia();
 
-    const handlePadClick = (padIndexInBar) => {
-        if (!isMediaReady) return;
+    const handlePadClick = (localPadIndex) => {
+        if (!isMediaReady && (!barStartTimes || barStartTimes.length === 0)) {
+             console.log(`[LeftDeck] Pad ${localPadIndex + 1} clicked (No Media). Setting active pad.`);
+             setActivePad(localPadIndex);
+             return;
+        }
 
-        console.log(`[LeftDeck] Pad ${padIndexInBar + 1} click received. Setting active pad.`);
-        setActivePad(padIndexInBar);
-
-        if (!isPlaying) {
-            const barStartTime = barStartTimes[selectedBar - 1] || 0;
-            const timePerSixteenth = (60 / bpm) / 4;
-            const padTimeOffset = padIndexInBar * timePerSixteenth;
-            const targetTime = barStartTime + padTimeOffset;
+        if (noteDivision === 16) {
+            const globalPadIndex = localPadIndex;
+            console.log(`[LeftDeck] 1/16 Mode: Pad ${globalPadIndex + 1} clicked.`);
+            setActivePad(globalPadIndex);
+            if (!isPlaying) {
+                const barStartTime = barStartTimes[selectedBar - 1] || 0;
+                const timePerSixteenth = (60 / (bpm || 120)) / 4;
+                const padTimeOffset = globalPadIndex * timePerSixteenth;
+                const targetTime = barStartTime + padTimeOffset;
+                seekToTime(targetTime);
+            }
+        } else {
+            const targetBarIndex = selectedBar - 1;
+            const targetBarStartTime = barStartTimes[targetBarIndex] || 0;
+            const timePerEighth = (60 / (bpm || 120)) / 2;
+            const targetTime = targetBarStartTime + (localPadIndex * timePerEighth);
+            console.log(`[LeftDeck] 1/8 Cue Mode: Pad ${localPadIndex + 1} clicked. Seeking to Bar ${targetBarIndex + 1}, Time ${targetTime.toFixed(3)}s`);
             seekToTime(targetTime);
+            setActivePad(null);
         }
     };
-    // --- END LOGIC ---
 
     return (
         <div className="deck-container" data-side="left">
@@ -48,11 +59,25 @@ const LeftDeck = () => {
             </div>
             <div className="pads-group">
                 <OptionButtons />
-                {/* Pass the handler down to the Pads component */}
-                <Pads side="left" onPadClick={handlePadClick} />
+                {/* DEFINITIVE FIX: The pads are now wrapped in the .pads-container div again */}
+                <div className="pads-container">
+                    {Array.from({ length: 8 }).map((_, i) => {
+                        const globalPadIndex = i;
+                        const displayNumber = i + 1;
+                        const isPulsing = isPlaying && selectedBar === currentBar && globalPadIndex === currentBeat;
+                        return (
+                            <PerformancePad
+                                key={`left-${i}`}
+                                padIndex={globalPadIndex} 
+                                beatNum={displayNumber}
+                                isPulsing={isPulsing}
+                                onMouseDown={() => handlePadClick(i)}
+                            />
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );
 };
-
 export default LeftDeck;

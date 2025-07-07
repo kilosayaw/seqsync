@@ -1,15 +1,27 @@
 /* src/components/ui/OptionButtons.css */
-
 .option-buttons-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-xs);
-    height: 35px; /* Standardized height */
+    height: 35px;
     flex-shrink: 0;
 }
-
 .option-btn-slot {
     background-color: var(--color-dark-surface-1);
     border-radius: var(--border-radius-sm);
     border: 1px dashed var(--color-border);
+}
+.option-btn {
+    background-color: var(--color-dark-surface-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+.option-btn.active {
+    background-color: var(--color-accent-green);
+    color: var(--color-dark-bg);
+    border-color: var(--color-accent-green);
 }
