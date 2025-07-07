@@ -1,14 +1,13 @@
 // src/components/layout/ProLayout.jsx
-
 import React from 'react';
 import TopNavBar from '../ui/TopNavBar';
 import WaveformNavigator from '../ui/WaveformNavigator';
 import NotationDisplay from '../ui/NotationDisplay';
 import CenterConsole from './CenterConsole';
-import LeftDeck from './LeftDeck';   // We will create this component
-import RightDeck from './RightDeck'; // We will create this component
+import LeftDeck from './LeftDeck';
+import RightDeck from './RightDeck';
 import { useMedia } from '../../context/MediaContext';
-import LoadingOverlay from '../ui/LoadingOverlay'; // Import the dedicated component
+import LoadingOverlay from '../ui/LoadingOverlay';
 import './ProLayout.css';
 
 const ProLayout = () => {
@@ -24,10 +23,8 @@ const ProLayout = () => {
                 <CenterConsole />
                 <RightDeck />
             </main>
-            {/* Use the dedicated LoadingOverlay component */}
             {isLoading && <LoadingOverlay />}
         </div>
     );
 };
-
 export default ProLayout;

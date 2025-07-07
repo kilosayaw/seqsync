@@ -6,17 +6,18 @@
 */
 @font-face {
   font-family: 'Digital Play';
-  src: url('/assets/fonts/Digital Play St.ttf') format('truetype');
+  src: url('/fonts/Digital Play St.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'Digital Play Hollow';
-  src: url('/assets/fonts/Digital Play Hollow St.ttf') format('truetype');
+  src: url('/fonts/Digital Play Hollow St.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
+
 
 :root {
   /* Font Families */
@@ -50,15 +51,11 @@
   --border-radius-sm: 4px;
   --border-radius-md: 8px;
 
-  /* 
-    DEFINITIVE LAYOUT HEIGHTS:
-    These variables control the height of each main row in ProLayout.css
-  */
+  /* Layout Heights */
   --top-nav-height: 45px;
   --waveform-height: 55px;
   --notation-display-height: 35px;
 }
-
 *,
 *::before,
 *::after {
@@ -72,7 +69,7 @@ body {
   background-color: var(--color-dark-bg);
   color: var(--color-text-primary);
   line-height: 1.6;
-  overflow: hidden; /* Prevent body scroll */
+  overflow: hidden;
 }
 
 #root {

@@ -1,22 +1,19 @@
 // src/context/UIStateContext.jsx
-
 import React, { createContext, useContext, useState } from 'react';
 import { NOTE_DIVISIONS } from '../utils/constants';
 
+// 1. Create the context
 const UIStateContext = createContext(null);
-export const useUIState = () => useContext(UIStateContext);
 
+// 2. Create the provider component
 export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
     const [selectedJoint, setSelectedJoint] = useState(null);
     const [noteDivision, setNoteDivision] = useState(NOTE_DIVISIONS[0].value);
-    
-    // DEFINITIVE FIX: The initial state for "no pad selected" should be null.
     const [activePad, setActivePad] = useState(null);
-    
-    // Manages which deck is being edited. Can be 'none', 'left', 'right', or 'both'.
     const [editMode, setEditMode] = useState('none');
 
+    // 3. Assemble the value to be provided
     const value = {
         selectedBar, setSelectedBar,
         selectedJoint, setSelectedJoint,
@@ -30,4 +27,13 @@ export const UIStateProvider = ({ children }) => {
             {children}
         </UIStateContext.Provider>
     );
+};
+
+// 4. Create the custom hook for consuming the context
+export const useUIState = () => {
+    const context = useContext(UIStateContext);
+    if (context === null) {
+        throw new Error('useUIState must be used within a UIStateProvider');
+    }
+    return context;
 };

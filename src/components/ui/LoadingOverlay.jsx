@@ -1,3 +1,4 @@
+// src/components/ui/LoadingOverlay.jsx
 import React from 'react';
 import './LoadingOverlay.css';
 

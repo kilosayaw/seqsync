@@ -2,7 +2,7 @@
 
 .deck-container {
     display: grid;
-    grid-template-rows: 1fr 150px; 
+    grid-template-rows: 1fr 180px; /* Gave pads more space: 150px -> 180px */
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
@@ -15,38 +15,19 @@
     display: flex;
     gap: var(--spacing-md);
     min-height: 0;
-
-    /* 
-      DEFINITIVE ALIGNMENT FIX:
-      This aligns the side columns (slider and joint list) to the top 
-      of the row instead of stretching them to full height.
-    */
     align-items: flex-start;
 }
 
 /* --- Layout Swap Logic --- */
-.deck-container[data-side="left"] .deck-top-row > .pitch-slider-container { order: 1; }
+.deck-container[data-side="left"] .deck-top-row > .movement-fader-container { order: 1; }
 .deck-container[data-side="left"] .deck-top-row > .turntable-group { order: 2; }
 .deck-container[data-side="left"] .deck-top-row > .deck-joint-list-container { order: 3; }
-
 .deck-container[data-side="right"] .deck-top-row > .deck-joint-list-container { order: 1; }
 .deck-container[data-side="right"] .deck-top-row > .turntable-group { order: 2; }
-.deck-container[data-side="right"] .deck-top-row > .pitch-slider-container { order: 3; }
-/* --- End Layout Swap Logic --- */
-
-
+.deck-container[data-side="right"] .deck-top-row > .movement-fader-container { order: 3; }
 .turntable-group {
-    flex-grow: 1; 
-    min-width: 0;
-    /* 
-      DEFINITIVE SELF-STRETCHING FIX:
-      This tells the turntable group to stretch to fill the vertical space
-      left by the now top-aligned side columns.
-    */
-    align-self: stretch; 
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
+    flex-grow: 1; min-width: 0; align-self: stretch; 
+    display: flex; flex-direction: column; gap: var(--spacing-sm);
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-sm);
