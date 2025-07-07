@@ -1,31 +1,41 @@
 // src/components/ui/TransportControls.jsx
+
 import React from 'react';
 import { usePlayback } from '../../context/PlaybackContext';
-// ... other imports ...
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
-import classNames from 'classnames'; // Import classNames
+import classNames from 'classnames';
 import './TransportControls.css';
 
 const TransportControls = () => {
-    // Get isRecording and handleRecord from playback context
-    const { isPlaying, togglePlay, isRecording, handleRecord } = usePlayback(); 
-    const { selectedBar, setSelectedBar, setActivePad } = useUIState();
-    const { totalBars } = useSequence();
+    const { isPlaying, togglePlay, isRecording, handleRecord, seekToTime, bpm, currentTime } = usePlayback(); 
+    const { selectedBar, setSelectedBar, activePad, setActivePad } = useUIState();
+    const { totalBars, barStartTimes, STEPS_PER_BAR } = useSequence();
 
     const handleBarChange = (direction) => {
-        // ... (this logic is unchanged)
         if (isPlaying || isRecording) return;
+
         const newBar = selectedBar + direction;
         if (newBar >= 1 && newBar <= totalBars) {
+            console.log(`[Transport] Bar changed to: ${newBar}`);
+            
+            // --- DEFINITIVE FIX: Calculate and seek to the new time ---
+            const currentBeatInBar = activePad !== null ? (activePad % STEPS_PER_BAR) : 0;
+            const newBarStartTime = barStartTimes[newBar - 1] || 0;
+            const timePerSixteenth = (60 / (bpm || 120)) / 4;
+            const beatOffset = currentBeatInBar * timePerSixteenth;
+            const targetTime = newBarStartTime + beatOffset;
+            
+            // Set the new bar and seek the playhead
             setSelectedBar(newBar);
-            setActivePad(null); 
+            seekToTime(targetTime);
+            // We keep the same relative pad selected in the new bar
+            setActivePad(currentBeatInBar);
         }
     };
 
     return (
         <div className="transport-controls-container">
-            {/* NEW: Record Button */}
             <button 
                 className={classNames('transport-btn', 'record-btn', { 'active': isRecording })} 
                 title="Record"
@@ -33,8 +43,6 @@ const TransportControls = () => {
             >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
             </button>
-
-            {/* The rest of the transport controls */}
             <button className="transport-btn" title="Back Bar" onClick={() => handleBarChange(-1)}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L12 12L18 18M12 6L6 12L12 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>

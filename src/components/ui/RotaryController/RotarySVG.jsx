@@ -1,10 +1,10 @@
 // src/components/ui/RotaryController/RotarySVG.jsx
-
 import React from 'react';
 import { FOOT_HOTSPOT_COORDINATES } from '../../../utils/constants';
 import './RotaryController.css';
 
 const RotarySVG = ({ side, angle, activePoints, onHotspotClick, isEditing, handleWheelMouseDown }) => {
+    // ... code is unchanged from the version that correctly rendered the foot bases...
     const sideKey = side.charAt(0).toUpperCase();
     const hotspots = FOOT_HOTSPOT_COORDINATES[sideKey] || [];
     const baseFootImagePath = `/ground/foot-${side}.png`;
@@ -18,22 +18,13 @@ const RotarySVG = ({ side, angle, activePoints, onHotspotClick, isEditing, handl
                         <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                 </defs>
-                
                 <g transform={`rotate(${angle}, 275, 275)`} onMouseDown={handleWheelMouseDown} className="rotary-wheel-grab-area">
                     <image href="/ground/foot-wheel.png" x="0" y="0" width="550" height="550" />
-                    
-                    {/* This entire block now correctly renders only when isEditing is true */}
                     {isEditing && (
                         <>
-                            <image 
-                                href={baseFootImagePath}
-                                className="base-foot-img"
-                                x="115" y="115" height="320" width="320" 
-                            />
-                            
+                            <image href={baseFootImagePath} className="base-foot-img" x="115" y="115" height="320" width="320" />
                             {hotspots.map(spot => {
                                 if (!activePoints.has(spot.notation)) return null;
-                                
                                 if (spot.type === 'ellipse') {
                                     return <ellipse key={spot.notation} className="hotspot-indicator" cx={spot.cx} cy={spot.cy} rx={spot.rx} ry={spot.ry} transform={`rotate(${spot.rotation || 0}, ${spot.cx}, ${spot.cy})`} />;
                                 } else {
@@ -43,7 +34,6 @@ const RotarySVG = ({ side, angle, activePoints, onHotspotClick, isEditing, handl
                         </>
                     )}
                 </g>
-                
                 {isEditing && (
                      <g className="interaction-layer">
                         {hotspots.map(spot => {
@@ -63,5 +53,4 @@ const RotarySVG = ({ side, angle, activePoints, onHotspotClick, isEditing, handl
         </div>
     );
 };
-
 export default RotarySVG;

@@ -51,11 +51,10 @@ export const formatFullNotation = (beatData, currentTime) => {
     const formatJoint = (joint) => {
         if (!joint || !joint.grounding) return '--';
         
-        // Don't show angle for ungrounded feet.
         if (joint.grounding.endsWith('0')) {
              return `${joint.grounding.slice(0, 2)}000°`;
         }
-        // DEFINITIVE FIX 2: Add the '@' symbol.
+        // This format now correctly adds the @ symbol.
         return `${joint.grounding}@${Math.round(joint.angle || 0)}°`;
     };
 

@@ -4,19 +4,23 @@ import { useUIState } from '../../context/UIStateContext';
 import classNames from 'classnames';
 import './OptionButtons.css';
 
-// The component now receives a 'side' prop to know which buttons to render
 const OptionButtons = ({ side }) => {
-    const { noteDivision, setNoteDivision, padDisplayMode, setPadDisplayMode } = useUIState();
+    const { noteDivision, setNoteDivision, activePanel, setActivePanel } = useUIState();
 
     const handleNoteDivisionCycle = () => {
         const divisions = [16, 8, 4];
         const currentIndex = divisions.indexOf(noteDivision);
         const nextIndex = (currentIndex + 1) % divisions.length;
-        setNoteDivision(divisions[nextIndex]);
+        const newDivision = divisions[nextIndex];
+        console.log(`[Options] Cycling Note Division to: 1/${newDivision}`);
+        setNoteDivision(newDivision);
     };
-
-    const handleDisplayModeClick = (mode) => {
-        setPadDisplayMode(mode);
+    
+    // This function now toggles the panel visibility
+    const handlePanelToggle = (panelName) => {
+        const newPanel = activePanel === panelName ? 'none' : panelName;
+        console.log(`[Options] Setting active panel to: ${newPanel}`);
+        setActivePanel(newPanel);
     };
 
     // Render buttons for the Left Deck
@@ -26,7 +30,10 @@ const OptionButtons = ({ side }) => {
                 <button className="option-btn" onClick={handleNoteDivisionCycle}>
                     1/{noteDivision}
                 </button>
-                <div className="option-btn-slot" />
+                {/* NEW "SOUND" BUTTON */}
+                <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>
+                    SOUND
+                </button>
                 <div className="option-btn-slot" />
                 <div className="option-btn-slot" />
             </div>
@@ -37,13 +44,13 @@ const OptionButtons = ({ side }) => {
     if (side === 'right') {
         return (
             <div className="option-buttons-container">
-                <button className={classNames('option-btn', { active: padDisplayMode === 'foot' })} onClick={() => handleDisplayModeClick('foot')}>
+                <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>
                     FOOT
                 </button>
-                <button className={classNames('option-btn', { active: padDisplayMode === 'pose' })} onClick={() => handleDisplayModeClick('pose')}>
+                <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>
                     POSE
                 </button>
-                 <button className={classNames('option-btn', { active: padDisplayMode === 'abbr' })} onClick={() => handleDisplayModeClick('abbr')}>
+                 <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>
                     ABBR
                 </button>
                 <div className="option-btn-slot" />
@@ -51,7 +58,6 @@ const OptionButtons = ({ side }) => {
         );
     }
     
-    return null; // Should not happen
+    return null;
 };
-
 export default OptionButtons;

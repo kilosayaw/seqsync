@@ -1,0 +1,35 @@
+/* src/components/ui/SoundBankPanel.css */
+.sound-bank-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    width: 600px;
+    height: 400px;
+    background-color: var(--color-dark-surface-1);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.sound-bank-panel.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: all;
+}
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background-color: var(--color-dark-surface-2);
+    border-bottom: 1px solid var(--color-border);
+}
+.panel-header h3 { margin: 0; font-size: 1rem; }
+.close-btn { background: none; font-size: 1.5rem; padding: 0; color: var(--color-text-secondary); }
+.panel-content { padding: var(--spacing-md); }

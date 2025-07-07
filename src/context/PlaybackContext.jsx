@@ -1,6 +1,6 @@
 // src/context/PlaybackContext.jsx
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'; // ADDED useRef HERE
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useMedia } from './MediaContext';
 import { useSequence } from './SequenceContext';
 import * as Tone from 'tone';
@@ -19,11 +19,13 @@ export const PlaybackProvider = ({ children }) => {
 
     const { wavesurferInstance, duration, detectedBpm } = useMedia();
     const { barStartTimes, STEPS_PER_BAR } = useSequence();
-    
-    // This line was causing the error because useRef was not imported
     const metronome = useRef(new Tone.MembraneSynth().toDestination());
 
-    useEffect(() => { if (detectedBpm) setBpm(detectedBpm); }, [detectedBpm]);
+    useEffect(() => {
+        if (detectedBpm) {
+            setBpm(detectedBpm);
+        }
+    }, [detectedBpm]);
 
     const handleAudioProcess = useCallback((time) => {
         setCurrentTime(time);
@@ -99,7 +101,9 @@ export const PlaybackProvider = ({ children }) => {
     }, [isRecording, preRollCount, bpm, togglePlay]);
 
     const value = { 
-        isPlaying, currentTime, bpm, setBpm, currentBar, currentBeat,
+        isPlaying, currentTime, bpm, 
+        setBpm, 
+        currentBar, currentBeat,
         isRecording, preRollCount,
         togglePlay, seekToTime, handleRecord,
     };

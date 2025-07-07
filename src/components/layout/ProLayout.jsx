@@ -8,6 +8,8 @@ import CenterConsole from './CenterConsole';
 import LeftDeck from './LeftDeck';
 import RightDeck from './RightDeck';
 import LoadingOverlay from '../ui/LoadingOverlay';
+import ConfirmDialog from '../ui/ConfirmDialog';
+import SoundBankPanel from '../ui/SoundBankPanel'; // Import the new panel
 import { useKeyboardControls } from '../../hooks/useKeyboardControls';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -17,59 +19,45 @@ import { useSound, PAD_TO_NOTE_MAP } from '../../context/SoundContext';
 import './ProLayout.css';
 
 const ProLayout = () => {
-    const { isLoading } = useMedia();
+    const { isLoading, mediaFile, pendingFile, confirmLoad, cancelLoad } = useMedia();
     const { setActivePad, noteDivision, selectedBar, setSelectedBar, editMode } = useUIState();
     const { playSound } = useSound();
-    const { seekToTime, bpm, isPlaying } = usePlayback();
+    const { seekToTime, bpm, isPlaying, wavesurferInstance } = usePlayback();
     const { barStartTimes, totalBars } = useSequence();
 
-    // This is the single, centralized handler for all pad interactions (mouse or keyboard)
     const handlePadTrigger = useCallback((padIndex) => {
-        // 1. Conditionally play the sound
-        if (editMode === 'none') {
-            const note = PAD_TO_NOTE_MAP[padIndex];
-            playSound(note);
-        } else {
-            console.log(`[MasterControl] Sound playback skipped (in edit mode).`);
-        }
-
-        // 2. Determine behavior based on the current note division mode
-        if (noteDivision === 16) {
-            // In 1/16 mode, we select the pad for editing.
-            console.log(`[MasterControl] 1/16 Mode: Pad ${padIndex + 1} triggered.`);
-            setActivePad(padIndex);
-
-            // If paused, we also seek the playhead to that pad's position
-            if (!isPlaying) {
-                const barStartTime = barStartTimes[selectedBar - 1] || 0;
-                const timePerSixteenth = (60 / (bpm || 120)) / 4;
-                const padTimeOffset = padIndex * timePerSixteenth; // This is correct as padIndex is the global index
-                const targetTime = barStartTime + padTimeOffset;
+        if (mediaFile) {
+            // CUE POINT MODE
+            if (noteDivision === 16) {
+                setActivePad(padIndex);
+                if (!isPlaying) {
+                    const barStartTime = barStartTimes[selectedBar - 1] || 0;
+                    const padTimeOffset = padIndex * ((60 / (bpm || 120)) / 4);
+                    seekToTime(barStartTime + padTimeOffset);
+                }
+            } else {
+                const padsPerBar = noteDivision === 8 ? 8 : 4;
+                const targetBar = Math.floor(padIndex / padsPerBar) + 1;
+                const padInBar = padIndex % padsPerBar;
+                if (targetBar > totalBars) return;
+                if (targetBar !== selectedBar) setSelectedBar(targetBar);
+                const targetBarStartTime = barStartTimes[targetBar - 1] || 0;
+                const timePerDivision = (60 / (bpm || 120)) * (4 / noteDivision);
+                const targetTime = targetBarStartTime + (padInBar * timePerDivision);
                 seekToTime(targetTime);
+                wavesurferInstance?.play();
+                setActivePad(null);
             }
         } else {
-            // In 1/8 or 1/4 (cue) mode, we jump to a new time without selecting a pad.
-            console.log(`[MasterControl] Cue Mode (1/${noteDivision}): Pad ${padIndex + 1} triggered.`);
-            const padsPerBar = noteDivision === 8 ? 8 : 4;
-            const targetBar = Math.floor(padIndex / padsPerBar) + 1;
-            const padInBar = padIndex % padsPerBar;
-
-            if (targetBar > totalBars) return;
-            
-            if (targetBar !== selectedBar) {
-                setSelectedBar(targetBar);
+            // DRUM MACHINE MODE
+            if (editMode === 'none') {
+                const note = PAD_TO_NOTE_MAP[padIndex];
+                playSound(note);
             }
-
-            const targetBarStartTime = barStartTimes[targetBar - 1] || 0;
-            const timePerDivision = (60 / (bpm || 120)) * (4 / noteDivision);
-            const targetTime = targetBarStartTime + (padInBar * timePerDivision);
-            
-            seekToTime(targetTime);
-            setActivePad(null);
+            setActivePad(padIndex);
         }
-    }, [editMode, noteDivision, isPlaying, barStartTimes, selectedBar, bpm, playSound, setActivePad, seekToTime, totalBars, setSelectedBar]);
+    }, [mediaFile, editMode, noteDivision, isPlaying, barStartTimes, selectedBar, bpm, playSound, setActivePad, seekToTime, totalBars, setSelectedBar, wavesurferInstance]);
     
-    // Call the keyboard hook with our master handler
     useKeyboardControls(handlePadTrigger);
 
     return (
@@ -83,6 +71,14 @@ const ProLayout = () => {
                 <RightDeck onPadTrigger={handlePadTrigger} />
             </main>
             {isLoading && <LoadingOverlay />}
+            <ConfirmDialog
+                isVisible={!!pendingFile}
+                message="Loading media will switch to Cue Mode. The current drum sequence will be cleared. Continue?"
+                onConfirm={confirmLoad}
+                onCancel={cancelLoad}
+            />
+            {/* Render the new Sound Bank Panel */}
+            <SoundBankPanel />
         </div>
     );
 };

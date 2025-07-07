@@ -1,10 +1,10 @@
 // src/components/ui/RotaryController/RotaryController.jsx
-import React, { useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useUIState } from '../../../context/UIStateContext';
 import { useSequence } from '../../../context/SequenceContext';
 import { usePlayback } from '../../../context/PlaybackContext';
 import { getPointsFromNotation, resolveNotationFromPoints } from '../../../utils/notationUtils';
-import { useDampedTurntableDrag } from '../../../hooks/useDampedTurntableDrag';
+import { useTurntableDrag } from '../../../hooks/useTurntableDrag';
 import RotarySVG from './RotarySVG';
 import './RotaryController.css';
 
@@ -17,50 +17,59 @@ const RotaryController = ({ deckId }) => {
     const jointId = `${side.charAt(0).toUpperCase()}F`;
     const beatIndexToDisplay = isPlaying && selectedBar === currentBar ? currentBeat : (activePad ?? 0);
     const globalIndex = ((selectedBar - 1) * STEPS_PER_BAR) + beatIndexToDisplay;
-    const currentBeatData = songData[globalIndex] || { joints: { [jointId]: { grounding: `${jointId}0`, angle: 0 } } };
-    const initialAngle = currentBeatData.joints[jointId]?.angle || 0;
-    const currentGrounding = currentBeatData.joints[jointId]?.grounding || `${jointId}0`;
-    const activePoints = getPointsFromNotation(currentGrounding);
+
+    const sourceData = songData[globalIndex]?.joints[jointId] || { grounding: `${jointId}0`, angle: 0 };
+    
+    // DEFINITIVE FIX 1: Component manages its own display state.
+    const [displayAngle, setDisplayAngle] = useState(sourceData.angle);
+    const [activePoints, setActivePoints] = useState(() => getPointsFromNotation(sourceData.grounding));
+
+    // This effect syncs the component's state with the global context
+    // ONLY when the source data changes (i.e., user selects a new pad).
+    useEffect(() => {
+        setDisplayAngle(sourceData.angle);
+        setActivePoints(getPointsFromNotation(sourceData.grounding));
+    }, [sourceData.angle, sourceData.grounding]);
+
     const isEditing = editMode === side || editMode === 'both';
 
-    // This function is now called LIVE during the drag
-    const handleAngleChange = useCallback((newAngle) => {
-        if (isEditing && activePad !== null) {
-            const indexToUpdate = ((selectedBar - 1) * STEPS_PER_BAR) + activePad;
-            updateJointData(indexToUpdate, jointId, { angle: newAngle });
-        }
-    }, [activePad, isEditing, jointId, selectedBar, STEPS_PER_BAR, updateJointData]);
-    
-    // This function is now called ONLY when the spin stops
     const handleDragEnd = useCallback((finalAngle) => {
-        if (isEditing && activePad !== null) {
-            console.log(`[Rotary] Drag/spin ended for ${jointId}. Final angle: ${finalAngle.toFixed(2)}`);
-        }
-    }, [activePad, isEditing, jointId]);
+        if (!isEditing || activePad === null) return;
+        const indexToUpdate = ((selectedBar - 1) * STEPS_PER_BAR) + activePad;
+        updateJointData(indexToUpdate, jointId, { angle: finalAngle });
+        console.log(`[Rotary] Saved angle: ${finalAngle.toFixed(2)} to Pad ${activePad + 1}`);
+    }, [activePad, isEditing, jointId, selectedBar, STEPS_PER_BAR, updateJointData]);
 
-    const { angle, handleMouseDown } = useDampedTurntableDrag(initialAngle, handleAngleChange, handleDragEnd);
+    const { angle, handleMouseDown } = useTurntableDrag(displayAngle, handleDragEnd);
 
-    const handleHotspotClick = (shortNotation) => {
+    const handleHotspotClick = useCallback((shortNotation) => {
         if (!isEditing) return;
         if (activePad === null) {
             showNotification("Please select a pad (1-16) to edit.");
             return;
         }
-        
-        const indexToUpdate = ((selectedBar - 1) * STEPS_PER_BAR) + activePad;
+
         const newActivePoints = new Set(activePoints);
-        if (newActivePoints.has(shortNotation)) newActivePoints.delete(shortNotation);
-        else newActivePoints.add(shortNotation);
+        if (newActivePoints.has(shortNotation)) {
+            newActivePoints.delete(shortNotation);
+        } else {
+            newActivePoints.add(shortNotation);
+        }
+        
+        // Update local visual state immediately for responsiveness
+        setActivePoints(newActivePoints); 
+        
         const newGroundingNotation = resolveNotationFromPoints(newActivePoints, side);
+        const indexToUpdate = ((selectedBar - 1) * STEPS_PER_BAR) + activePad;
         updateJointData(indexToUpdate, jointId, { grounding: newGroundingNotation });
-    };
+    }, [activePad, activePoints, isEditing, jointId, selectedBar, showNotification, side, STEPS_PER_BAR, updateJointData]);
 
     return (
         <div className="rotary-controller-container">
             <RotarySVG
                 side={side}
-                angle={angle}
-                activePoints={activePoints}
+                angle={angle} // Use angle from the hook for live dragging
+                activePoints={activePoints} // Use local state for immediate feedback
                 onHotspotClick={handleHotspotClick}
                 isEditing={isEditing}
                 handleWheelMouseDown={handleMouseDown}

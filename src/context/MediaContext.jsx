@@ -17,7 +17,9 @@ export const MediaProvider = ({ children }) => {
     const waveformContainerRef = useRef(null);
     const wavesurferInstanceRef = useRef(null);
 
-    // This effect creates the WaveSurfer instance ONCE, when the context first mounts.
+    // NEW STATE for confirmation dialog
+    const [pendingFile, setPendingFile] = useState(null);
+
     useEffect(() => {
         if (waveformContainerRef.current && !wavesurferInstanceRef.current) {
             wavesurferInstanceRef.current = WaveSurfer.create({
@@ -42,7 +44,6 @@ export const MediaProvider = ({ children }) => {
     }, []);
 
     const analyzeAudio = useCallback(async (audioBuffer) => {
-        // ... (analysis logic is correct and remains the same)
         console.log("ANALYZING AUDIO...");
         try {
             const aubio = await Aubio();
@@ -67,42 +68,66 @@ export const MediaProvider = ({ children }) => {
             console.error("Error during audio analysis:", error);
         } finally {
             setIsMediaReady(true);
-            setIsLoading(false); // Ensure loading is turned off even if analysis fails
+            setIsLoading(false);
         }
     }, []);
 
-    const loadMedia = useCallback(async (file) => {
+    // This function now just sets the pending file to trigger the dialog
+    const loadMedia = useCallback((file) => {
+        console.log(`[Media] Upload initiated for: ${file.name}. Awaiting confirmation.`);
+        setPendingFile(file);
+    }, []);
+
+    // This new function contains the original loading logic
+    const confirmLoad = useCallback(async () => {
         const ws = wavesurferInstanceRef.current;
-        if (!ws || !file) return;
+        if (!pendingFile || !ws) return;
+
+        const fileToLoad = pendingFile;
+        setPendingFile(null); // Hide the dialog
         
-        console.log(`[Media] Loading media: ${file.name}`);
+        console.log(`[Media] User confirmed. Loading: ${fileToLoad.name}`);
         setIsLoading(true);
         setIsMediaReady(false);
-        setMediaFile(file);
+        setMediaFile(fileToLoad);
         
         try {
-            const url = URL.createObjectURL(file);
-            // We use a promise to handle both ready and error events
+            const url = URL.createObjectURL(fileToLoad);
             await new Promise((resolve, reject) => {
                 ws.once('ready', resolve);
                 ws.once('error', reject);
                 ws.load(url);
             });
             const audioBuffer = ws.getDecodedData();
-            if (audioBuffer) await analyzeAudio(audioBuffer);
-            else throw new Error("Could not decode audio data.");
-
+            if (audioBuffer) {
+                await analyzeAudio(audioBuffer);
+            } else {
+                throw new Error("Could not decode audio data.");
+            }
         } catch (error) {
             console.error("Error processing media file:", error);
-            setIsLoading(false); // DEFINITIVE FIX: Always turn off loading on error
+            setIsLoading(false);
         }
-    }, [analyzeAudio]);
+    }, [pendingFile, analyzeAudio]);
+
+    const cancelLoad = () => {
+        console.log('[Media] User cancelled media load.');
+        setPendingFile(null);
+    };
     
     const value = { 
-        isLoading, loadMedia, isMediaReady, duration, 
-        detectedBpm, firstBeatOffset, mediaFile,
+        isLoading,
+        isMediaReady,
+        duration,
+        detectedBpm,
+        mediaFile,
+        firstBeatOffset,
         wavesurferInstance: wavesurferInstanceRef.current,
-        waveformContainerRef
+        waveformContainerRef,
+        loadMedia,
+        pendingFile,
+        confirmLoad,
+        cancelLoad
     };
     
     return <MediaContext.Provider value={value}>{children}</MediaContext.Provider>;

@@ -16,14 +16,15 @@
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-sm);
     color: var(--color-text-secondary);
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     font-weight: bold;
     transition: all 0.2s ease;
     padding: 0;
+    cursor: pointer;
 }
-/* New style for a button that spans two slots */
-.option-btn.wide {
-    grid-column: span 2;
+.option-btn:hover {
+    background-color: var(--color-dark-surface-2);
+    border-color: var(--color-text-primary);
 }
 .option-btn.active {
     background-color: var(--color-accent-green);
