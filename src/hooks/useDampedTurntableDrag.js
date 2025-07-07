@@ -1,16 +1,13 @@
 // src/hooks/useDampedTurntableDrag.js
-
 import { useRef, useCallback, useEffect, useState } from 'react';
 
-const DAMPING_FACTOR = 0.95;
+const DAMPING_FACTOR = 0.97;
 const VELOCITY_THRESHOLD = 0.05;
 
-// The hook now receives the initialAngle and an onDragEnd callback.
-// It no longer needs the main `setAngle` function passed to it.
+// The hook now only needs the initial angle and a single callback for when the drag is finished.
 export const useDampedTurntableDrag = (initialAngle, onDragEnd) => {
     const [isDragging, setIsDragging] = useState(false);
-    // NEW: The hook now manages its own internal angle for animation.
-    const [internalAngle, setInternalAngle] = useState(initialAngle);
+    const [displayAngle, setDisplayAngle] = useState(initialAngle);
 
     const velocityRef = useRef(0);
     const centerRef = useRef({ x: 0, y: 0 });
@@ -19,14 +16,15 @@ export const useDampedTurntableDrag = (initialAngle, onDragEnd) => {
     const startMouseAngleRef = useRef(0);
     const animationFrameRef = useRef();
 
-    // Sync internal angle when the initial prop changes
+    // Only sync the display angle with the prop when not interacting.
     useEffect(() => {
-        setInternalAngle(initialAngle);
-    }, [initialAngle]);
+        if (!isDragging && velocityRef.current === 0) {
+            setDisplayAngle(initialAngle);
+        }
+    }, [initialAngle, isDragging]);
 
     const animate = useCallback(() => {
-        // Use a functional update for the internal state
-        setInternalAngle(prev => {
+        setDisplayAngle(prev => {
             const newAngle = prev + velocityRef.current;
             velocityRef.current *= DAMPING_FACTOR;
 
@@ -34,10 +32,8 @@ export const useDampedTurntableDrag = (initialAngle, onDragEnd) => {
                 animationFrameRef.current = requestAnimationFrame(animate);
             } else {
                 velocityRef.current = 0;
-                // Animation is finished, call the final save function.
-                if (onDragEnd) {
-                    onDragEnd(newAngle);
-                }
+                // DEFINITIVE FIX 3: Only call onDragEnd ONCE when animation is finished.
+                if (onDragEnd) onDragEnd(newAngle);
             }
             return newAngle;
         });
@@ -57,21 +53,18 @@ export const useDampedTurntableDrag = (initialAngle, onDragEnd) => {
         
         velocityRef.current = delta;
         lastAngleRef.current = newAngle;
-        setInternalAngle(newAngle); // Update the internal angle directly
+        setDisplayAngle(newAngle); // Update the visual display angle live.
     }, [isDragging]);
 
     const handleMouseUp = useCallback(() => {
         setIsDragging(false);
-        // Start the physics animation on mouse up
         if (Math.abs(velocityRef.current) > VELOCITY_THRESHOLD) {
             animationFrameRef.current = requestAnimationFrame(animate);
         } else {
-            // If not spinning, save the final position immediately.
-            if (onDragEnd) {
-                onDragEnd(internalAngle);
-            }
+            // If there's no spin, just save the final position.
+            if (onDragEnd) onDragEnd(displayAngle);
         }
-    }, [isDragging, animate, onDragEnd, internalAngle]);
+    }, [isDragging, animate, onDragEnd, displayAngle]);
 
     const handleMouseDown = useCallback((e) => {
         e.stopPropagation();
@@ -82,12 +75,12 @@ export const useDampedTurntableDrag = (initialAngle, onDragEnd) => {
         const rect = e.currentTarget.getBoundingClientRect();
         centerRef.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
         
-        startAngleRef.current = internalAngle;
+        startAngleRef.current = displayAngle;
         const dx = e.clientX - centerRef.current.x;
         const dy = e.clientY - centerRef.current.y;
         startMouseAngleRef.current = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
-        lastAngleRef.current = internalAngle;
-    }, [internalAngle]);
+        lastAngleRef.current = displayAngle;
+    }, [displayAngle]);
 
     useEffect(() => {
         if (isDragging) {
@@ -101,6 +94,5 @@ export const useDampedTurntableDrag = (initialAngle, onDragEnd) => {
         };
     }, [isDragging, handleMouseMove, handleMouseUp]);
 
-    // Return the internal angle for rendering, and the mousedown handler
-    return { angle: internalAngle, handleMouseDown };
+    return { angle: displayAngle, handleMouseDown };
 };
