@@ -1,9 +1,0 @@
-/* src/components/Pads.css */
-.pads-container {
-    display: grid;
-    /* This makes the pads fill the full width */
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-    gap: var(--spacing-md); /* Larger gap for larger pads */
-    width: 100%;
-}

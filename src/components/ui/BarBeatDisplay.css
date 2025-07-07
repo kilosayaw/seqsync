@@ -1,0 +1,9 @@
+/* src/components/ui/BarBeatDisplay.css */
+
+.bar-beat-display-container {
+    display: grid;
+    /* Grid layout for 3 elements, giving the middle TIME display more space */
+    grid-template-columns: 1fr 2.5fr 1fr;
+    gap: var(--spacing-sm);
+    width: 100%;
+}

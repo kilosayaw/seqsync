@@ -1,4 +1,5 @@
-// Using your definitive implementation.
+// src/hooks/useMotionAnalysis.js
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import '@tensorflow/tfjs-core';
@@ -34,6 +35,7 @@ export const useMotionAnalysis = (videoRef, setLivePoseData) => {
                     setLivePoseData(null);
                 }
             } catch (error) {
+                // This can be noisy, so it's often commented out during development
                 // console.error("[useMotionAnalysis] ❌ Error estimating pose:", error);
             }
         }
@@ -51,5 +53,5 @@ export const useMotionAnalysis = (videoRef, setLivePoseData) => {
         };
     }, [detector, videoRef, analyzePose]);
 
-    return {};
+    return {}; // This hook doesn't need to return anything directly
 };

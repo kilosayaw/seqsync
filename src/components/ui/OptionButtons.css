@@ -1,0 +1,15 @@
+/* src/components/ui/OptionButtons.css */
+
+.option-buttons-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xs);
+    height: 35px; /* Standardized height */
+    flex-shrink: 0;
+}
+
+.option-btn-slot {
+    background-color: var(--color-dark-surface-1);
+    border-radius: var(--border-radius-sm);
+    border: 1px dashed var(--color-border);
+}

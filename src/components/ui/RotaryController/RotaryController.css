@@ -1,0 +1,56 @@
+/* src/components/ui/RotaryController/RotaryController.css */
+
+.rotary-controller-container {
+    flex-grow: 1; /* Allows the container to fill vertical space */
+    min-height: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.rotary-svg-wrapper {
+    width: 100%;
+    height: 100%;
+}
+
+.rotary-svg {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* The invisible, draggable part of the wheel */
+.rotary-wheel-grab-area {
+    fill: transparent;
+    cursor: grab;
+}
+
+.rotary-wheel-grab-area:active {
+    cursor: grabbing;
+}
+
+/* The faint, non-interactive foot template image */
+.base-foot-img {
+    opacity: 0.4;
+    pointer-events: none; /* The image itself is not interactive */
+}
+
+/* The glowing green dots that are VISIBLE but NOT interactive */
+.hotspot-indicator.active {
+    fill: var(--color-accent-green);
+    opacity: 0.8;
+    filter: url(#glow);
+    pointer-events: none; /* These are purely visual */
+}
+
+/* The invisible, clickable area for each hotspot */
+.hotspot-clickable-area {
+    fill: transparent;
+    cursor: pointer;
+    transition: fill 0.15s ease-out;
+}
+
+/* Provides the hover "ghosting" effect */
+.hotspot-clickable-area:hover {
+    fill: rgba(0, 255, 127, 0.3);
+}

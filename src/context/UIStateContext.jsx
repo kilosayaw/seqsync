@@ -1,4 +1,5 @@
 // src/context/UIStateContext.jsx
+
 import React, { createContext, useContext, useState } from 'react';
 import { NOTE_DIVISIONS } from '../utils/constants';
 
@@ -9,21 +10,24 @@ export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
     const [selectedJoint, setSelectedJoint] = useState(null);
     const [noteDivision, setNoteDivision] = useState(NOTE_DIVISIONS[0].value);
-    const [padPlayMode, setPadPlayMode] = useState('TRIGGER');
+    
+    // DEFINITIVE FIX: The initial state for "no pad selected" should be null.
     const [activePad, setActivePad] = useState(null);
     
-    // NEW STATE: Manages which deck is being edited. Can be 'none', 'left', 'right', or 'both'.
+    // Manages which deck is being edited. Can be 'none', 'left', 'right', or 'both'.
     const [editMode, setEditMode] = useState('none');
 
     const value = {
         selectedBar, setSelectedBar,
         selectedJoint, setSelectedJoint,
         noteDivision, setNoteDivision,
-        padPlayMode, setPadPlayMode,
         activePad, setActivePad,
-        // NEW: Expose editMode state and its setter
         editMode, setEditMode,
     };
 
-    return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
+    return (
+        <UIStateContext.Provider value={value}>
+            {children}
+        </UIStateContext.Provider>
+    );
 };

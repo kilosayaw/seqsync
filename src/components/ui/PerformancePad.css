@@ -1,0 +1,37 @@
+/* src/components/ui/PerformancePad.css */
+
+.performance-pad {
+  background-color: var(--color-dark-surface-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--color-text-secondary);
+  transition: all 0.1s ease-in-out;
+  cursor: pointer;
+  font-family: var(--font-digital);
+  font-size: 2rem;
+}
+
+.performance-pad:hover {
+  background-color: #4f4f52;
+  border-color: #666;
+}
+
+/* Style for the live playback pulse */
+.performance-pad.pulsing {
+    background-color: var(--color-accent-primary);
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 10px var(--color-accent-primary);
+    color: var(--color-dark-bg);
+}
+
+/* DEFINITIVE STYLE: This is for the actively selected pad for editing. */
+.performance-pad.selected {
+    background-color: var(--color-dark-bg);
+    border: 2px solid var(--color-accent-green);
+    color: var(--color-accent-green);
+    /* Add a slight press-in effect to show it's selected */
+    transform: scale(0.95);
+}

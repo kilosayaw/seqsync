@@ -1,0 +1,37 @@
+/* src/components/ui/PitchSlider.css */
+
+.pitch-slider-container {
+    width: 30px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--color-dark-surface-2);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-border);
+    padding: 0;
+    
+    /* DEFINITIVE FIX: Set an explicit, shorter height */
+    height: 150px;
+}
+
+.pitch-slider-track {
+    position: relative;
+    width: 6px;
+    height: 100%;
+    background-color: #1a1f25;
+    border-radius: 3px;
+}
+
+.pitch-slider-handle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 30px;
+    background-color: var(--color-text-primary);
+    border: 1px solid #1a1f25;
+    border-radius: var(--border-radius-sm);
+    cursor: ns-resize; /* North-South resize cursor */
+}

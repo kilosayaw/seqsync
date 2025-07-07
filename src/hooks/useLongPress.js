@@ -1,18 +1,18 @@
 // src/hooks/useLongPress.js
+
 import { useCallback, useRef } from 'react';
 
-// A simple, effective long-press hook.
 export const useLongPress = (
     onClick,
     onLongPress,
-    { ms = 400 } = {} // Default long-press duration is 400ms
+    { ms = 400 } = {}
 ) => {
     const timerRef = useRef();
     const isLongPressTriggered = useRef(false);
 
     const start = useCallback((event) => {
         isLongPressTriggered.current = false;
-        event.persist(); // Persist the event for the async timeout
+        event.persist();
         timerRef.current = setTimeout(() => {
             onLongPress(event);
             isLongPressTriggered.current = true;
@@ -20,16 +20,19 @@ export const useLongPress = (
     }, [onLongPress, ms]);
 
     const clear = useCallback((event) => {
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+        }
         if (!isLongPressTriggered.current) {
-            // If the timer didn't fire, it's a regular click.
             onClick(event);
         }
-        clearTimeout(timerRef.current);
     }, [onClick]);
 
     return {
         onMouseDown: start,
         onMouseUp: clear,
         onMouseLeave: () => clearTimeout(timerRef.current),
+        onTouchStart: start,
+        onTouchEnd: clear,
     };
 };
