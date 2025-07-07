@@ -74,7 +74,7 @@ const RightDeck = ({ setPadClickHandler }) => {
                 <MovementFader />
             </div>
             <div className="pads-group">
-                <OptionButtons />
+                <OptionButtons side="right" />
                 <div className="pads-container">
                     {Array.from({ length: 8 }).map((_, i) => {
                         const globalPadIndex = i + 8;

@@ -4,32 +4,54 @@ import { useUIState } from '../../context/UIStateContext';
 import classNames from 'classnames';
 import './OptionButtons.css';
 
-const OptionButtons = () => {
-    const { noteDivision, setNoteDivision } = useUIState();
+// The component now receives a 'side' prop to know which buttons to render
+const OptionButtons = ({ side }) => {
+    const { noteDivision, setNoteDivision, padDisplayMode, setPadDisplayMode } = useUIState();
 
-    const handleToggle = () => {
-        const newDivision = noteDivision === 16 ? 8 : 16;
-        console.log(`[Options] Toggling Note Division to: 1/${newDivision}`);
-        setNoteDivision(newDivision);
+    const handleNoteDivisionCycle = () => {
+        const divisions = [16, 8, 4];
+        const currentIndex = divisions.indexOf(noteDivision);
+        const nextIndex = (currentIndex + 1) % divisions.length;
+        setNoteDivision(divisions[nextIndex]);
     };
 
-    return (
-        <div className="option-buttons-container">
-            <button 
-                className={classNames('option-btn', { 'active': noteDivision === 16 })}
-                onClick={noteDivision === 8 ? handleToggle : undefined}
-            >
-                1/16
-            </button>
-            <button 
-                className={classNames('option-btn', { 'active': noteDivision === 8 })}
-                onClick={noteDivision === 16 ? handleToggle : undefined}
-            >
-                1/8
-            </button>
-            <div className="option-btn-slot" />
-            <div className="option-btn-slot" />
-        </div>
-    );
+    const handleDisplayModeClick = (mode) => {
+        setPadDisplayMode(mode);
+    };
+
+    // Render buttons for the Left Deck
+    if (side === 'left') {
+        return (
+            <div className="option-buttons-container">
+                <button className="option-btn" onClick={handleNoteDivisionCycle}>
+                    1/{noteDivision}
+                </button>
+                <div className="option-btn-slot" />
+                <div className="option-btn-slot" />
+                <div className="option-btn-slot" />
+            </div>
+        );
+    }
+
+    // Render buttons for the Right Deck
+    if (side === 'right') {
+        return (
+            <div className="option-buttons-container">
+                <button className={classNames('option-btn', { active: padDisplayMode === 'foot' })} onClick={() => handleDisplayModeClick('foot')}>
+                    FOOT
+                </button>
+                <button className={classNames('option-btn', { active: padDisplayMode === 'pose' })} onClick={() => handleDisplayModeClick('pose')}>
+                    POSE
+                </button>
+                 <button className={classNames('option-btn', { active: padDisplayMode === 'abbr' })} onClick={() => handleDisplayModeClick('abbr')}>
+                    ABBR
+                </button>
+                <div className="option-btn-slot" />
+            </div>
+        );
+    }
+    
+    return null; // Should not happen
 };
+
 export default OptionButtons;

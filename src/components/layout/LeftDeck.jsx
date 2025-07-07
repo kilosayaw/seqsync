@@ -71,7 +71,7 @@ const LeftDeck = ({ setPadClickHandler }) => {
                 <DeckJointList side="left" />
             </div>
             <div className="pads-group">
-                <OptionButtons />
+                <OptionButtons side="left" />
                 <div className="pads-container">
                     {Array.from({ length: 8 }).map((_, i) => {
                         const globalPadIndex = i;

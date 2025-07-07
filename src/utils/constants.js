@@ -1,5 +1,7 @@
 // src/utils/constants.js
 
+
+
 export const JOINT_LIST = [
     { id: 'LS', name: 'LS' }, { id: 'RS', name: 'RS' },
     { id: 'LE', name: 'LE' }, { id: 'RE', name: 'RE' },

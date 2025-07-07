@@ -6,23 +6,20 @@ import { JOINT_LIST } from '../utils/constants';
 
 const SequenceContext = createContext(null);
 export const useSequence = () => useContext(SequenceContext);
-
 export const STEPS_PER_BAR = 16;
 const DEFAULT_BAR_COUNT = 16;
 
 const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
-        joints[joint.id] = { angle: 0, grounding: `${joint.id.charAt(0)}F0` };
+        // DEFAULT STATE FIX: Initialize with a full plant instead of ungrounded.
+        const side = joint.id.charAt(0);
+        joints[joint.id] = { angle: 0, grounding: `${side}F123T12345` };
     });
-    
-    // ADDED: Each beat now has a place to store sounds
     const sounds = [];
-
     return { bar, beat: beatInBar, joints, sounds };
 };
 
-// ... the rest of the file is identical to our last version ...
 const createDefaultSequence = () => {
     const totalSixteenths = DEFAULT_BAR_COUNT * STEPS_PER_BAR;
     return Array.from({ length: totalSixteenths }, (_, i) => 
