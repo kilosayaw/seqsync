@@ -1,5 +1,4 @@
 // src/context/SequenceContext.jsx
-
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useMedia } from './MediaContext';
 import { JOINT_LIST } from '../utils/constants';
@@ -13,14 +12,10 @@ const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
         const side = joint.id.charAt(0);
-        // DEFINITIVE FIX: Initialize grounding for all joints correctly.
-        // Foot joints get a full plant, other joints get an ungrounded state.
-        const initialGrounding = joint.id.endsWith('F') 
-            ? `${side}F123T12345` 
-            : `${side}F0`;
-            
+        const initialGrounding = joint.id.endsWith('F') ? `${side}F123T12345` : `${side}F0`;
         joints[joint.id] = { angle: 0, grounding: initialGrounding };
     });
+    // Each beat now has a place to store sounds
     const sounds = [];
     return { bar, beat: beatInBar, joints, sounds };
 };
@@ -67,8 +62,28 @@ export const SequenceProvider = ({ children }) => {
             return newData;
         });
     }, []);
+
+    // NEW FUNCTION to add sounds to a pad's data
+    const assignSoundToPad = useCallback((globalPadIndex, soundNote) => {
+        setSongData(prevData => {
+            const newData = [...prevData];
+            const beat = newData[globalPadIndex];
+            if (beat) {
+                // Initialize sounds array if it doesn't exist
+                if (!beat.sounds) {
+                    beat.sounds = [];
+                }
+                // Prevents adding more than 4 sounds or duplicates
+                if (beat.sounds.length < 4 && !beat.sounds.includes(soundNote)) {
+                    beat.sounds.push(soundNote);
+                    console.log(`[Sequence] Assigned sound ${soundNote} to Pad ${globalPadIndex + 1}`);
+                }
+            }
+            return newData;
+        });
+    }, []);
     
-    const value = { songData, setSongData, totalBars, barStartTimes, STEPS_PER_BAR, updateJointData };
+    const value = { songData, setSongData, totalBars, barStartTimes, STEPS_PER_BAR, updateJointData, assignSoundToPad };
     
     return <SequenceContext.Provider value={value}>{children}</SequenceContext.Provider>;
 };
