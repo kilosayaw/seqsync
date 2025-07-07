@@ -19,26 +19,18 @@ const RotarySVG = ({ side, angle, activePoints, onHotspotClick, isEditing, handl
                     </filter>
                 </defs>
                 
-                {/* This is the main rotating group */}
                 <g transform={`rotate(${angle}, 275, 275)`} onMouseDown={handleWheelMouseDown} className="rotary-wheel-grab-area">
                     <image href="/ground/foot-wheel.png" x="0" y="0" width="550" height="550" />
                     
-                    {/* 
-                      ****************************************************************
-                      *                  THE DEFINITIVE VISIBILITY FIX               *
-                      *  This entire block will now ONLY render when isEditing is true. *
-                      ****************************************************************
-                    */}
+                    {/* This entire block now correctly renders only when isEditing is true */}
                     {isEditing && (
                         <>
-                            {/* 1. Render the main foot base image */}
                             <image 
                                 href={baseFootImagePath}
                                 className="base-foot-img"
                                 x="115" y="115" height="320" width="320" 
                             />
                             
-                            {/* 2. Render the glowing shapes on top of the base */}
                             {hotspots.map(spot => {
                                 if (!activePoints.has(spot.notation)) return null;
                                 
@@ -52,7 +44,6 @@ const RotarySVG = ({ side, angle, activePoints, onHotspotClick, isEditing, handl
                     )}
                 </g>
                 
-                {/* The invisible clickable layer also only appears when editing */}
                 {isEditing && (
                      <g className="interaction-layer">
                         {hotspots.map(spot => {

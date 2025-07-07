@@ -78,6 +78,7 @@ export const formatTime = (seconds) => {
  * @returns {string} The fully formatted string for display.
  */
 export const formatFullNotation = (beatData, currentTime) => {
+    // Default string for when no data is available
     if (!beatData || !beatData.joints) {
         return `poSĒQr™ | ${formatTime(currentTime || 0)} | 01 | LF000° | RF000°`;
     }
@@ -86,15 +87,21 @@ export const formatFullNotation = (beatData, currentTime) => {
     const timeStr = formatTime(currentTime || 0);
     const barStr = String(bar).padStart(2, '0');
     
-    const formatJoint = (joint, defaultNotation) => {
-        if (!joint || !joint.grounding || joint.grounding.endsWith('0')) {
-            return defaultNotation;
+    const formatJoint = (joint) => {
+        if (!joint || !joint.grounding) return '--';
+
+        // DEFINITIVE FIX: The ° symbol is only added if it's NOT a full plant.
+        if (joint.grounding.endsWith('123T12345')) {
+            return joint.grounding;
+        }
+        if (joint.grounding.endsWith('0')) {
+             return `${joint.grounding.slice(0, 2)}000°`;
         }
         return `${joint.grounding}${Math.round(joint.angle || 0)}°`;
     };
 
-    const lfNotation = formatJoint(joints.LF, 'LF000°');
-    const rfNotation = formatJoint(joints.RF, 'RF000°');
+    const lfNotation = formatJoint(joints.LF);
+    const rfNotation = formatJoint(joints.RF);
 
     return `poSĒQr™ | ${timeStr} | ${barStr} | ${lfNotation} | ${rfNotation}`;
 };

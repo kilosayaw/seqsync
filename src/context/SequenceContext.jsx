@@ -12,9 +12,14 @@ const DEFAULT_BAR_COUNT = 16;
 const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
-        // DEFAULT STATE FIX: Initialize with a full plant instead of ungrounded.
         const side = joint.id.charAt(0);
-        joints[joint.id] = { angle: 0, grounding: `${side}F123T12345` };
+        // DEFINITIVE FIX: Initialize grounding for all joints correctly.
+        // Foot joints get a full plant, other joints get an ungrounded state.
+        const initialGrounding = joint.id.endsWith('F') 
+            ? `${side}F123T12345` 
+            : `${side}F0`;
+            
+        joints[joint.id] = { angle: 0, grounding: initialGrounding };
     });
     const sounds = [];
     return { bar, beat: beatInBar, joints, sounds };

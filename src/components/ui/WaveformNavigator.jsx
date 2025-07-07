@@ -2,16 +2,15 @@
 
 import React, { useRef } from 'react';
 import { useMedia } from '../../context/MediaContext';
-import { FaUpload } from 'react-icons/fa'; // We need the icon again
+import { FaArrowAltCircleUp } from 'react-icons/fa';
+import classNames from 'classnames'; // Import classnames
 import './WaveformNavigator.css';
 
 const WaveformNavigator = () => {
-    // We get isMediaReady to conditionally show the prompt
     const { waveformContainerRef, loadMedia, isMediaReady } = useMedia();
     const fileInputRef = useRef(null);
 
     const handleContainerClick = () => {
-        // Only trigger the file input if no media is loaded
         if (isMediaReady) return;
         fileInputRef.current.click();
     };
@@ -23,20 +22,20 @@ const WaveformNavigator = () => {
         }
     };
 
+    // Conditionally set the class for the prompt
+    const promptClasses = classNames('upload-prompt', {
+        'hidden': isMediaReady,
+    });
+
     return (
-        // The container is always clickable, but the handler has a condition
         <div className="waveform-navigator-container" onClick={handleContainerClick}>
             <div ref={waveformContainerRef} className="waveform" />
             
-            {/* DEFINITIVE FIX: Show the upload prompt ONLY when no media is ready */}
-            {!isMediaReady && (
-                <div className="upload-prompt">
-                    <FaUpload />
-                    <span>Click to Upload Media</span>
-                </div>
-            )}
+            <div className={promptClasses}>
+                <FaArrowAltCircleUp />
+                <span>Upload Media</span>
+            </div>
 
-            {/* Hidden file input is always available */}
             <input 
                 type="file" 
                 ref={fileInputRef} 

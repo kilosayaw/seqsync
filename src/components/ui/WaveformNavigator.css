@@ -9,23 +9,15 @@
     align-items: center;
     height: var(--waveform-height);
     flex-shrink: 0;
-    position: relative; /* Needed to position the prompt */
-    /* The cursor will be 'pointer' only when the prompt is visible */
-    cursor: default; 
+    position: relative;
+    cursor: pointer; /* The container is always clickable */
 }
-
-/* Make the container clickable only when no media is loaded */
-.waveform-navigator-container:not(:has(.waveform wave)) {
-    cursor: pointer;
-}
-
 
 .waveform {
   width: 100%;
   height: 100%;
 }
 
-/* NEW styles for the upload prompt */
 .upload-prompt {
     position: absolute;
     top: 0;
@@ -40,13 +32,15 @@
     color: var(--color-text-secondary);
     font-size: 1rem;
     font-weight: bold;
-    /* This allows clicks to "pass through" to the parent container */
-    pointer-events: none; 
+    /* Make it visible by default */
+    opacity: 1;
     transition: opacity 0.3s ease;
+    /* Clicks should pass through to the parent container */
+    pointer-events: none; 
 }
 
-/* When WaveSurfer renders its content, the prompt will fade out */
-.waveform:not(:empty) + .upload-prompt {
+/* DEFINITIVE FIX: Hide the prompt when the .hidden class is applied */
+.upload-prompt.hidden {
     opacity: 0;
 }
 
