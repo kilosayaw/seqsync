@@ -1,32 +1,39 @@
 // src/components/layout/LeftDeck.jsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
-import RotaryController from '../ui/RotaryController/RotaryController';
-import RotaryButtons from '../ui/RotaryButtons';
+// ... other imports
 import PerformancePad from '../ui/PerformancePad';
 import OptionButtons from '../ui/OptionButtons';
+import RotaryController from '../ui/RotaryController/RotaryController';
+import RotaryButtons from '../ui/RotaryButtons';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useMedia } from '../../context/MediaContext';
+import { useSound, PAD_TO_NOTE_MAP } from '../../context/SoundContext'; // Import sound context
 import './Deck.css';
 
-const LeftDeck = () => {
+const LeftDeck = ({ setPadClickHandler }) => {
+    const { playSound } = useSound(); // Get the playSound function
+    // ... other hooks are the same
     const { selectedBar, setSelectedBar, setActivePad, noteDivision } = useUIState();
     const { barStartTimes, STEPS_PER_BAR, totalBars } = useSequence();
     const { isPlaying, currentBar, currentBeat, seekToTime, bpm } = usePlayback();
     const { isMediaReady } = useMedia();
 
     const handlePadClick = (localPadIndex) => {
-        if (!isMediaReady && (!barStartTimes || barStartTimes.length === 0)) {
-             console.log(`[LeftDeck] Pad ${localPadIndex + 1} clicked (No Media). Setting active pad.`);
-             setActivePad(localPadIndex);
-             return;
-        }
+        const globalPadIndex = localPadIndex;
+        const note = PAD_TO_NOTE_MAP[globalPadIndex];
+        playSound(note); // Play the corresponding sound
 
+        // ... rest of the click logic remains the same ...
+        if (!isMediaReady && (!barStartTimes || barStartTimes.length === 0)) {
+            console.log(`[LeftDeck] Pad ${globalPadIndex + 1} clicked (No Media).`);
+            setActivePad(globalPadIndex);
+            return;
+        }
         if (noteDivision === 16) {
-            const globalPadIndex = localPadIndex;
             console.log(`[LeftDeck] 1/16 Mode: Pad ${globalPadIndex + 1} clicked.`);
             setActivePad(globalPadIndex);
             if (!isPlaying) {
@@ -41,14 +48,20 @@ const LeftDeck = () => {
             const targetBarStartTime = barStartTimes[targetBarIndex] || 0;
             const timePerEighth = (60 / (bpm || 120)) / 2;
             const targetTime = targetBarStartTime + (localPadIndex * timePerEighth);
-            console.log(`[LeftDeck] 1/8 Cue Mode: Pad ${localPadIndex + 1} clicked. Seeking to Bar ${targetBarIndex + 1}, Time ${targetTime.toFixed(3)}s`);
+            console.log(`[LeftDeck] 1/8 Cue Mode: Pad ${localPadIndex + 1} clicked.`);
             seekToTime(targetTime);
             setActivePad(null);
         }
     };
 
+    // Report this component's handler to the parent ProLayout
+    useEffect(() => {
+        setPadClickHandler(() => handlePadClick);
+    }, [handlePadClick, setPadClickHandler]);
+
     return (
         <div className="deck-container" data-side="left">
+            {/* JSX is identical to previous version, just the logic above has changed */}
             <div className="deck-top-row">
                 <MovementFader />
                 <div className="turntable-group">
@@ -59,7 +72,6 @@ const LeftDeck = () => {
             </div>
             <div className="pads-group">
                 <OptionButtons />
-                {/* DEFINITIVE FIX: The pads are now wrapped in the .pads-container div again */}
                 <div className="pads-container">
                     {Array.from({ length: 8 }).map((_, i) => {
                         const globalPadIndex = i;
@@ -68,7 +80,7 @@ const LeftDeck = () => {
                         return (
                             <PerformancePad
                                 key={`left-${i}`}
-                                padIndex={globalPadIndex} 
+                                padIndex={globalPadIndex}
                                 beatNum={displayNumber}
                                 isPulsing={isPulsing}
                                 onMouseDown={() => handlePadClick(i)}
