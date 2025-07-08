@@ -2,21 +2,18 @@
 import React from 'react';
 import RotaryController from '../ui/RotaryController/RotaryController';
 import DeckJointList from '../ui/DeckJointList';
-import MovementFader from '../ui/MovementFader';
 import Pads from '../ui/Pads';
 import './Deck.css';
 
-const RightDeck = ({ onPadTrigger }) => { // It receives the handler here...
+const RightDeck = ({ onPadTrigger, onJointUpdate }) => {
     return (
         <aside className="deck-container" data-side="right">
             <div className="deck-top-row">
+                <RotaryController deckId="deck1" onJointUpdate={onJointUpdate} />
                 <DeckJointList side="right" />
-                <RotaryController deckId="deck2" />
-                <MovementFader />
             </div>
             <div className="pads-group">
-                {/* ...and passes it down here */}
-                <Pads side="right" onPadClick={onPadTrigger} />
+                <Pads side="left" onPadClick={onPadTrigger} />
             </div>
         </aside>
     );

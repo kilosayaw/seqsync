@@ -7,6 +7,7 @@ const SequenceContext = createContext(null);
 export const useSequence = () => useContext(SequenceContext);
 
 export const SequenceProvider = ({ children }) => {
+    const [activeTheme, setActiveTheme] = useState('tr-808');
     const [songData, setSongData] = useState(initialSongData);
     const [history, setHistory] = useState([initialSongData]);
     const [historyIndex, setHistoryIndex] = useState(0);
@@ -103,7 +104,7 @@ export const SequenceProvider = ({ children }) => {
         activePanel, setActivePanel, mixerState, setMixerState,
         noteDivision, setNoteDivision, notification, showNotification,
         undo, redo, canUndo: historyIndex > 0, canRedo: historyIndex < history.length - 1,
-        handleMediaReady,
+        handleMediaReady, activeTheme, setActiveTheme 
     };
     return <SequenceContext.Provider value={value}>{children}</SequenceContext.Provider>;
 };

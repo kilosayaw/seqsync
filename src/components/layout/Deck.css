@@ -1,80 +1,66 @@
 /* src/components/layout/Deck.css */
-
 .deck-container {
-    display: grid;
-    grid-template-rows: 1fr 180px; 
+    display: flex;
+    flex-direction: column;
     gap: var(--spacing-md);
-    background-color: var(--color-dark-surface-1);
-    padding: var(--spacing-md);
+    background-color: var(--color-surface-1);
+    border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
     min-width: 0;
     min-height: 0;
 }
 
+/* This top section contains the turntable and joint list */
 .deck-top-row {
-    display: flex;
-    gap: var(--spacing-md);
+    flex-grow: 1;
     min-height: 0;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 60px 1fr; /* Joint list, Turntable */
+    gap: var(--spacing-md);
 }
 
-/* --- Layout Swap Logic --- */
-.deck-container[data-side="left"] .deck-top-row > .movement-fader-container { order: 1; }
-.deck-container[data-side="left"] .deck-top-row > .turntable-group { order: 2; }
-.deck-container[data-side="left"] .deck-top-row > .deck-joint-list-container { order: 3; }
+.deck-container[data-side="right"] .deck-top-row {
+    grid-template-columns: 1fr 60px; /* Turntable, Joint list */
+}
 
-.deck-container[data-side="right"] .deck-top-row > .deck-joint-list-container { order: 1; }
-.deck-container[data-side="right"] .deck-top-row > .turntable-group { order: 2; }
-.deck-container[data-side="right"] .deck-top-row > .movement-fader-container { order: 3; }
-/* --- End Layout Swap Logic --- */
+/* --- Layout Logic --- */
+.deck-container[data-side="left"] .deck-joint-list-container { grid-column: 1 / 2; }
+.deck-container[data-side="left"] .turntable-group { grid-column: 2 / 3; }
+
+.deck-container[data-side="right"] .turntable-group { grid-column: 1 / 2; }
+.deck-container[data-side="right"] .deck-joint-list-container { grid-column: 2 / 3; }
 
 .turntable-group {
-    flex-grow: 1; 
-    min-width: 0; 
-    align-self: stretch; 
-    display: flex; 
-    flex-direction: column; 
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
     gap: var(--spacing-sm);
-    background-color: var(--color-dark-surface-2);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-sm);
+    background-color: var(--color-surface-2);
     border: 1px solid var(--color-border);
-    justify-content: center;
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-sm);
 }
 
 .pads-group {
-    background-color: var(--color-dark-surface-2);
+    height: 180px;
+    flex-shrink: 0;
+    background-color: var(--color-surface-2);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-md);
     border: 1px solid var(--color-border);
-    /* This sets up the two rows for the options and the pads */
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: 35px 1fr; 
-    gap: var(--spacing-xs);
+    grid-template-rows: 35px 1fr;
+    gap: var(--spacing-sm);
 }
+.option-buttons-container { grid-area: 1 / 1 / 2 / 5; }
 
-.option-buttons-container {
-    /* This places the option buttons in the first row of the pads-group grid */
-    grid-area: 1 / 1 / 2 / 5;
-}
-
-/* 
-  ****************************************************************
-  *                     THE DEFINITIVE FIX                       *
-  * These rules were lost when we deleted Pads.css. Adding them  *
-  * back here will restore the correct 2x4 pad layout.           *
-  ****************************************************************
-*/
 .pads-container {
-    /* This places the pad container in the second row of the pads-group grid */
     grid-area: 2 / 1 / 3 / 5;
-    
-    /* These rules arrange the pads themselves into a grid */
+    grid-row: 2 / 3;
+    grid-column: 1 / -1;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(2, 1fr);
-    gap: var(--spacing-md); /* Use the larger gap for the pads */
-    width: 100%;
-    height: 100%;
+    gap: var(--spacing-md);
 }

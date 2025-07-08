@@ -1,12 +1,14 @@
 // src/components/ui/TopNavBar.jsx
-
 import React, { useRef } from 'react';
 import { useMedia } from '../../context/MediaContext';
+import { useSequence } from '../../context/SequenceContext';
+import { themes } from '../../styles/themes';
 import { FaFolderOpen, FaSave } from 'react-icons/fa';
 import './TopNavBar.css';
 
 const TopNavBar = () => {
     const { mediaFile, loadMedia } = useMedia(); 
+    const { activeTheme, setActiveTheme } = useSequence();
     const fileInputRef = useRef(null);
 
     const handleMediaClick = () => {
@@ -41,11 +43,17 @@ const TopNavBar = () => {
                 <button className="nav-btn" onClick={handleSaveSeq}><FaSave /> Save SEQ</button>
             </div>
             <div className="song-title-display">
-                {mediaFile ? mediaFile.name : 'No Media Loaded'}
+                {/* Theme Selector for testing */}
+                <select value={activeTheme} onChange={(e) => setActiveTheme(e.target.value)}>
+                    {Object.keys(themes).map(themeName => (
+                        <option key={themeName} value={themeName}>
+                            {themeName.toUpperCase()}
+                        </option>
+                    ))}
+                </select>
             </div>
             <div className="nav-group-right" />
         </nav>
     );
 };
-
 export default TopNavBar;

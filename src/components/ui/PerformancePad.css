@@ -1,37 +1,44 @@
 /* src/components/ui/PerformancePad.css */
-
 .performance-pad {
-  background-color: var(--color-dark-surface-3);
+  background-color: var(--color-surface-2);
   border: 1px solid var(--color-border);
+  border-bottom: 4px solid #111; /* TR-808 style thick bottom edge */
   border-radius: var(--border-radius-sm);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  font-family: var(--font-digital-solid);
+  font-size: 2.5rem;
   color: var(--color-text-secondary);
-  transition: all 0.1s ease-in-out;
-  cursor: pointer;
-  font-family: var(--font-digital);
-  font-size: 2rem;
+  transition: all 0.05s ease-in-out;
 }
+.pad-group-1 { --pad-color: var(--color-accent-red); }
+.pad-group-2 { --pad-color: var(--color-accent-orange); }
+.pad-group-3 { --pad-color: var(--color-accent-yellow); }
+.pad-group-4 { --pad-color: var(--color-accent-cream); }
+
+/* --- TR-808 Theming --- */
+/* Pads 1-4 (Top Left) */
+.pad-1, .pad-2, .pad-3, .pad-4 { --pad-color: var(--color-tr808-red); }
+/* Pads 5-8 (Bottom Left) */
+.pad-5, .pad-6, .pad-7, .pad-8 { --pad-color: var(--color-tr808-orange); }
+/* Pads 9-12 (Top Right) */
+.pad-9, .pad-10, .pad-11, .pad-12 { --pad-color: var(--color-tr808-yellow); }
+/* Pads 13-16 (Bottom Right) */
+.pad-13, .pad-14, .pad-15, .pad-16 { --pad-color: var(--color-tr808-cream); }
 
 .performance-pad:hover {
-  background-color: #4f4f52;
-  border-color: #666;
+  border-color: var(--pad-color);
 }
 
-/* Style for the live playback pulse */
+.performance-pad.selected, .performance-pad:active {
+  background-color: var(--pad-color);
+  color: var(--color-bg);
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+
 .performance-pad.pulsing {
-    background-color: var(--color-accent-primary);
-    border-color: var(--color-accent-primary);
-    box-shadow: 0 0 10px var(--color-accent-primary);
-    color: var(--color-dark-bg);
+  animation: pulse 0.5s infinite alternate;
+  border-color: var(--pad-color);
 }
 
-/* DEFINITIVE STYLE: This is for the actively selected pad for editing. */
-.performance-pad.selected {
-    background-color: var(--color-dark-bg);
-    border: 2px solid var(--color-accent-green);
-    color: var(--color-accent-green);
-    /* Add a slight press-in effect to show it's selected */
-    transform: scale(0.95);
-}
+@keyframes pulse { to { background-color: var(--pad-color); color: var(--color-bg); } }

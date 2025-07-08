@@ -17,18 +17,29 @@ import { useKeyboardControls } from '../../hooks/useKeyboardControls';
 import './ProLayout.css';
 
 const ProLayout = () => {
+    // --- Destructure ALL necessary state and functions from the hooks ---
     const { isLoading, pendingFile, confirmLoad, cancelLoad, seekToTime, bpm, isPlaying, wavesurferInstance, mediaFile } = useMedia();
-    // ADDED setActivePad HERE
-    const { activePanel, noteDivision, selectedBar, setSelectedBar, mixerState, songData, assignSoundToPad, setSelectedBeat, songData: { barStartTimes }, totalBars, setActivePad } = useSequence();
+    const { 
+        activePanel, 
+        selectedBar, 
+        mixerState, 
+        songData, 
+        assignSoundToPad, 
+        setSelectedBeat,
+        updateJointData // Get the joint update function
+    } = useSequence();
     const { playSound } = useSound();
     
+    // --- MERGED AND CORRECTED HANDLERS ---
+
+    // This handler is for when a pad is clicked (by mouse or keyboard)
     const handlePadTrigger = useCallback((padIndex) => {
-        // This function now works because setActivePad is defined.
-        setActivePad(padIndex); 
+        setSelectedBeat(padIndex); 
         console.log(`[ProLayout] Pad ${padIndex + 1} triggered.`);
 
         const beatData = songData.bars[selectedBar - 1]?.beats[padIndex];
         
+        // Sound playback logic
         if (mixerState.kitSounds) {
             if (beatData?.sounds?.length > 0) {
                 beatData.sounds.forEach(note => playSound(note));
@@ -40,15 +51,27 @@ const ProLayout = () => {
                 }
             }
         }
-        if (mixerState.uploadedMedia && wavesurferInstance) {
-            if (barStartTimes && barStartTimes.length > 0) {
-                const barStartTime = barStartTimes[selectedBar - 1] || 0;
-                const timePerSixteenth = (60 / bpm) / 4;
-                seekToTime(barStartTime + (padIndex * timePerSixteenth));
-            }
+
+        // Media seeking logic
+        if (mixerState.uploadedMedia && wavesurferInstance && wavesurferInstance.isReady) {
+            const barStartTimes = songData.barStartTimes || [];
+            const barStartTime = barStartTimes[selectedBar - 1] || 0;
+            const timePerSixteenth = (60 / bpm) / 4;
+            const targetTime = barStartTime + (padIndex * timePerSixteenth);
+            seekToTime(targetTime);
         }
-    }, [mixerState, isPlaying, barStartTimes, selectedBar, bpm, playSound, setActivePad, seekToTime, wavesurferInstance, songData, assignSoundToPad, activePanel, mediaFile]);
+    }, [
+        mixerState, mediaFile, activePanel, songData, selectedBar, 
+        bpm, playSound, setSelectedBeat, seekToTime, wavesurferInstance, 
+        assignSoundToPad
+    ]);
     
+    // This handler is specifically for updating joint data from the Rotary Controllers
+    const handleJointDataUpdate = useCallback((barIndex, beatIndex, newJoints) => {
+        updateJointData(barIndex, beatIndex, newJoints);
+    }, [updateJointData]);
+    
+    // Wire up the keyboard controls to the pad trigger
     useKeyboardControls(handlePadTrigger);
 
     const mediaLoadActions = [
@@ -63,9 +86,10 @@ const ProLayout = () => {
             <WaveformNavigator />
             <NotationDisplay />
             <main className="main-content-area">
-                <LeftDeck onPadTrigger={handlePadTrigger} />
+                {/* Correctly pass BOTH handlers down to the decks */}
+                <LeftDeck onPadTrigger={handlePadTrigger} onJointUpdate={handleJointDataUpdate} />
                 <CenterConsole />
-                <RightDeck onPadTrigger={handlePadTrigger} />
+                <RightDeck onPadTrigger={handlePadTrigger} onJointUpdate={handleJointDataUpdate} />
             </main>
             {isLoading && <LoadingOverlay />}
             <ConfirmDialog isVisible={!!pendingFile} message="How should this media be handled?" actions={mediaLoadActions} />
@@ -74,4 +98,5 @@ const ProLayout = () => {
         </div>
     );
 };
+
 export default ProLayout;

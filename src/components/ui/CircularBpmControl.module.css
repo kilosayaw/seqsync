@@ -1,0 +1,43 @@
+/* src/components/ui/CircularBpmControl.module.css */
+
+.bpmControl {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    background-color: var(--color-dark-surface-3);
+    border: 2px solid var(--color-border);
+    color: var(--color-text-secondary);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacing-xs);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none; /* Prevent text selection on rapid clicks */
+}
+
+.bpmControl:hover {
+    border-color: var(--color-text-primary);
+}
+
+.bpmControl:active {
+    border-color: var(--color-accent-green);
+    background-color: var(--color-dark-surface-2);
+}
+
+.bpmDisplay {
+    font-family: var(--font-digital-solid);
+    font-size: 1.8rem;
+    color: var(--color-text-primary);
+    line-height: 1;
+}
+
+.label {
+    font-family: var(--font-primary);
+    font-size: 0.6rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 2px;
+}

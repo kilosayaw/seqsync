@@ -17,17 +17,23 @@ const DeckJointList = ({ side }) => {
             <div className={styles.jointButtonsWrapper}>
                 {jointsForSide.map(joint => {
                     const isFootButton = joint.id.endsWith('F');
-                    const isSelected = isFootButton && (editMode === side || editMode === 'both');
+                    const isSelected = isFootButton ? (editMode === side || editMode === 'both') : selectedJoint === joint.id;
 
-                    const handleShortClick = () => setMixerState(s => ({ ...s, editMode: s.editMode === side ? 'none' : side }));
-                    const handleLongPress = () => setMixerState(s => ({ ...s, editMode: 'both' }));
-                    const handleRegularClick = () => setSelectedJoint(prev => (prev === joint.id ? null : joint.id));
+                    const handleShortClick = () => {
+                        setMixerState(s => ({ ...s, editMode: s.editMode === side ? 'none' : side }));
+                    };
+                    const handleLongPress = () => {
+                        setMixerState(s => ({ ...s, editMode: 'both' }));
+                    };
+                    const handleRegularClick = () => {
+                        setSelectedJoint(prev => (prev === joint.id ? null : joint.id));
+                    };
 
                     const longPressEvents = isFootButton ? useLongPress(handleShortClick, handleLongPress) : {};
                     const regularClickEvent = !isFootButton ? { onClick: handleRegularClick } : {};
                     
                     return (
-                        <button key={joint.id} className={`${styles.jointListBtn} ${(isSelected || selectedJoint === joint.id) ? styles.selected : ''}`}
+                        <button key={joint.id} className={`${styles.jointListBtn} ${isSelected ? styles.selected : ''}`}
                             {...longPressEvents}
                             {...regularClickEvent}>
                             {joint.id}
