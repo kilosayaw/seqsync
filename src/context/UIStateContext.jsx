@@ -3,6 +3,14 @@ import React, { createContext, useContext, useState } from 'react';
 
 const UIStateContext = createContext(null);
 
+const initialMixerState = {
+    kitSounds: true,
+    uploadedMedia: true,
+    cameraFeed: false,
+    motionOverlay: false,
+    motionOverlayOpacity: 0.5,
+};
+
 export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
     const [activePad, setActivePad] = useState(null);
@@ -11,7 +19,7 @@ export const UIStateProvider = ({ children }) => {
     
     // REPLACES padDisplayMode with a more flexible system
     const [activePanel, setActivePanel] = useState('none'); // 'none', 'sound', 'foot', 'pose', 'abbr'
-    
+    const [mixerState, setMixerState] = useState(initialMixerState);
     const [notification, setNotification] = useState(null);
 
     const showNotification = (message) => {
@@ -25,7 +33,7 @@ export const UIStateProvider = ({ children }) => {
         editMode, setEditMode,
         noteDivision, setNoteDivision,
         activePanel, setActivePanel, // Export the new state
-        notification,
+        notification, mixerState, setMixerState,
         showNotification,
     };
 

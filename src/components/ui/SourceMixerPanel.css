@@ -1,0 +1,88 @@
+/* src/components/ui/SourceMixerPanel.css */
+.source-mixer-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    width: 550px; /* Adjusted width */
+    background-color: var(--color-dark-surface-1);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.source-mixer-panel.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: all;
+}
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--color-dark-surface-2);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+.panel-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+.close-btn {
+    background: none;
+    font-size: 1.5rem;
+    padding: 0 var(--spacing-sm);
+    color: var(--color-text-secondary);
+    line-height: 1;
+}
+.panel-content {
+    padding: var(--spacing-lg);
+    display: grid;
+    /* Create three columns */
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+}
+.mixer-track {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background-color: var(--color-dark-surface-2);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--color-border);
+}
+.track-label {
+    font-weight: bold;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    text-align: center;
+}
+.mute-btn {
+    padding: var(--spacing-xs) var(--spacing-md);
+    width: 90px;
+    height: 35px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-dark-surface-3);
+    color: var(--color-text-secondary);
+    font-weight: bold;
+    border-radius: var(--border-radius-sm);
+}
+.mute-btn.active {
+    background-color: var(--color-accent-green);
+    border-color: var(--color-accent-green);
+    color: var(--color-dark-bg);
+}
+/* This empty CSS class will be used later for the volume fader */
+.volume-fader {
+    height: 20px;
+    width: 100%;
+}

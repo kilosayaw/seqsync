@@ -1,57 +1,59 @@
-// src/hooks/useMotionAnalysis.js
-
+// src/hooks/useMotionAnalysis.js (Final, Robust Version)
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as poseDetection from '@tensorflow-models/pose-detection';
-import '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 
-export const useMotionAnalysis = (videoRef, setLivePoseData) => {
-    const [detector, setDetector] = useState(null);
+// Use a singleton pattern to ensure the detector is created only once.
+let detectorPromise = null;
+
+const initializeDetector = async () => {
+    if (!detectorPromise) {
+        console.log("[useMotionAnalysis] Initializing PoseNet detector...");
+        const model = poseDetection.SupportedModels.BlazePose;
+        const detectorConfig = {
+            runtime: 'tfjs',
+            modelType: 'full', // 'lite', 'full', or 'heavy'
+        };
+        detectorPromise = poseDetection.createDetector(model, detectorConfig);
+    }
+    return detectorPromise;
+};
+
+export const useMotionAnalysis = (videoRef, onPoseDetected) => {
     const animationFrameId = useRef();
 
-    useEffect(() => {
-        const initDetector = async () => {
-            try {
-                const model = poseDetection.SupportedModels.BlazePose;
-                const detectorConfig = { runtime: 'tfjs', modelType: 'full' };
-                const createdDetector = await poseDetection.createDetector(model, detectorConfig);
-                setDetector(createdDetector);
-                console.log("[useMotionAnalysis] ✅ Pose detector initialized.");
-            } catch (error) {
-                console.error("[useMotionAnalysis] ❌ Error initializing pose detector:", error);
-            }
-        };
-        initDetector();
-    }, []);
-
     const analyzePose = useCallback(async () => {
-        if (detector && videoRef.current?.video?.readyState === 4 && typeof setLivePoseData === 'function') {
-            const video = videoRef.current.video;
-            try {
-                const poses = await detector.estimatePoses(video, { flipHorizontal: true });
+        try {
+            const detector = await initializeDetector();
+            const video = videoRef.current;
+
+            if (detector && video && video.readyState === 4 && onPoseDetected) {
+                const poses = await detector.estimatePoses(video, {
+                    flipHorizontal: false // We flip with CSS for a better experience
+                });
                 if (poses && poses.length > 0) {
-                    setLivePoseData(poses[0]);
+                    onPoseDetected(poses[0]); // Send the detected pose data up
                 } else {
-                    setLivePoseData(null);
+                    onPoseDetected(null);
                 }
-            } catch (error) {
-                // This can be noisy, so it's often commented out during development
-                // console.error("[useMotionAnalysis] ❌ Error estimating pose:", error);
             }
+        } catch (error) {
+            console.error("Error in pose analysis loop:", error);
         }
+        
         animationFrameId.current = requestAnimationFrame(analyzePose);
-    }, [detector, videoRef, setLivePoseData]);
+
+    }, [videoRef, onPoseDetected]);
 
     useEffect(() => {
-        if (detector && videoRef.current) {
-            animationFrameId.current = requestAnimationFrame(analyzePose);
-        }
+        // Start the analysis loop
+        animationFrameId.current = requestAnimationFrame(analyzePose);
+
+        // Cleanup function to stop the loop when the component unmounts
         return () => {
             if (animationFrameId.current) {
                 cancelAnimationFrame(animationFrameId.current);
             }
         };
-    }, [detector, videoRef, analyzePose]);
-
-    return {}; // This hook doesn't need to return anything directly
+    }, [analyzePose]);
 };

@@ -50,3 +50,15 @@ export const FOOT_HOTSPOT_COORDINATES = {
         { type: 'ellipse', notation: 'T5', cx: 347, cy: 230, rx: 11, ry: 14, rotation: 15 },
     ]
 };
+
+export const POSE_CONNECTIONS = [
+    ['nose', 'left_eye'], ['left_eye', 'left_ear'],
+    ['nose', 'right_eye'], ['right_eye', 'right_ear'],
+    ['left_shoulder', 'right_shoulder'],
+    ['left_shoulder', 'left_elbow'], ['left_elbow', 'left_wrist'],
+    ['right_shoulder', 'right_elbow'], ['right_elbow', 'right_wrist'],
+    ['left_shoulder', 'left_hip'], ['right_shoulder', 'right_hip'],
+    ['left_hip', 'right_hip'],
+    ['left_hip', 'left_knee'], ['left_knee', 'left_ankle'],
+    ['right_hip', 'right_knee'], ['right_knee', 'right_ankle']
+];

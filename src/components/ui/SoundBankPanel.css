@@ -1,11 +1,12 @@
 /* src/components/ui/SoundBankPanel.css */
 .sound-bank-panel {
     position: fixed;
-    top: 50%;
+    /* DEFINITIVE FIX: Change top from 50% to a value that feels more centered with the main UI */
+    top: 140px; 
     left: 50%;
-    transform: translate(-50%, -50%) scale(0.9);
-    width: 600px;
-    height: 400px;
+    transform: translateX(-50%) scale(0.95); /* removed Y transform */
+    width: 650px; /* Slightly wider */
+    max-height: calc(100vh - 160px); /* Prevent it from going offscreen */
     background-color: var(--color-dark-surface-1);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
@@ -19,25 +20,26 @@
 }
 .sound-bank-panel.visible {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateX(-50%) scale(1);
     pointer-events: all;
 }
 .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
     background-color: var(--color-dark-surface-2);
     border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
 }
-.panel-header h3 { margin: 0; font-size: 1rem; }
-.close-btn { background: none; font-size: 1.5rem; padding: 0; color: var(--color-text-secondary); }
-.panel-content { padding: var(--spacing-md); }
+.panel-header h3 { margin: 0; font-size: 1rem; letter-spacing: 1px; }
+.close-btn { background: none; font-size: 1.5rem; padding: 0 var(--spacing-sm); color: var(--color-text-secondary); }
 
 .panel-content {
     padding: var(--spacing-md);
     display: flex;
     gap: var(--spacing-lg);
+    overflow-y: auto; /* Allow content to scroll if needed */
 }
 .sound-section {
     flex: 1;
@@ -66,4 +68,17 @@
     background-color: var(--color-dark-surface-3);
     border: 1px solid var(--color-border);
     padding: var(--spacing-sm) var(--spacing-md);
+}
+/* NEW: Style for the assigned sound buttons */
+.sound-item.assigned {
+    background-color: var(--color-accent-green);
+    color: var(--color-dark-bg);
+    border-color: var(--color-accent-green);
+}
+.kit-btn { width: 100%; margin-top: var(--spacing-sm); }
+.clear-sounds-btn {
+    width: 100%;
+    margin-top: var(--spacing-md);
+    background-color: var(--color-accent-red);
+    color: white;
 }

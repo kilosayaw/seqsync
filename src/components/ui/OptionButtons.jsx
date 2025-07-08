@@ -11,36 +11,31 @@ const OptionButtons = ({ side }) => {
         const divisions = [16, 8, 4];
         const currentIndex = divisions.indexOf(noteDivision);
         const nextIndex = (currentIndex + 1) % divisions.length;
-        const newDivision = divisions[nextIndex];
-        console.log(`[Options] Cycling Note Division to: 1/${newDivision}`);
-        setNoteDivision(newDivision);
+        setNoteDivision(divisions[nextIndex]);
     };
     
-    // This function now toggles the panel visibility
     const handlePanelToggle = (panelName) => {
-        const newPanel = activePanel === panelName ? 'none' : panelName;
-        console.log(`[Options] Setting active panel to: ${newPanel}`);
-        setActivePanel(newPanel);
+        setActivePanel(prev => prev === panelName ? 'none' : panelName);
     };
 
-    // Render buttons for the Left Deck
     if (side === 'left') {
         return (
             <div className="option-buttons-container">
                 <button className="option-btn" onClick={handleNoteDivisionCycle}>
                     1/{noteDivision}
                 </button>
-                {/* NEW "SOUND" BUTTON */}
                 <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>
                     SOUND
                 </button>
-                <div className="option-btn-slot" />
+                {/* DEFINITIVE FIX: Mixer is now button 3 */}
+                <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>
+                    MIXER
+                </button>
                 <div className="option-btn-slot" />
             </div>
         );
     }
 
-    // Render buttons for the Right Deck
     if (side === 'right') {
         return (
             <div className="option-buttons-container">

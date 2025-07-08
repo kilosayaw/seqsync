@@ -1,17 +1,31 @@
 /* src/components/ui/ConfirmDialog.css */
-.dialog-overlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex; justify-content: center; align-items: center; z-index: 10000;
+/* ... .dialog-overlay, .dialog-box, .dialog-message, .dialog-buttons are unchanged ... */
+
+.dialog-btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--border-radius-sm);
+    font-weight: bold;
+    flex-grow: 1; /* Allow buttons to fill space */
 }
-.dialog-box {
-    background-color: var(--color-dark-surface-2);
-    padding: var(--spacing-xl); border-radius: var(--border-radius-md);
-    border: 1px solid var(--color-border); text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+/* We now have specific styles for different button types */
+.confirm-btn { 
+    background-color: var(--color-accent-green); 
+    color: var(--color-dark-bg);
 }
-.dialog-message { font-size: 1.1rem; margin-bottom: var(--spacing-lg); }
-.dialog-buttons { display: flex; gap: var(--spacing-md); }
-.dialog-btn { padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--border-radius-sm); font-weight: bold; }
-.confirm-btn { background-color: var(--color-accent-red); color: white; }
-.cancel-btn { background-color: var(--color-dark-surface-3); }
+.poly-btn {
+    background-color: var(--color-accent-primary);
+    color: var(--color-dark-bg);
+}
+.cancel-btn { 
+    background-color: var(--color-dark-surface-3); 
+    color: var(--color-text-secondary);
+}
+.dialog-footer {
+    margin-top: var(--spacing-lg);
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+}

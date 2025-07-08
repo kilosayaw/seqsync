@@ -3,22 +3,24 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import Aubio from 'aubiojs';
 import WaveSurfer from 'wavesurfer.js';
+import { useUIState } from './UIStateContext';
+import { useSequence } from './SequenceContext';
 
 const MediaContext = createContext(null);
 export const useMedia = () => useContext(MediaContext);
 
 export const MediaProvider = ({ children }) => {
+    const { setMixerState } = useUIState();
+    const { handleMediaReady } = useSequence();
     const [isLoading, setIsLoading] = useState(false);
     const [isMediaReady, setIsMediaReady] = useState(false);
     const [duration, setDuration] = useState(0);
     const [detectedBpm, setDetectedBpm] = useState(120);
     const [mediaFile, setMediaFile] = useState(null);
     const [firstBeatOffset, setFirstBeatOffset] = useState(0);
+    const [pendingFile, setPendingFile] = useState(null);
     const waveformContainerRef = useRef(null);
     const wavesurferInstanceRef = useRef(null);
-
-    // NEW STATE for confirmation dialog
-    const [pendingFile, setPendingFile] = useState(null);
 
     useEffect(() => {
         if (waveformContainerRef.current && !wavesurferInstanceRef.current) {
@@ -59,34 +61,48 @@ export const MediaProvider = ({ children }) => {
                 bpms.sort((a, b) => a - b);
                 finalBpm = bpms[Math.floor(bpms.length / 2)];
                 while (finalBpm < 60) finalBpm *= 2;
-                while (finalBpm > 180) finalBpm /=2;
+                while (finalBpm > 180) finalBpm /= 2;
             }
-            setDetectedBpm(Math.round(finalBpm));
-            setDuration(audioBuffer.duration);
-            console.log(`ANALYSIS COMPLETE. BPM: ${Math.round(finalBpm)}`);
+
+            const bpm = Math.round(finalBpm);
+            const dur = audioBuffer.duration;
+            
+            setDetectedBpm(bpm);
+            setDuration(dur);
+            
+            // Call the parent context's handler with the results
+            handleMediaReady({
+                duration: dur,
+                detectedBpm: bpm,
+                firstBeatOffset: 0 // We can implement this analysis later
+            });
+
+            console.log(`ANALYSIS COMPLETE. BPM: ${bpm}`);
+
         } catch (error) {
             console.error("Error during audio analysis:", error);
         } finally {
             setIsMediaReady(true);
             setIsLoading(false);
         }
-    }, []);
+    }, [handleMediaReady]);
 
-    // This function now just sets the pending file to trigger the dialog
     const loadMedia = useCallback((file) => {
-        console.log(`[Media] Upload initiated for: ${file.name}. Awaiting confirmation.`);
         setPendingFile(file);
     }, []);
 
-    // This new function contains the original loading logic
-    const confirmLoad = useCallback(async () => {
+    const confirmLoad = useCallback(async (mode) => {
         const ws = wavesurferInstanceRef.current;
         if (!pendingFile || !ws) return;
 
-        const fileToLoad = pendingFile;
-        setPendingFile(null); // Hide the dialog
+        if (mode === 'cue_only') {
+            setMixerState(s => ({ ...s, kitSounds: false, uploadedMedia: true }));
+        } else if (mode === 'polyphonic') {
+            setMixerState(s => ({ ...s, kitSounds: true, uploadedMedia: true }));
+        }
         
-        console.log(`[Media] User confirmed. Loading: ${fileToLoad.name}`);
+        const fileToLoad = pendingFile;
+        setPendingFile(null);
         setIsLoading(true);
         setIsMediaReady(false);
         setMediaFile(fileToLoad);
@@ -99,35 +115,22 @@ export const MediaProvider = ({ children }) => {
                 ws.load(url);
             });
             const audioBuffer = ws.getDecodedData();
-            if (audioBuffer) {
-                await analyzeAudio(audioBuffer);
-            } else {
-                throw new Error("Could not decode audio data.");
-            }
+            if (audioBuffer) await analyzeAudio(audioBuffer);
+            else throw new Error("Could not decode audio data.");
         } catch (error) {
             console.error("Error processing media file:", error);
             setIsLoading(false);
         }
-    }, [pendingFile, analyzeAudio]);
+    }, [pendingFile, analyzeAudio, setMixerState]);
 
     const cancelLoad = () => {
-        console.log('[Media] User cancelled media load.');
         setPendingFile(null);
     };
     
     const value = { 
-        isLoading,
-        isMediaReady,
-        duration,
-        detectedBpm,
-        mediaFile,
-        firstBeatOffset,
-        wavesurferInstance: wavesurferInstanceRef.current,
-        waveformContainerRef,
-        loadMedia,
-        pendingFile,
-        confirmLoad,
-        cancelLoad
+        isLoading, isMediaReady, duration, detectedBpm, mediaFile,
+        firstBeatOffset, wavesurferInstance: wavesurferInstanceRef.current,
+        waveformContainerRef, loadMedia, pendingFile, confirmLoad, cancelLoad
     };
     
     return <MediaContext.Provider value={value}>{children}</MediaContext.Provider>;

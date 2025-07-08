@@ -1,4 +1,5 @@
 // src/components/layout/ProLayout.jsx
+
 import React, { useCallback } from 'react';
 import TopNavBar from '../ui/TopNavBar';
 import WaveformNavigator from '../ui/WaveformNavigator';
@@ -9,6 +10,7 @@ import RightDeck from './RightDeck';
 import LoadingOverlay from '../ui/LoadingOverlay';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import SoundBankPanel from '../ui/SoundBankPanel';
+import SourceMixerPanel from '../ui/SourceMixerPanel';
 import { useKeyboardControls } from '../../hooks/useKeyboardControls';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -19,59 +21,82 @@ import './ProLayout.css';
 
 const ProLayout = () => {
     const { isLoading, mediaFile, pendingFile, confirmLoad, cancelLoad } = useMedia();
-    const { setActivePad, noteDivision, selectedBar, setSelectedBar, editMode } = useUIState();
+    const { setActivePad, noteDivision, selectedBar, setSelectedBar, editMode, mixerState } = useUIState();
     const { playSound } = useSound();
     const { seekToTime, bpm, isPlaying, wavesurferInstance } = usePlayback();
     const { songData, barStartTimes, totalBars, assignSoundToPad, STEPS_PER_BAR } = useSequence();
 
     const handlePadTrigger = useCallback((padIndex) => {
-        const beatData = songData[((selectedBar - 1) * STEPS_PER_BAR) + (padIndex % 16)];
+        console.log(`[MasterControl] Pad ${padIndex + 1} triggered.`);
+
+        let globalIndex;
+        if (noteDivision === 16) {
+            globalIndex = ((selectedBar - 1) * STEPS_PER_BAR) + (padIndex % 16);
+        } else {
+            globalIndex = padIndex;
+        }
         
-        // 1. ALWAYS play any sounds assigned to the pad. This enables polyphony.
-        if (beatData && beatData.sounds && beatData.sounds.length > 0) {
-            console.log(`[MasterControl] Playing ${beatData.sounds.length} assigned sound(s) for Pad ${padIndex + 1}.`);
-            beatData.sounds.forEach(note => playSound(note));
+        const beatData = songData[globalIndex];
+
+        if (mixerState.kitSounds) {
+            if (beatData?.sounds?.length > 0) {
+                beatData.sounds.forEach(note => playSound(note));
+            } else if (!mediaFile && editMode === 'none') {
+                const note = PAD_TO_NOTE_MAP[padIndex];
+                playSound(note);
+                assignSoundToPad(globalIndex, note);
+            }
         }
 
-        // 2. Handle the mode-specific logic (Cueing vs. Drum Machine).
-        if (mediaFile) {
-            // --- CUE POINT MODE ---
-            // In this mode, clicking a pad cues the media. No new sounds are assigned.
+        if (mixerState.uploadedMedia && mediaFile) {
             if (noteDivision === 16) {
-                setActivePad(padIndex);
+                setActivePad(globalIndex);
                 if (!isPlaying) {
                     const barStartTime = barStartTimes[selectedBar - 1] || 0;
-                    const timePerSixteenth = (60 / (bpm || 120)) / 4;
-                    const padTimeOffset = padIndex * timePerSixteenth;
+                    const padTimeOffset = (padIndex % STEPS_PER_BAR) * ((60 / (bpm || 120)) / 4);
                     seekToTime(barStartTime + padTimeOffset);
                 }
-            } else { // 1/8 or 1/4 mode
+            } else {
                 const padsPerBar = noteDivision === 8 ? 8 : 4;
                 const targetBar = Math.floor(padIndex / padsPerBar) + 1;
                 const padInBar = padIndex % padsPerBar;
+                
                 if (targetBar > totalBars) return;
                 if (targetBar !== selectedBar) setSelectedBar(targetBar);
+
                 const targetBarStartTime = barStartTimes[targetBar - 1] || 0;
                 const timePerDivision = (60 / (bpm || 120)) * (4 / noteDivision);
                 const targetTime = targetBarStartTime + (padInBar * timePerDivision);
                 
-                // Seek to the time and immediately start playback.
                 wavesurferInstance?.play(targetTime);
-                
                 setActivePad(null);
             }
         } else {
-            // --- DRUM MACHINE MODE ---
-            // In this mode, we select the pad and, if not editing, assign the default sound.
-            if (editMode === 'none') {
-                const note = PAD_TO_NOTE_MAP[padIndex];
-                assignSoundToPad(padIndex, note);
-            }
-            setActivePad(padIndex);
+            setActivePad(globalIndex);
         }
-    }, [mediaFile, editMode, noteDivision, isPlaying, barStartTimes, selectedBar, bpm, playSound, setActivePad, seekToTime, totalBars, setSelectedBar, wavesurferInstance, songData, assignSoundToPad]);
+    }, [
+        mixerState, mediaFile, editMode, noteDivision, isPlaying, 
+        barStartTimes, selectedBar, bpm, playSound, setActivePad, 
+        seekToTime, totalBars, setSelectedBar, wavesurferInstance, 
+        songData, assignSoundToPad
+    ]);
     
     useKeyboardControls(handlePadTrigger);
+
+    // Define the new actions for the dialog
+    const mediaLoadActions = [
+        { 
+            label: "Cue Mode Only", 
+            onClick: () => confirmLoad('cue_only'),
+            className: 'confirm-btn' 
+        },
+        { 
+            label: "Polyphonic (Both)", 
+            onClick: () => confirmLoad('polyphonic'),
+            className: 'poly-btn'
+        },
+        { label: "Cancel", onClick: cancelLoad, className: 'cancel-btn' }
+    ];
 
     return (
         <div className="pro-layout-container">
@@ -79,18 +104,18 @@ const ProLayout = () => {
             <WaveformNavigator />
             <NotationDisplay />
             <main className="main-content-area">
-                <LeftDeck onPadTrigger={handlePadTrigger} />
+                <LeftDeck onPadTrigger={(localIndex) => handlePadTrigger(localIndex)} />
                 <CenterConsole />
-                <RightDeck onPadTrigger={handlePadTrigger} />
+                <RightDeck onPadTrigger={(localIndex) => handlePadTrigger(localIndex + 8)} />
             </main>
             {isLoading && <LoadingOverlay />}
             <ConfirmDialog
                 isVisible={!!pendingFile}
-                message="Loading media will switch to Cue Mode. Sounds can be layered on top via the Sound Bank. Continue?"
-                onConfirm={confirmLoad}
-                onCancel={cancelLoad}
+                message="How should this media be handled?"
+                actions={mediaLoadActions}
             />
             <SoundBankPanel />
+            <SourceMixerPanel />
         </div>
     );
 };

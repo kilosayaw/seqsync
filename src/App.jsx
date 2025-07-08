@@ -6,26 +6,28 @@ import { SequenceProvider } from './context/SequenceContext';
 import { UIStateProvider } from './context/UIStateContext';
 import { PlaybackProvider } from './context/PlaybackContext';
 import { MotionProvider } from './context/MotionContext';
-import { SoundProvider } from './context/SoundContext'; // IMPORT NEW PROVIDER
+import { SoundProvider } from './context/SoundContext';
 import ProLayout from './components/layout/ProLayout';
 import './App.css';
 
 function App() {
   return (
-    <MediaProvider>
+    // DEFINITIVE FIX: The providers are now nested in the correct order of dependency.
+    // A provider on the "outside" makes its context available to all providers and
+    // components nested on the "inside".
+    <UIStateProvider>
       <SequenceProvider>
-        <UIStateProvider>
+        <MediaProvider>
           <PlaybackProvider>
             <MotionProvider>
-              {/* WRAP with SoundProvider */}
               <SoundProvider>
                 <ProLayout />
               </SoundProvider>
             </MotionProvider>
           </PlaybackProvider>
-        </UIStateProvider>
+        </MediaProvider>
       </SequenceProvider>
-    </MediaProvider>
+    </UIStateProvider>
   );
 }
 
