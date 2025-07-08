@@ -1,21 +1,52 @@
 // src/components/layout/LeftDeck.jsx
+
 import React from 'react';
-import RotaryController from '../ui/RotaryController/RotaryController';
+import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
-import Pads from '../ui/Pads';
+import RotaryController from '../ui/RotaryController/RotaryController';
+import RotaryButtons from '../ui/RotaryButtons';
+import PerformancePad from '../ui/PerformancePad';
+import OptionButtons from '../ui/OptionButtons';
+import { useUIState } from '../../context/UIStateContext'; // DEFINITIVE FIX: Re-added necessary imports
+import { usePlayback } from '../../context/PlaybackContext';
 import './Deck.css';
 
-const LeftDeck = ({ onPadTrigger, onJointUpdate }) => {
+const LeftDeck = ({ onPadTrigger }) => {
+    const { selectedBar } = useUIState();
+    const { isPlaying, currentBar, currentBeat } = usePlayback();
+    
     return (
-        <aside className="deck-container" data-side="left">
+        <div className="deck-container" data-side="left">
             <div className="deck-top-row">
+                <MovementFader />
+                <div className="turntable-group">
+                    <RotaryButtons />
+                    <RotaryController deckId="deck1" />
+                </div>
                 <DeckJointList side="left" />
-                <RotaryController deckId="deck1" onJointUpdate={onJointUpdate} />
             </div>
             <div className="pads-group">
-                <Pads side="left" onPadClick={onPadTrigger} />
+                <OptionButtons side="left" />
+                <div className="pads-container">
+                    {Array.from({ length: 8 }).map((_, i) => {
+                        const globalPadIndex = i;
+                        const displayNumber = i + 1;
+                        const isPulsing = isPlaying && selectedBar === currentBar && globalPadIndex === currentBeat;
+                        
+                        return (
+                            <PerformancePad
+                                key={`left-${i}`}
+                                padIndex={globalPadIndex}
+                                beatNum={displayNumber}
+                                isPulsing={isPulsing}
+                                onMouseDown={() => onPadTrigger(globalPadIndex)}
+                            />
+                        );
+                    })}
+                </div>
             </div>
-        </aside>
+        </div>
     );
 };
+
 export default LeftDeck;

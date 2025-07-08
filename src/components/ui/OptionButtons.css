@@ -19,12 +19,6 @@
     font-size: 0.8rem;
     font-weight: bold;
     transition: all 0.2s ease;
-    padding: 0;
-    cursor: pointer;
-}
-.option-btn:hover {
-    background-color: var(--color-dark-surface-2);
-    border-color: var(--color-text-primary);
 }
 .option-btn.active {
     background-color: var(--color-accent-green);

@@ -1,32 +1,28 @@
 // src/components/ui/SoundBankPanel.jsx
-
 import React from 'react';
+import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
-import { useSound, PAD_TO_NOTE_MAP } from '../../context/SoundContext';
+import { PAD_TO_NOTE_MAP } from '../../context/SoundContext';
 import classNames from 'classnames';
 import './SoundBankPanel.css';
 
 // Hardcode the kit info for now. This could come from a file/API later.
-const KITS = { "TR-808": PAD_TO_NOTE_MAP };
+const KITS = {
+    "TR-808": PAD_TO_NOTE_MAP
+};
 const SOUND_CATEGORIES = {
     "Kicks": ["C1", "C#1"],
     "Snares": ["D1", "D#1"],
-    "Toms": ["F#1", "G1", "G#1"],
+    "Toms": ["F#1", "G1", "G#1"], // Using placeholders as per your kit list
     "Hats & Cymbals": ["E1", "F1", "B1", "C2", "C#2"],
     "Percussion": ["A1", "A#1", "D2", "D#2"]
 };
 
 const SoundBankPanel = () => {
-    // All state now comes from useSequence
-    const { activePanel, setActivePanel, selectedBeat, showNotification, songData, assignSoundToPad, clearSoundsFromPad } = useSequence();
-    const isVisible = activePanel === 'sound';
-    
-    // Logic remains the same but uses new state management
-    const activeBeatData = selectedBeat !== null ? songData.bars[Math.floor(selectedBeat/16)]?.beats[selectedBeat%16] : null;
-    const activePadSounds = activeBeatData?.sounds || [];
+    const { activePanel, setActivePanel, activePad, showNotification } = useUIState();
+    const { assignSoundToPad, setSongData, STEPS_PER_BAR, songData } = useSequence();
 
-    // This logic correctly gets the sounds for the active pad, regardless of the current bar.
-    const activePadData = activePad !== null ? songData[activePad] : null;
+    const isVisible = activePanel === 'sound';
 
     const handleAssignKit = (kitName) => {
         const kitSounds = KITS[kitName];
@@ -40,40 +36,17 @@ const SoundBankPanel = () => {
             });
         });
         showNotification(`${kitName} kit loaded onto all pads.`);
-        setActivePanel('none');
+        setActivePanel('none'); // Close panel after loading
     };
 
-    const handleSoundClick = (note) => {
+    const handleAssignSound = (note) => {
+        const currentBar = Math.floor((activePad || 0) / STEPS_PER_BAR) + 1;
         if (activePad === null) {
             showNotification("Select a pad before assigning a sound.");
             return;
         }
-
-        const currentSounds = new Set(activePadSounds);
-        if (currentSounds.has(note)) {
-            currentSounds.delete(note);
-            console.log(`[Sound Bank] Removed sound ${note} from Pad ${activePad + 1}`);
-        } else if (currentSounds.size < 4) {
-            currentSounds.add(note);
-            console.log(`[Sound Bank] Added sound ${note} to Pad ${activePad + 1}`);
-        } else {
-            showNotification("Maximum 4 sounds per pad.");
-            return;
-        }
-
-        // The index to update is simply the activePad index
-        const indexToUpdate = activePad;
-        setSongData(currentData => {
-             const newData = [...currentData];
-             newData[indexToUpdate].sounds = Array.from(currentSounds);
-             return newData;
-        });
-    };
-
-    const handleClearSounds = () => {
-        if (activePad === null) return;
-        clearSoundsFromPad(activePad);
-        showNotification(`Sounds cleared from Pad ${activePad + 1}.`);
+        showNotification(`Be sure you are in the intended bar (Currently Bar ${currentBar})`);
+        assignSoundToPad(activePad, note);
     };
 
     return (
@@ -93,31 +66,20 @@ const SoundBankPanel = () => {
                     ))}
                 </div>
                 <div className="sound-section sounds-section">
-                    <h4>Assign Individual Sounds (TR-808)</h4>
-                    <p>Click a sound to add/remove it from the selected pad (Max 4).</p>
+                    <h4>Assign Individual Sound</h4>
+                    <p>Click a sound below to assign it to the currently selected pad.</p>
                     {Object.entries(SOUND_CATEGORIES).map(([category, notes]) => (
                         <div key={category} className="category-group">
                             <h5>{category}</h5>
                             <div className="sound-grid">
                                 {notes.map(note => (
-                                    <button 
-                                        key={note} 
-                                        className={classNames('sound-item', { 
-                                            'assigned': activePadSounds.includes(note) 
-                                        })} 
-                                        onClick={() => handleSoundClick(note)}
-                                    >
+                                    <button key={note} className="sound-item" onClick={() => handleAssignSound(note)}>
                                         {note}
                                     </button>
                                 ))}
                             </div>
                         </div>
                     ))}
-                    {activePad !== null && (
-                        <button className="clear-sounds-btn" onClick={handleClearSounds}>
-                            Clear Sounds from Pad {activePad + 1}
-                        </button>
-                    )}
                 </div>
             </div>
         </div>

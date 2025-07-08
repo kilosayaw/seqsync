@@ -1,35 +1,32 @@
 // src/App.jsx
-import React, { useEffect } from 'react';
-import { SequenceProvider, useSequence } from './context/SequenceContext';
+
+import React from 'react';
 import { MediaProvider } from './context/MediaContext';
-import { SoundProvider } from './context/SoundContext';
+import { SequenceProvider } from './context/SequenceContext';
+import { UIStateProvider } from './context/UIStateContext';
+import { PlaybackProvider } from './context/PlaybackContext';
+import { MotionProvider } from './context/MotionContext';
+import { SoundProvider } from './context/SoundContext'; // IMPORT NEW PROVIDER
 import ProLayout from './components/layout/ProLayout';
-import { themes } from './styles/themes';
 import './App.css';
-
-// A new component to handle the dynamic theme application
-const ThemedApp = () => {
-  const { activeTheme } = useSequence();
-
-  useEffect(() => {
-    const theme = themes[activeTheme] || themes.default;
-    for (const key in theme) {
-      document.documentElement.style.setProperty(key, theme[key]);
-    }
-  }, [activeTheme]);
-
-  return <ProLayout />;
-}
 
 function App() {
   return (
-    <SoundProvider>
+    <MediaProvider>
       <SequenceProvider>
-        <MediaProvider>
-          <ThemedApp />
-        </MediaProvider>
+        <UIStateProvider>
+          <PlaybackProvider>
+            <MotionProvider>
+              {/* WRAP with SoundProvider */}
+              <SoundProvider>
+                <ProLayout />
+              </SoundProvider>
+            </MotionProvider>
+          </PlaybackProvider>
+        </UIStateProvider>
       </SequenceProvider>
-    </SoundProvider>
+    </MediaProvider>
   );
 }
+
 export default App;

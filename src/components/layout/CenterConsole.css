@@ -1,22 +1,20 @@
 /* src/components/layout/CenterConsole.css */
 
 .center-console-container {
-    width: 300px; /* Fixed width for the center column */
+    width: 300px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
-    min-height: 0; /* Prevents overflow in the parent grid */
+    min-height: 0;
     
-    /* Container styling for a consistent look */
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
     border-radius: var(--border-radius-md);
 }
 
 .video-feed-placeholder {
-    position: relative; /* This is crucial for positioning children */
-    flex: 1 1 300px; 
+    flex: 1 1 300px;
     min-height: 0;
     background-color: #000;
     border-radius: var(--border-radius-md);
@@ -24,24 +22,16 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden; /* Important */
-}
-
-.feed-overlay-content {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    pointer-events: none; /* Allows clicks to pass through */
     color: var(--color-text-secondary);
     font-weight: bold;
-    text-align: center;
-    padding: var(--spacing-md);
+    font-size: 1rem;
+    letter-spacing: 2px;
+    position: relative; /* Needed for positioning overlays */
+    overflow: hidden; /* Keeps overlays contained */
 }
 
 .center-controls-group {
-    flex-shrink: 0; /* Prevents this from being squashed */
+    flex-shrink: 0; 
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
@@ -57,6 +47,14 @@
     color: var(--color-accent-green);
     line-height: 1;
     text-shadow: 0 0 15px var(--color-accent-green);
+    /* Animation for the countdown numbers */
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
 
 .feed-notification {
@@ -65,7 +63,8 @@
     color: var(--color-accent-primary);
     padding: 0 var(--spacing-md);
     text-align: center;
-    animation: fadeInOut 2s ease-in-out;
+    /* Animation for the notification text */
+    animation: fadeInOut 2s ease-in-out forwards;
 }
 
 @keyframes fadeInOut {

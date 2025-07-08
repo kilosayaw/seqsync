@@ -1,34 +1,42 @@
 /* src/components/ui/TransportControls.css */
+
 .transport-controls-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-sm); /* Even gap between all buttons */
     width: 100%;
 }
+
+/* Base style for ALL transport buttons */
 .transport-btn {
-    background: none; border: none; color: var(--color-text-secondary);
-    width: 38px; height: 38px; display: flex; align-items: center;
-    justify-content: center; transition: all 0.2s ease; padding: 0;
-    border-radius: var(--border-radius-sm);
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    border-radius: var(--border-radius-sm); /* Consistent radius */
 }
+
 .transport-btn:hover {
     background-color: var(--color-dark-surface-3);
     color: var(--color-text-primary);
 }
+
+/* Specific style for the main play/pause button */
 .play-btn {
-    background-color: var(--color-accent-blue); color: white;
-    width: 60px; height: 45px; font-size: 1.5rem;
+    background-color: var(--color-accent-blue);
+    color: white;
+    width: 60px;
+    height: 45px;
+    font-size: 1.5rem;
 }
-.play-btn:hover { background-color: #008fcc; }
-/* NEW STYLES FOR RECORD BUTTON */
-.record-btn {
-    background-color: var(--color-dark-surface-3);
-    border: 1px solid var(--color-border);
+
+.play-btn:hover {
+    background-color: #008fcc;
 }
-.record-btn svg { color: var(--color-accent-red); }
-.record-btn.active {
-    background-color: var(--color-accent-red);
-    box-shadow: 0 0 10px var(--color-accent-red);
-}
-.record-btn.active svg { color: white; }

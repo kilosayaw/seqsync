@@ -1,20 +1,50 @@
 // src/components/ui/TransportControls.jsx
 import React from 'react';
-import { useMedia } from '../../context/MediaContext';
-import styles from './TransportControls.module.css';
+import { usePlayback } from '../../context/PlaybackContext';
+import { useUIState } from '../../context/UIStateContext';
+import { useSequence } from '../../context/SequenceContext';
+import './TransportControls.css';
 
 const TransportControls = () => {
-    const { isPlaying, isRecording, togglePlay, handleRecord } = useMedia();
+    const { isPlaying, togglePlay } = usePlayback();
+    const { selectedBar, setSelectedBar, setActivePad } = useUIState();
+    const { totalBars } = useSequence();
+
+    const handleBarChange = (direction) => {
+        if (isPlaying) return;
+        const newBar = selectedBar + direction;
+        if (newBar >= 1 && newBar <= totalBars) {
+            console.log(`[Transport] Bar changed to: ${newBar}`);
+            setSelectedBar(newBar);
+            setActivePad(null); 
+        }
+    };
+
+    const handlePlayToggle = () => {
+        console.log(`[Transport] Play/Pause toggled. New state will be: ${!isPlaying}`);
+        togglePlay();
+    };
+
     return (
-        <div className={styles.transportContainer}>
-            <button className={styles.transportButton}>{'<<'}</button>
-            <button className={styles.transportButton}>{'<'}</button>
-            <button className={`${styles.transportButton} ${styles.playButton} ${isPlaying ? styles.active : ''}`} onClick={togglePlay}>
-                {isPlaying ? '❚❚' : '▶'}
+        <div className="transport-controls-container">
+            <button className="transport-btn" title="Back Bar" onClick={() => handleBarChange(-1)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L12 12L18 18M12 6L6 12L12 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
-            <button className={styles.transportButton}>{'>'}</button>
-            <button className={styles.transportButton}>{'>>'}</button>
-            <button className={`${styles.recordButton} ${isRecording ? styles.active : ''}`} onClick={handleRecord}>●</button>
+            <button className="transport-btn" title="Back Beat">
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            <button className="transport-btn play-btn" onClick={handlePlayToggle} title="Play/Pause">
+                {isPlaying 
+                    ? <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    : <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                }
+            </button>
+            <button className="transport-btn" title="Forward Beat">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            <button className="transport-btn" title="Forward Bar" onClick={() => handleBarChange(1)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L12 12L6 18M12 6L18 12L12 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
         </div>
     );
 };

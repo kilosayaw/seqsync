@@ -1,33 +1,24 @@
 // src/components/ui/PerformancePad.jsx
 import React from 'react';
-import { useSequence } from '../../context/SequenceContext';
+import classNames from 'classnames';
+import { useUIState } from '../../context/UIStateContext';
 import './PerformancePad.css';
 
-const PerformancePad = ({ padIndex, isPulsing, onPadClick, beatData }) => {
-    const { selectedBeat } = useSequence();
-    const isSelected = selectedBeat === padIndex;
-    const hasData = beatData?.pose || beatData?.sounds?.length > 0;
+const PerformancePad = ({ padIndex, beatNum, isPulsing, onMouseDown }) => {
+    const { activePad } = useUIState();
+    const isSelected = activePad === padIndex;
 
-    // Determine color group based on pad index
-    let groupClass = 'pad-group-4'; // Default to cream/white
-    if (padIndex < 4) groupClass = 'pad-group-1'; // Red
-    else if (padIndex < 8) groupClass = 'pad-group-2'; // Orange
-    else if (padIndex < 12) groupClass = 'pad-group-3'; // Yellow
-    
-    const classes = [
-        'performance-pad',
-        groupClass,
-        isSelected && 'selected',
-        isPulsing && 'pulsing',
-        hasData && 'has-data',
-    ].filter(Boolean).join(' ');
+    const padClasses = classNames('performance-pad', {
+        'pulsing': isPulsing,
+        'selected': isSelected,
+    });
 
     return (
         <button 
-            className={classes}
-            onMouseDown={() => onPadClick(padIndex)}
+            className={padClasses} 
+            onMouseDown={onMouseDown}
         >
-            {padIndex + 1}
+            {beatNum}
         </button>
     );
 };

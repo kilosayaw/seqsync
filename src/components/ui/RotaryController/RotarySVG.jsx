@@ -4,9 +4,9 @@ import { FOOT_HOTSPOT_COORDINATES } from '../../../utils/constants';
 import './RotaryController.css';
 
 const RotarySVG = ({ side, angle, activePoints, onHotspotClick, isEditing, handleWheelMouseDown }) => {
-    // ... code is unchanged from the version that correctly rendered the foot bases...
     const sideKey = side.charAt(0).toUpperCase();
     const hotspots = FOOT_HOTSPOT_COORDINATES[sideKey] || [];
+    // DEFINITIVE PATH FIX 1: Correct path for the base foot image
     const baseFootImagePath = `/ground/foot-${side}.png`;
 
     return (
@@ -18,11 +18,15 @@ const RotarySVG = ({ side, angle, activePoints, onHotspotClick, isEditing, handl
                         <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                 </defs>
+                
                 <g transform={`rotate(${angle}, 275, 275)`} onMouseDown={handleWheelMouseDown} className="rotary-wheel-grab-area">
+                    {/* DEFINITIVE PATH FIX 2: Correct path for the turntable wheel */}
                     <image href="/ground/foot-wheel.png" x="0" y="0" width="550" height="550" />
+                    
                     {isEditing && (
                         <>
                             <image href={baseFootImagePath} className="base-foot-img" x="115" y="115" height="320" width="320" />
+                            {/* The glowing shapes are drawn with SVG, so they don't need paths */}
                             {hotspots.map(spot => {
                                 if (!activePoints.has(spot.notation)) return null;
                                 if (spot.type === 'ellipse') {
@@ -34,6 +38,7 @@ const RotarySVG = ({ side, angle, activePoints, onHotspotClick, isEditing, handl
                         </>
                     )}
                 </g>
+                
                 {isEditing && (
                      <g className="interaction-layer">
                         {hotspots.map(spot => {

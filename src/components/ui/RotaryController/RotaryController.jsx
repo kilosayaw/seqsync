@@ -1,85 +1,72 @@
 // src/components/ui/RotaryController/RotaryController.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
+import { useUIState } from '../../../context/UIStateContext';
 import { useSequence } from '../../../context/SequenceContext';
-import { useMedia } from '../../../context/MediaContext';
+import { usePlayback } from '../../../context/PlaybackContext';
 import { getPointsFromNotation, resolveNotationFromPoints } from '../../../utils/notationUtils';
-import { useTurntableDrag } from '../../../hooks/useTurntableDrag';
+import { useDampedTurntableDrag } from '../../../hooks/useDampedTurntableDrag';
 import RotarySVG from './RotarySVG';
-import RotaryButtons from '../RotaryButtons';
 import './RotaryController.css';
 
-const RotaryController = ({ deckId, onJointUpdate }) => { // Receives onJointUpdate as a prop
-    const { songData, selectedBar, selectedBeat, showNotification, mixerState } = useSequence();
-    const { isPlaying, currentBar, currentBeat } = useMedia();
+const RotaryController = ({ deckId }) => {
+    const { editMode, activePad, selectedBar, showNotification } = useUIState(); 
+    const { songData, updateJointData, STEPS_PER_BAR } = useSequence();
+    const { isPlaying, currentBar, currentBeat } = usePlayback();
     
     const side = deckId === 'deck1' ? 'left' : 'right';
     const jointId = `${side.charAt(0).toUpperCase()}F`;
-    
-    const beatIndexToDisplay = isPlaying && selectedBeat === null ? currentBeat - 1 : (selectedBeat ?? 0);
-    const barToDisplay = isPlaying && selectedBeat === null ? currentBar : selectedBar;
-    
-    const sourceData = songData.bars[barToDisplay - 1]?.beats[beatIndexToDisplay]?.joints?.[jointId] || { grounding: `${jointId}0`, angle: 0 };
-    
-    const [displayAngle, setDisplayAngle] = useState(sourceData.angle);
-    const [activePoints, setActivePoints] = useState(() => getPointsFromNotation(sourceData.grounding, side));
-
-    useEffect(() => {
-        setDisplayAngle(sourceData.angle);
-        setActivePoints(getPointsFromNotation(sourceData.grounding, side));
-    }, [sourceData.grounding, sourceData.angle, side]);
-
-    const editMode = mixerState.editMode || 'none';
+    const beatIndexToDisplay = isPlaying && selectedBar === currentBar ? currentBeat : (activePad ?? 0);
+    const globalIndex = ((selectedBar - 1) * STEPS_PER_BAR) + beatIndexToDisplay;
+    const currentBeatData = songData[globalIndex] || { joints: { [jointId]: { grounding: `${jointId}0`, angle: 0 } } };
+    const initialAngle = currentBeatData.joints[jointId]?.angle || 0;
+    const currentGrounding = currentBeatData.joints[jointId]?.grounding || `${jointId}0`;
+    const activePoints = getPointsFromNotation(currentGrounding);
     const isEditing = editMode === side || editMode === 'both';
 
-    // --- CORRECTED LOGIC ---
-    // Uses the onJointUpdate prop passed down from ProLayout
+    // This function is now called LIVE during the drag
+    const handleAngleChange = useCallback((newAngle) => {
+        if (isEditing && activePad !== null) {
+            const indexToUpdate = ((selectedBar - 1) * STEPS_PER_BAR) + activePad;
+            updateJointData(indexToUpdate, jointId, { angle: newAngle });
+        }
+    }, [activePad, isEditing, jointId, selectedBar, STEPS_PER_BAR, updateJointData]);
+    
+    // This function is now called ONLY when the spin stops
     const handleDragEnd = useCallback((finalAngle) => {
-        if (!isEditing || selectedBeat === null) return;
-        const barIndex = selectedBar - 1;
-        const beatIndex = selectedBeat;
-        const currentJointData = songData.bars[barIndex]?.beats[beatIndex]?.joints[jointId] || {};
-        const updatedJoints = { ...songData.bars[barIndex]?.beats[beatIndex]?.joints, [jointId]: { ...currentJointData, angle: finalAngle } };
-        onJointUpdate(barIndex, beatIndex, updatedJoints);
-    }, [selectedBeat, isEditing, jointId, selectedBar, songData, onJointUpdate]);
+        if (isEditing && activePad !== null) {
+            console.log(`[Rotary] Drag ended for ${jointId}. Final angle: ${finalAngle.toFixed(2)}`);
+        }
+    }, [activePad, isEditing, jointId]);
 
-    const { angle, handleMouseDown } = useTurntableDrag(displayAngle, handleDragEnd);
+    const { angle, handleMouseDown } = useDampedTurntableDrag(initialAngle, handleAngleChange, handleDragEnd);
 
-    // --- CORRECTED LOGIC ---
-    // Uses the onJointUpdate prop passed down from ProLayout
-    const handleHotspotClick = useCallback((shortNotation) => {
-        if (!isEditing || selectedBeat === null) {
-            showNotification("Please select a pad to edit.");
+    const handleHotspotClick = (shortNotation) => {
+        if (!isEditing) return;
+        if (activePad === null) {
+            showNotification("Please select a pad (1-16) to edit.");
             return;
         }
-
-        const newActivePoints = new Set(activePoints);
-        if (newActivePoints.has(shortNotation)) {
-            newActivePoints.delete(shortNotation);
-        } else {
-            newActivePoints.add(shortNotation);
-        }
         
-        setActivePoints(newActivePoints); 
+        const indexToUpdate = ((selectedBar - 1) * STEPS_PER_BAR) + activePad;
+        const newActivePoints = new Set(activePoints);
+
+        if (newActivePoints.has(shortNotation)) newActivePoints.delete(shortNotation);
+        else newActivePoints.add(shortNotation);
         
         const newGroundingNotation = resolveNotationFromPoints(newActivePoints, side);
-        const barIndex = selectedBar - 1;
-        const beatIndex = selectedBeat;
-        const currentJointData = songData.bars[barIndex]?.beats[beatIndex]?.joints[jointId] || {};
-        const updatedJoints = { ...songData.bars[barIndex]?.beats[beatIndex]?.joints, [jointId]: { ...currentJointData, grounding: newGroundingNotation } };
-        onJointUpdate(barIndex, beatIndex, updatedJoints);
-    }, [selectedBeat, activePoints, isEditing, jointId, selectedBar, showNotification, side, songData, onJointUpdate]);
+        updateJointData(indexToUpdate, jointId, { grounding: newGroundingNotation });
+    };
 
     return (
-        <div className="turntable-group">
+        <div className="rotary-controller-container">
             <RotarySVG
                 side={side}
-                angle={isEditing ? angle : displayAngle}
+                angle={angle}
                 activePoints={activePoints}
                 onHotspotClick={handleHotspotClick}
                 isEditing={isEditing}
                 handleWheelMouseDown={handleMouseDown}
             />
-            <RotaryButtons />
         </div>
     );
 };

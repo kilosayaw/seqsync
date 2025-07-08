@@ -1,49 +1,35 @@
 // src/components/ui/OptionButtons.jsx
 import React from 'react';
-import { useSequence } from '../../context/SequenceContext';
+import { useUIState } from '../../context/UIStateContext';
 import classNames from 'classnames';
-import styles from './OptionButtons.module.css';
+import './OptionButtons.css';
 
-const OptionButtons = ({ side }) => {
-    const { noteDivision, setNoteDivision, activePanel, setActivePanel } = useSequence();
+const OptionButtons = () => {
+    const { noteDivision, setNoteDivision } = useUIState();
 
-    const handleNoteDivisionCycle = () => {
-        const divisions = [16, 8, 4];
-        const currentIndex = divisions.indexOf(noteDivision);
-        const nextIndex = (currentIndex + 1) % divisions.length;
-        setNoteDivision(divisions[nextIndex]);
+    const handleToggle = () => {
+        const newDivision = noteDivision === 16 ? 8 : 16;
+        console.log(`[Options] Toggling Note Division to: 1/${newDivision}`);
+        setNoteDivision(newDivision);
     };
-    
-    const handlePanelToggle = (panelName) => { setActivePanel(prev => prev === panelName ? 'none' : panelName); };
 
-    if (side === 'left') {
-        return (
-            <div className="option-buttons-container">
-                <button className="option-btn" onClick={handleNoteDivisionCycle}>1/{noteDivision}</button>
-                <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>SOUND</button>
-                <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>MIXER</button>
-                <div className="option-btn-slot" />
-            </div>
-        );
-    }
-
-    if (side === 'right') {
-        return (
-            <div className="option-buttons-container">
-                <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>
-                    FOOT
-                </button>
-                <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>
-                    POSE
-                </button>
-                 <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>
-                    ABBR
-                </button>
-                <div className="option-btn-slot" />
-            </div>
-        );
-    }
-    
-    return null;
+    return (
+        <div className="option-buttons-container">
+            <button 
+                className={classNames('option-btn', { 'active': noteDivision === 16 })}
+                onClick={noteDivision === 8 ? handleToggle : undefined}
+            >
+                1/16
+            </button>
+            <button 
+                className={classNames('option-btn', { 'active': noteDivision === 8 })}
+                onClick={noteDivision === 16 ? handleToggle : undefined}
+            >
+                1/8
+            </button>
+            <div className="option-btn-slot" />
+            <div className="option-btn-slot" />
+        </div>
+    );
 };
 export default OptionButtons;

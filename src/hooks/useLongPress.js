@@ -1,5 +1,6 @@
 // src/hooks/useLongPress.js
-import { useCallback, useRef, useEffect } from 'react';
+
+import { useCallback, useRef } from 'react';
 
 export const useLongPress = (
     onClick,
@@ -11,10 +12,7 @@ export const useLongPress = (
 
     const start = useCallback((event) => {
         isLongPressTriggered.current = false;
-        // For touch events, we need to prevent default to avoid scrolling
-        if (event.type === 'touchstart') {
-            event.preventDefault();
-        }
+        event.persist();
         timerRef.current = setTimeout(() => {
             onLongPress(event);
             isLongPressTriggered.current = true;
@@ -25,20 +23,10 @@ export const useLongPress = (
         if (timerRef.current) {
             clearTimeout(timerRef.current);
         }
-        // Only fire the short click if a long press hasn't happened
         if (!isLongPressTriggered.current) {
             onClick(event);
         }
     }, [onClick]);
-    
-    // Add an explicit cleanup for the timer
-    useEffect(() => {
-        return () => {
-            if (timerRef.current) {
-                clearTimeout(timerRef.current);
-            }
-        };
-    }, []);
 
     return {
         onMouseDown: start,

@@ -1,110 +1,89 @@
 // src/context/SequenceContext.jsx
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { initialSongData } from './initialData'; // Make sure this file uses the nested bar structure
-import { produce } from 'immer';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useMedia } from './MediaContext';
+import { JOINT_LIST } from '../utils/constants';
 
 const SequenceContext = createContext(null);
 export const useSequence = () => useContext(SequenceContext);
+export const STEPS_PER_BAR = 16;
+const DEFAULT_BAR_COUNT = 16;
+
+const createBeatData = (bar, beatInBar) => {
+    const joints = {};
+    JOINT_LIST.forEach(joint => {
+        const side = joint.id.charAt(0);
+        const initialGrounding = joint.id.endsWith('F') ? `${side}F123T12345` : `${side}F0`;
+        joints[joint.id] = { angle: 0, grounding: initialGrounding };
+    });
+    // Each beat now has a place to store sounds
+    const sounds = [];
+    return { bar, beat: beatInBar, joints, sounds };
+};
+
+const createDefaultSequence = () => {
+    const totalSixteenths = DEFAULT_BAR_COUNT * STEPS_PER_BAR;
+    return Array.from({ length: totalSixteenths }, (_, i) => 
+        createBeatData(Math.floor(i / STEPS_PER_BAR) + 1, i % STEPS_PER_BAR)
+    );
+};
 
 export const SequenceProvider = ({ children }) => {
-    const [activeTheme, setActiveTheme] = useState('tr-808');
-    const [songData, setSongData] = useState(initialSongData);
-    const [history, setHistory] = useState([initialSongData]);
-    const [historyIndex, setHistoryIndex] = useState(0);
+    const [songData, setSongData] = useState(createDefaultSequence());
+    const [totalBars, setTotalBars] = useState(DEFAULT_BAR_COUNT);
+    const [barStartTimes, setBarStartTimes] = useState([]);
+    const { isMediaReady, duration, detectedBpm, firstBeatOffset } = useMedia();
 
-    // --- MERGED UI STATE ---
-    const [currentBar, setCurrentBar] = useState(1);
-    const [selectedBeat, setSelectedBeat] = useState(null); // This is the active pad index (0-15) within the current bar
-    const [selectedJoint, setSelectedJoint] = useState(null);
-    const [activePanel, setActivePanel] = useState('none');
-    const [mixerState, setMixerState] = useState({ kitSounds: true, uploadedMedia: false, cameraFeed: true, motionOverlay: true, motionOverlayOpacity: 0.7 });
-    const [noteDivision, setNoteDivision] = useState(16);
-    const [notification, setNotification] = useState('');
+    useEffect(() => {
+        if (isMediaReady && duration > 0 && detectedBpm) {
+            console.log("SequenceContext: Re-initializing sequence for loaded media.");
+            const beatsPerMinute = detectedBpm;
+            const totalBeats = (duration / 60) * beatsPerMinute;
+            const calculatedTotalBars = Math.ceil(totalBeats / 4);
+            setTotalBars(calculatedTotalBars);
+            const totalSixteenths = calculatedTotalBars * STEPS_PER_BAR;
+            const newSongData = Array.from({ length: totalSixteenths }, (_, i) => 
+                createBeatData(Math.floor(i / STEPS_PER_BAR) + 1, i % STEPS_PER_BAR)
+            );
+            setSongData(newSongData);
+            const timePerBar = (60 / beatsPerMinute) * 4;
+            const newBarStartTimes = Array.from({ length: calculatedTotalBars }, (_, i) => 
+                (i * timePerBar) + (firstBeatOffset || 0)
+            );
+            setBarStartTimes(newBarStartTimes);
+        }
+    }, [isMediaReady, duration, detectedBpm, firstBeatOffset]);
 
-    const totalBars = songData.bars.length;
-
-    const goToNextBar = useCallback(() => setCurrentBar(prev => (prev < totalBars ? prev + 1 : prev)), [totalBars]);
-    const goToPrevBar = useCallback(() => setCurrentBar(prev => (prev > 1 ? prev - 1 : prev)), []);
-    const showNotification = useCallback((message) => { setNotification(message); setTimeout(() => setNotification(''), 2000); }, []);
-    
-    const updateSongData = useCallback((newSongData) => {
-        const newHistory = history.slice(0, historyIndex + 1);
-        newHistory.push(newSongData);
-        setHistory(newHistory);
-        setHistoryIndex(newHistory.length - 1);
-        setSongData(newSongData);
-    }, [history, historyIndex]);
-    
-    const undo = useCallback(() => { if (historyIndex > 0) { const i = historyIndex - 1; setHistoryIndex(i); setSongData(history[i]); } }, [history, historyIndex]);
-    const redo = useCallback(() => { if (historyIndex < history.length - 1) { const i = historyIndex + 1; setHistoryIndex(i); setSongData(history[i]); } }, [history, historyIndex]);
-
-    const assignSoundToPad = useCallback((barIndex, beatIndex, soundNote) => {
-        const nextState = produce(songData, draft => {
-            const beat = draft.bars[barIndex]?.beats[beatIndex];
-            if (beat) {
-                if (!beat.sounds) beat.sounds = [];
-                if (beat.sounds.length < 4 && !beat.sounds.includes(soundNote)) {
-                    beat.sounds.push(soundNote);
-                }
+    const updateJointData = useCallback((globalBeatIndex, jointId, jointDataUpdate) => {
+        setSongData(prevData => {
+            const newData = [...prevData];
+            if (newData[globalBeatIndex]?.joints?.[jointId]) {
+                newData[globalBeatIndex].joints[jointId] = { ...newData[globalBeatIndex].joints[jointId], ...jointDataUpdate };
             }
+            return newData;
         });
-        updateSongData(nextState);
-    }, [songData, updateSongData]);
-
-    const clearSoundsFromPad = useCallback((barIndex, beatIndex) => {
-         const nextState = produce(songData, draft => {
-            const beat = draft.bars[barIndex]?.beats[beatIndex];
-            if (beat) {
-                beat.sounds = [];
-            }
-        });
-        updateSongData(nextState);
-    }, [songData, updateSongData]);
-
-    const updateBeatWithPose = useCallback((bar, beat, pose) => {
-        if (!pose || !pose.jointInfo) return;
-        const barIndex = bar - 1;
-        const beatIndex = beat - 1;
-        const nextState = produce(songData, draft => {
-            if (draft.bars[barIndex] && draft.bars[barIndex].beats[beatIndex]) {
-                draft.bars[barIndex].beats[beatIndex].pose = pose;
-            }
-        });
-        updateSongData(nextState);
-    }, [songData, updateSongData]);
-
-    const handleMediaReady = useCallback(({ duration, detectedBpm }) => {
-        const totalBeats = duration * (detectedBpm / 60);
-        const totalBars = Math.ceil(totalBeats / 16);
-        console.log(`Media ready: ${duration.toFixed(2)}s, ${detectedBpm} BPM, ${totalBars} total bars.`);
-
-        const newBars = Array.from({ length: totalBars > 0 ? totalBars : 1 }, (_, barIndex) => ({
-            id: `bar_${barIndex + 1}`,
-            beats: Array.from({ length: 16 }, (__, beatIndex) => ({ id: `beat_${barIndex * 16 + beatIndex + 1}`, pose: null, sound: null })),
-        }));
-
-        const barStartTimes = newBars.map((_, i) => i * (16 / (detectedBpm / 60)));
-
-        const nextState = produce(initialSongData, draft => {
-            draft.bpm = detectedBpm;
-            draft.bars = newBars;
-            draft.barStartTimes = barStartTimes; // Store start times for seeking
-        });
-
-        setHistory([nextState]);
-        setHistoryIndex(0);
-        setSongData(nextState);
-        setCurrentBar(1); // Reset to first bar on new media load
     }, []);
 
-    const value = { 
-        songData, setSongData, updateBeatWithPose, assignSoundToPad, clearSoundsFromPad,
-        currentBar, totalBars, goToNextBar, goToPrevBar,
-        selectedBeat, setSelectedBeat, selectedJoint, setSelectedJoint,
-        activePanel, setActivePanel, mixerState, setMixerState,
-        noteDivision, setNoteDivision, notification, showNotification,
-        undo, redo, canUndo: historyIndex > 0, canRedo: historyIndex < history.length - 1,
-        handleMediaReady, activeTheme, setActiveTheme 
-    };
+    // NEW FUNCTION to add sounds to a pad's data
+    const assignSoundToPad = useCallback((globalPadIndex, soundNote) => {
+        setSongData(prevData => {
+            const newData = [...prevData];
+            const beat = newData[globalPadIndex];
+            if (beat) {
+                // Initialize sounds array if it doesn't exist
+                if (!beat.sounds) {
+                    beat.sounds = [];
+                }
+                // Prevents adding more than 4 sounds or duplicates
+                if (beat.sounds.length < 4 && !beat.sounds.includes(soundNote)) {
+                    beat.sounds.push(soundNote);
+                    console.log(`[Sequence] Assigned sound ${soundNote} to Pad ${globalPadIndex + 1}`);
+                }
+            }
+            return newData;
+        });
+    }, []);
+    
+    const value = { songData, setSongData, totalBars, barStartTimes, STEPS_PER_BAR, updateJointData, assignSoundToPad };
+    
     return <SequenceContext.Provider value={value}>{children}</SequenceContext.Provider>;
 };

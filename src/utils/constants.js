@@ -1,7 +1,5 @@
 // src/utils/constants.js
 
-
-
 export const JOINT_LIST = [
     { id: 'LS', name: 'LS' }, { id: 'RS', name: 'RS' },
     { id: 'LE', name: 'LE' }, { id: 'RE', name: 'RE' },
@@ -14,8 +12,8 @@ export const JOINT_LIST = [
 ];
 
 export const BASE_FOOT_PATHS = {
-    L: '/assets/images/ground/foot-left.png',
-    R: '/assets/images/ground/foot-right.png',
+    L: '/ground/foot-left.png',
+    R: '/ground/foot-right.png',
 };
 
 export const NOTE_DIVISIONS = [
@@ -24,10 +22,8 @@ export const NOTE_DIVISIONS = [
   { value: 4, label: '1/4' },
 ];
 
-// A default vector to prevent crashes when pose data is missing
 export const POSE_DEFAULT_VECTOR = { x: 0, y: 0, z: 0 };
 
-// High-precision coordinates for the foot template hotspots
 export const FOOT_HOTSPOT_COORDINATES = {
     L: [
         { type: 'circle', notation: '3', cx: 276, cy: 403, r: 31 },
@@ -51,6 +47,7 @@ export const FOOT_HOTSPOT_COORDINATES = {
     ]
 };
 
+// DEFINITIVE FIX: Add the missing export for the skeletal connections.
 export const POSE_CONNECTIONS = [
     ['nose', 'left_eye'], ['left_eye', 'left_ear'],
     ['nose', 'right_eye'], ['right_eye', 'right_ear'],
