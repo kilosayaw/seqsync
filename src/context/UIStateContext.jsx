@@ -8,17 +8,13 @@ export const UIStateProvider = ({ children }) => {
     const [activePad, setActivePad] = useState(null);
     const [editMode, setEditMode] = useState('none');
     const [noteDivision, setNoteDivision] = useState(16);
-    const [padDisplayMode, setPadDisplayMode] = useState('numbers');
-    
-    // NEW STATE for user-facing notifications
+    const [activePanel, setActivePanel] = useState('none');
     const [notification, setNotification] = useState(null);
+    const [selectedJoints, setSelectedJoints] = useState([]);
 
-    // Function to show a notification that automatically disappears
     const showNotification = (message) => {
         setNotification(message);
-        setTimeout(() => {
-            setNotification(null);
-        }, 2000); // Notification will disappear after 2 seconds
+        setTimeout(() => setNotification(null), 2000);
     };
 
     const value = {
@@ -26,9 +22,10 @@ export const UIStateProvider = ({ children }) => {
         activePad, setActivePad,
         editMode, setEditMode,
         noteDivision, setNoteDivision,
-        padDisplayMode, setPadDisplayMode,
-        notification, // Export the notification message
-        showNotification, // Export the function to trigger it
+        activePanel, setActivePanel,
+        selectedJoints, setSelectedJoints,
+        notification,
+        showNotification,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;

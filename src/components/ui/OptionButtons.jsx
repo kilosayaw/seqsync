@@ -5,30 +5,36 @@ import classNames from 'classnames';
 import './OptionButtons.css';
 
 const OptionButtons = () => {
-    const { noteDivision, setNoteDivision } = useUIState();
+    const { noteDivision, setNoteDivision, padMode, setPadMode, activePanel, setActivePanel } = useUIState();
 
-    const handleToggle = () => {
-        const newDivision = noteDivision === 16 ? 8 : 16;
-        console.log(`[Options] Toggling Note Division to: 1/${newDivision}`);
-        setNoteDivision(newDivision);
+    const handleNoteDivisionCycle = () => {
+        const divisions = [16, 8, 4];
+        const currentIndex = divisions.indexOf(noteDivision);
+        const nextIndex = (currentIndex + 1) % divisions.length;
+        setNoteDivision(divisions[nextIndex]);
+    };
+    
+    const handlePanelToggle = (panelName) => {
+        setActivePanel(prev => prev === panelName ? 'none' : panelName);
+    };
+
+    const handlePadModeToggle = () => {
+        setPadMode(prev => prev === 'TRIGGER' ? 'GATE' : 'TRIGGER');
     };
 
     return (
         <div className="option-buttons-container">
-            <button 
-                className={classNames('option-btn', { 'active': noteDivision === 16 })}
-                onClick={noteDivision === 8 ? handleToggle : undefined}
-            >
-                1/16
-            </button>
-            <button 
-                className={classNames('option-btn', { 'active': noteDivision === 8 })}
-                onClick={noteDivision === 16 ? handleToggle : undefined}
-            >
-                1/8
-            </button>
+            {/* Options 1-4 */}
+            <button className="option-btn" onClick={handleNoteDivisionCycle}>1/{noteDivision}</button>
+            <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>SOUND</button>
+            <button className="option-btn" onClick={handlePadModeToggle}>{padMode}</button>
             <div className="option-btn-slot" />
-            <div className="option-btn-slot" />
+            
+            {/* Options 5-8 */}
+            <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>FOOT</button>
+            <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>POSE</button>
+            <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>ABBR</button>
+            <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>MIXER</button>
         </div>
     );
 };

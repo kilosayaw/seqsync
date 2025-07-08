@@ -3,8 +3,8 @@ import React from 'react';
 import './ConfirmDialog.css';
 import { FaLongArrowAltRight } from 'react-icons/fa';
 
-// The component now accepts an array of 'actions'
-const ConfirmDialog = ({ message, actions, isVisible }) => {
+// DEFINITIVE FIX: Provide a default empty array for the 'actions' prop.
+const ConfirmDialog = ({ message, actions = [], isVisible }) => {
     if (!isVisible) return null;
 
     return (
@@ -12,6 +12,7 @@ const ConfirmDialog = ({ message, actions, isVisible }) => {
             <div className="dialog-box">
                 <p className="dialog-message">{message}</p>
                 <div className="dialog-buttons">
+                    {/* This .map() call is now safe, even if actions is not passed */}
                     {actions.map((action, index) => (
                         <button 
                             key={index} 

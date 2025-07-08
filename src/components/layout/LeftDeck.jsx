@@ -11,7 +11,7 @@ import { useUIState } from '../../context/UIStateContext'; // DEFINITIVE FIX: Re
 import { usePlayback } from '../../context/PlaybackContext';
 import './Deck.css';
 
-const LeftDeck = ({ onPadTrigger }) => {
+const LeftDeck = ({ onPadDown, onPadUp }) => {
     const { selectedBar } = useUIState();
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     
@@ -39,7 +39,9 @@ const LeftDeck = ({ onPadTrigger }) => {
                                 padIndex={globalPadIndex}
                                 beatNum={displayNumber}
                                 isPulsing={isPulsing}
-                                onMouseDown={() => onPadTrigger(globalPadIndex)}
+                                onMouseDown={() => onPadDown(globalPadIndex)}
+                                onMouseUp={() => onPadUp(globalPadIndex)}
+                                onMouseLeave={() => onPadUp(globalPadIndex)}
                             />
                         );
                     })}

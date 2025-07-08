@@ -4,10 +4,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import * as Tone from 'tone';
 
 const SoundContext = createContext(null);
-
-export const useSound = () => {
-    return useContext(SoundContext);
-};
+export const useSound = () => useContext(SoundContext);
 
 // Map MIDI notes C1 through D#2 (16 notes) to the 16 provided TR-808 samples
 const tr808Kit = {
@@ -33,8 +30,8 @@ const tr808Kit = {
 export const PAD_TO_NOTE_MAP = Object.keys(tr808Kit);
 
 export const SoundProvider = ({ children }) => {
-    const [isLoaded, setIsLoaded] = useState(false);
     const samplerRef = useRef(null);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         // Ensure Tone.js is started by a user interaction
@@ -60,18 +57,17 @@ export const SoundProvider = ({ children }) => {
     }, []);
 
     const playSound = (note) => {
-        if (isLoaded && samplerRef.current && note) {
-            // Log the sound being played for debugging
-            // console.log(`[Sound] Playing note: ${note}`);
+        if (samplerRef.current) {
             samplerRef.current.triggerAttack(note);
         }
     };
 
-    const value = { playSound };
-    
-    return (
-        <SoundContext.Provider value={value}>
-            {children}
-        </SoundContext.Provider>
-    );
+    const stopSound = (note) => {
+        if (samplerRef.current) {
+            samplerRef.current.triggerRelease(note);
+        }
+    };
+
+    const value = { playSound, stopSound }; // Export new function
+    return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;
 };

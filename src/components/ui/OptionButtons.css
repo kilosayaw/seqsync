@@ -1,7 +1,8 @@
 /* src/components/ui/OptionButtons.css */
 .option-buttons-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    /* DEFINITIVE FIX: 8 columns */
+    grid-template-columns: repeat(8, 1fr);
     gap: var(--spacing-xs);
     height: 35px;
     flex-shrink: 0;
