@@ -1,9 +1,8 @@
 // src/components/ui/SoundBankPanel.jsx
 
 import React from 'react';
-import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
-import { PAD_TO_NOTE_MAP } from '../../context/SoundContext';
+import { useSound, PAD_TO_NOTE_MAP } from '../../context/SoundContext';
 import classNames from 'classnames';
 import './SoundBankPanel.css';
 
@@ -18,14 +17,16 @@ const SOUND_CATEGORIES = {
 };
 
 const SoundBankPanel = () => {
-    const { activePanel, setActivePanel, activePad, showNotification, selectedBar } = useUIState();
-    const { songData, setSongData, clearSoundsFromPad, STEPS_PER_BAR } = useSequence();
-
+    // All state now comes from useSequence
+    const { activePanel, setActivePanel, selectedBeat, showNotification, songData, assignSoundToPad, clearSoundsFromPad } = useSequence();
     const isVisible = activePanel === 'sound';
+    
+    // Logic remains the same but uses new state management
+    const activeBeatData = selectedBeat !== null ? songData.bars[Math.floor(selectedBeat/16)]?.beats[selectedBeat%16] : null;
+    const activePadSounds = activeBeatData?.sounds || [];
 
     // This logic correctly gets the sounds for the active pad, regardless of the current bar.
     const activePadData = activePad !== null ? songData[activePad] : null;
-    const activePadSounds = activePadData?.sounds || [];
 
     const handleAssignKit = (kitName) => {
         const kitSounds = KITS[kitName];

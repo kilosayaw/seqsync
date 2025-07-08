@@ -1,24 +1,26 @@
 // src/components/ui/PerformancePad.jsx
 import React from 'react';
-import classNames from 'classnames';
-import { useUIState } from '../../context/UIStateContext';
+import { useSequence } from '../../context/SequenceContext';
 import './PerformancePad.css';
 
-const PerformancePad = ({ padIndex, beatNum, isPulsing, onMouseDown }) => {
-    const { activePad } = useUIState();
-    const isSelected = activePad === padIndex;
+const PerformancePad = ({ padIndex, isPulsing, onPadClick, beatData }) => {
+    const { selectedBeat } = useSequence();
+    const isSelected = selectedBeat === padIndex;
+    const hasPose = beatData?.pose;
 
-    const padClasses = classNames('performance-pad', {
-        'pulsing': isPulsing,
-        'selected': isSelected,
-    });
+    const classes = [
+        'performance-pad',
+        isSelected ? 'selected' : '',
+        isPulsing ? 'pulsing' : '',
+        hasPose ? 'has-data' : '',
+    ].filter(Boolean).join(' ');
 
     return (
         <button 
-            className={padClasses} 
-            onMouseDown={onMouseDown}
+            className={classes}
+            onMouseDown={() => onPadClick(padIndex)}
         >
-            {beatNum}
+            {padIndex + 1}
         </button>
     );
 };

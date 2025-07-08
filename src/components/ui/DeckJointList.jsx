@@ -1,56 +1,41 @@
 // src/components/ui/DeckJointList.jsx
 import React from 'react';
-import { useUIState } from '../../context/UIStateContext';
+import { useSequence } from '../../context/SequenceContext';
 import { JOINT_LIST } from '../../utils/constants';
 import { useLongPress } from '../../hooks/useLongPress';
 import CircularBpmControl from './CircularBpmControl';
-import './DeckJointList.css';
+import styles from './DeckJointList.module.css';
 
 const DeckJointList = ({ side }) => {
-    const { editMode, setEditMode } = useUIState();
+    const { mixerState, setMixerState, selectedJoint, setSelectedJoint } = useSequence();
+    const editMode = mixerState.editMode || 'none';
     const sideKey = side.charAt(0).toUpperCase();
     const jointsForSide = JOINT_LIST.filter(j => j.id.startsWith(sideKey));
 
     return (
-        <div className="deck-joint-list-container">
-            <div className="joint-buttons-wrapper">
+        <div className={styles.deckJointListContainer}>
+            <div className={styles.jointButtonsWrapper}>
                 {jointsForSide.map(joint => {
                     const isFootButton = joint.id.endsWith('F');
                     const isSelected = isFootButton && (editMode === side || editMode === 'both');
 
-                    const handleShortClick = () => {
-                        const newMode = editMode === side ? 'none' : side;
-                        console.log(`[Joints] Foot short-clicked. Setting editMode to: ${newMode}`);
-                        setEditMode(newMode);
-                    };
-                    
-                    const handleLongPress = () => {
-                        console.log('[Joints] Foot long-pressed. Setting editMode to: both');
-                        setEditMode('both');
-                    };
-
-                    const handleRegularClick = () => {
-                        console.log(`[Joints] Regular joint ${joint.id} clicked.`);
-                        // Future logic for selecting non-foot joints would go here
-                    };
+                    const handleShortClick = () => setMixerState(s => ({ ...s, editMode: s.editMode === side ? 'none' : side }));
+                    const handleLongPress = () => setMixerState(s => ({ ...s, editMode: 'both' }));
+                    const handleRegularClick = () => setSelectedJoint(prev => (prev === joint.id ? null : joint.id));
 
                     const longPressEvents = isFootButton ? useLongPress(handleShortClick, handleLongPress) : {};
                     const regularClickEvent = !isFootButton ? { onClick: handleRegularClick } : {};
                     
                     return (
-                        <button key={joint.id} className={`joint-list-btn ${isSelected ? 'selected' : ''}`}
+                        <button key={joint.id} className={`${styles.jointListBtn} ${(isSelected || selectedJoint === joint.id) ? styles.selected : ''}`}
                             {...longPressEvents}
-                            {...regularClickEvent} >
+                            {...regularClickEvent}>
                             {joint.id}
                         </button>
                     );
                 })}
             </div>
-            {side === 'right' && (
-                <div className="bpm-control-wrapper">
-                    <CircularBpmControl />
-                </div>
-            )}
+            {side === 'right' && ( <div className={styles.bpmControlWrapper}><CircularBpmControl /></div> )}
         </div>
     );
 };

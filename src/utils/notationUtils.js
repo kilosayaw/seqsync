@@ -15,13 +15,13 @@ export const resolveNotationFromPoints = (pointsSet, side) => {
     return notation;
 };
 
-export const getPointsFromNotation = (notation) => {
+export const getPointsFromNotation = (notation, side) => {
     const points = new Set();
     if (!notation || notation.endsWith('0')) return points;
-    const side = notation.charAt(0).toUpperCase();
-    if (!FOOT_HOTSPOT_COORDINATES[side]) return points;
+    const sideKey = side.charAt(0).toUpperCase();
+    if (!FOOT_HOTSPOT_COORDINATES[sideKey]) return points;
     if (notation.endsWith('123T12345')) {
-        return new Set(FOOT_HOTSPOT_COORDINATES[side].map(p => p.notation));
+        return new Set(FOOT_HOTSPOT_COORDINATES[sideKey].map(p => p.notation));
     }
     const remainder = notation.substring(2);
     const [ballHeelPart = '', toePart = ''] = remainder.split('T');
@@ -43,23 +43,17 @@ export const formatFullNotation = (beatData, currentTime) => {
     if (!beatData || !beatData.joints) {
         return `poSĒQr™ | ${formatTime(currentTime || 0)} | 01 | LF123T12345 | RF123T12345`;
     }
-
     const { bar, joints } = beatData;
     const timeStr = formatTime(currentTime || 0);
     const barStr = String(bar).padStart(2, '0');
     
     const formatJoint = (joint) => {
         if (!joint || !joint.grounding) return '--';
-        
-        if (joint.grounding.endsWith('0')) {
-             return `${joint.grounding.slice(0, 2)}000°`;
-        }
-        // This format now correctly adds the @ symbol.
+        if (joint.grounding.endsWith('0')) return `${joint.grounding.slice(0, 2)}000°`;
         return `${joint.grounding}@${Math.round(joint.angle || 0)}°`;
     };
 
     const lfNotation = formatJoint(joints.LF);
     const rfNotation = formatJoint(joints.RF);
-
     return `poSĒQr™ | ${timeStr} | ${barStr} | ${lfNotation} | ${rfNotation}`;
 };

@@ -1,27 +1,26 @@
 // src/components/ui/BarBeatDisplay.jsx
-
 import React from 'react';
-import DigitalDisplay from './DigitalDisplay';
-import { usePlayback } from '../../context/PlaybackContext';
-import { useUIState } from '../../context/UIStateContext';
-import { formatTime } from '../../utils/notationUtils';
-import './BarBeatDisplay.css';
+import { useSequence } from '../../context/SequenceContext';
+import { useMedia } from '../../context/MediaContext';
+import styles from './BarBeatDisplay.module.css';
 
 const BarBeatDisplay = () => {
-    const { currentTime, isPlaying, currentBar, currentBeat } = usePlayback();
-    const { selectedBar } = useUIState();
-
-    const displayBar = isPlaying ? currentBar : selectedBar;
-    // When paused, the "BEAT" display will be blank. It only shows a value during playback.
-    const displayBeat = isPlaying ? currentBeat + 1 : " "; 
+    // All state from new hooks
+    const { currentBar, totalBars, goToPrevBar, goToNextBar } = useSequence();
+    const { currentBeat, bpm } = useMedia();
 
     return (
-        <div className="bar-beat-display-container">
-            <DigitalDisplay label="BAR" value={String(displayBar).padStart(2, '0')} />
-            <DigitalDisplay label="TIME" value={formatTime(currentTime)} className="time-display" />
-            <DigitalDisplay label="BEAT" value={typeof displayBeat === 'number' ? String(displayBeat).padStart(2, '0') : displayBeat} />
+        <div className={styles.container}>
+            <div className={styles.barDisplay}>
+                <button onClick={goToPrevBar} disabled={currentBar <= 1} className={styles.navButton}>{'<'}</button>
+                <div className={styles.barText}>BAR <span className={styles.barNumber}>{String(currentBar).padStart(2, '0')}</span> / {totalBars}</div>
+                <button onClick={goToNextBar} disabled={currentBar >= totalBars} className={styles.navButton}>{'>'}</button>
+            </div>
+            <div className={styles.timeInfo}>
+                <div className={styles.beat}>BEAT: <span className={styles.value}>{currentBeat}</span></div>
+                <div className={styles.bpm}>BPM: <span className={styles.value}>{bpm}</span></div>
+            </div>
         </div>
     );
 };
-
 export default BarBeatDisplay;

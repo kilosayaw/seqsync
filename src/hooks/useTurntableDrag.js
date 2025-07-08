@@ -20,16 +20,17 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
     }, [initialAngle, isDragging]);
 
     const animate = useCallback(() => {
-        setAngle(prevAngle => {
-            const newAngle = prevAngle + velocityRef.current;
-            velocityRef.current *= FRICTION;
-            if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
-                cancelAnimationFrame(animationFrameRef.current);
-                if (onDragEnd) onDragEnd(newAngle);
+        animationFrameRef.current = requestAnimationFrame(() => {
+            setAngle(prevAngle => {
+                const newAngle = prevAngle + velocityRef.current;
+                velocityRef.current *= FRICTION;
+                if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
+                    if (onDragEnd) onDragEnd(newAngle);
+                    return newAngle;
+                }
+                animate(); // Continue animation
                 return newAngle;
-            }
-            animationFrameRef.current = requestAnimationFrame(animate);
-            return newAngle;
+            });
         });
     }, [onDragEnd]);
 
@@ -50,7 +51,7 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
         if (isDragging) {
             setIsDragging(false);
             if (Math.abs(velocityRef.current) > MIN_VELOCITY) {
-                animationFrameRef.current = requestAnimationFrame(animate);
+                animate();
             } else {
                 if (onDragEnd) onDragEnd(angle);
             }

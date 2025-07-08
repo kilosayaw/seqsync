@@ -1,23 +1,19 @@
 // src/components/ui/CircularBpmControl.jsx
 import React from 'react';
-import { usePlayback } from '../../context/PlaybackContext';
-import { useTapTempo } from '../../hooks/useTapTempo';
-import './CircularBpmControl.css';
+import { useMedia } from '../../context/MediaContext';
+import { useTapTempo } from '../../hooks/useTapTempo'; // Missing import added
+import styles from './CircularBpmControl.module.css';
 
 const CircularBpmControl = () => {
-    const { bpm, setBpm } = usePlayback();
-    
-    const handleBpmChange = (newBpm) => {
-        console.log(`[BPM] Tempo tapped. New BPM: ${newBpm}`);
-        setBpm(newBpm);
-    };
-
-    const { tap } = useTapTempo(handleBpmChange);
+    const { bpm, updateBpm } = useMedia();
+    const { tap } = useTapTempo(updateBpm); // Use the tap tempo hook
 
     return (
-        <button className="circular-bpm-button" onClick={tap} title="Tap Tempo">
-            <span className="circular-bpm-value">{String(Math.round(bpm))}</span>
-        </button>
+        <div className={styles.bpmControl} onClick={tap}>
+            <div className={styles.bpmDisplay}>{bpm}</div>
+            <div className={styles.label}>BPM</div>
+        </div>
     );
 };
+
 export default CircularBpmControl;

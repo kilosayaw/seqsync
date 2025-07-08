@@ -3,36 +3,30 @@ import React from 'react';
 import BarBeatDisplay from '../ui/BarBeatDisplay';
 import TransportControls from '../ui/TransportControls';
 import Crossfader from '../ui/Crossfader';
-import CameraFeed from '../ui/CameraFeed'; // Import CameraFeed
-import PoseOverlay from '../ui/PoseOverlay'; // Import PoseOverlay
-import { useUIState } from '../../context/UIStateContext';
+import MediaDisplay from '../media/MediaDisplay'; // Correct relative path
+import { useMedia } from '../../context/MediaContext';
+import { useSequence } from '../../context/SequenceContext';
 import './CenterConsole.css';
 
 const CenterConsole = () => {
-    const { preRollCount, notification, mixerState } = useUIState();
+    const { notification } = useSequence();
+    const { isCameraActive, toggleCamera, isMotionTrackingEnabled, toggleMotionTracking, mediaFile, isLoading, preRollCount } = useMedia();
 
-    let displayContent;
-    if (preRollCount > 0) {
-        displayContent = <span className="preroll-countdown">{preRollCount}</span>;
-    } else if (notification) {
-        displayContent = <span className="feed-notification">{notification}</span>;
-    } else if (!mixerState.cameraFeed) {
-        // Show default text if camera is off
-        displayContent = "CAMERA / VIDEO FEED";
-    }
+    let overlayContent = null;
+    if (preRollCount > 0) { overlayContent = <span className="preroll-countdown">{preRollCount}</span>; }
+    else if (notification) { overlayContent = <span className="feed-notification">{notification}</span>; }
+    else if (isLoading) { overlayContent = <span className="feed-notification">LOADING...</span>; }
+    else if (!mediaFile && !isCameraActive) { overlayContent = "UPLOAD MEDIA OR START CAMERA"; }
 
     return (
         <div className="center-console-container">
             <div className="video-feed-placeholder">
-                {/* Render the camera feed and overlay if the mixer track is ON */}
-                {mixerState.cameraFeed && (
-                    <>
-                        <CameraFeed />
-                        <PoseOverlay />
-                    </>
-                )}
-                {/* Render the text/notification content on top */}
-                {displayContent}
+                <MediaDisplay />
+                <div className="feed-overlay-content">{overlayContent}</div>
+            </div>
+            <div className="media-controls-bar">
+                <button onClick={toggleCamera} className={`media-toggle-button ${isCameraActive ? 'active' : ''}`} disabled={isLoading}>{isCameraActive ? 'CAMERA ON' : 'CAMERA OFF'}</button>
+                <button onClick={toggleMotionTracking} className={`media-toggle-button ${isMotionTrackingEnabled ? 'active' : ''}`} disabled={isLoading}>{isMotionTrackingEnabled ? 'OVERLAY ON' : 'OVERLAY OFF'}</button>
             </div>
             <div className="center-controls-group">
                 <BarBeatDisplay />

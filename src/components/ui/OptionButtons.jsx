@@ -1,11 +1,11 @@
 // src/components/ui/OptionButtons.jsx
 import React from 'react';
-import { useUIState } from '../../context/UIStateContext';
+import { useSequence } from '../../context/SequenceContext';
 import classNames from 'classnames';
-import './OptionButtons.css';
+import styles from './OptionButtons.module.css';
 
 const OptionButtons = ({ side }) => {
-    const { noteDivision, setNoteDivision, activePanel, setActivePanel } = useUIState();
+    const { noteDivision, setNoteDivision, activePanel, setActivePanel } = useSequence();
 
     const handleNoteDivisionCycle = () => {
         const divisions = [16, 8, 4];
@@ -14,23 +14,14 @@ const OptionButtons = ({ side }) => {
         setNoteDivision(divisions[nextIndex]);
     };
     
-    const handlePanelToggle = (panelName) => {
-        setActivePanel(prev => prev === panelName ? 'none' : panelName);
-    };
+    const handlePanelToggle = (panelName) => { setActivePanel(prev => prev === panelName ? 'none' : panelName); };
 
     if (side === 'left') {
         return (
             <div className="option-buttons-container">
-                <button className="option-btn" onClick={handleNoteDivisionCycle}>
-                    1/{noteDivision}
-                </button>
-                <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>
-                    SOUND
-                </button>
-                {/* DEFINITIVE FIX: Mixer is now button 3 */}
-                <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>
-                    MIXER
-                </button>
+                <button className="option-btn" onClick={handleNoteDivisionCycle}>1/{noteDivision}</button>
+                <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>SOUND</button>
+                <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>MIXER</button>
                 <div className="option-btn-slot" />
             </div>
         );

@@ -1,40 +1,35 @@
 // src/components/ui/Pads.jsx
-
 import React from 'react';
 import PerformancePad from './PerformancePad';
-import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
-import { usePlayback } from '../../context/PlaybackContext';
+import { useMedia } from '../../context/MediaContext';
 import './Pads.css';
 
-// MODIFIED: Now receives onPadClick as a prop
 const Pads = ({ side, onPadClick }) => {
-    const { selectedBar } = useUIState();
-    const { STEPS_PER_BAR } = useSequence();
-    const { isPlaying, currentBar, currentBeat } = usePlayback();
+    const { songData, currentBar: selectedBar } = useSequence();
+    const { isPlaying, currentBar, currentBeat } = useMedia();
     
-    const padOffset = side === 'left' ? 0 : STEPS_PER_BAR / 2;
+    const padOffset = side === 'left' ? 0 : 8;
+    const currentBarData = songData.bars[selectedBar - 1];
 
     return (
         <div className="pads-container">
-            {Array.from({ length: STEPS_PER_BAR / 2 }).map((_, i) => {
+            {Array.from({ length: 8 }).map((_, i) => {
                 const padIndexInBar = padOffset + i;
-                const displayNumber = padIndexInBar + 1;
-                const isPulsing = isPlaying && selectedBar === currentBar && padIndexInBar === currentBeat;
+                const beatData = currentBarData?.beats[padIndexInBar];
+                const isPulsing = isPlaying && selectedBar === currentBar && (padIndexInBar + 1) === currentBeat;
                 
                 return (
                     <PerformancePad
                         key={`${side}-${padIndexInBar}`}
-                        padIndex={padIndexInBar} 
-                        beatNum={displayNumber}
+                        padIndex={padIndexInBar}
                         isPulsing={isPulsing}
-                        // MODIFIED: Calls the function passed down from the parent (RightDeck)
-                        onMouseDown={() => onPadClick(padIndexInBar)}
+                        onPadClick={onPadClick}
+                        beatData={beatData}
                     />
                 );
             })}
         </div>
     );
 };
-
 export default Pads;

@@ -1,11 +1,11 @@
 // src/components/ui/SourceMixerPanel.jsx
 import React from 'react';
-import { useUIState } from '../../context/UIStateContext';
+import { useSequence } from '../../context/SequenceContext';
 import classNames from 'classnames';
 import './SourceMixerPanel.css';
 
 const SourceMixerPanel = () => {
-    const { activePanel, setActivePanel, mixerState, setMixerState } = useUIState();
+    const { activePanel, setActivePanel, mixerState, setMixerState } = useSequence();
 
     const isVisible = activePanel === 'mixer';
 
