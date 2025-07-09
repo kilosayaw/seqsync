@@ -1,10 +1,12 @@
 // src/components/ui/RotaryController/RotaryController.jsx
+
 import React, { useCallback } from 'react';
 import { useUIState } from '../../../context/UIStateContext';
 import { useSequence } from '../../../context/SequenceContext';
 import { usePlayback } from '../../../context/PlaybackContext';
 import { getPointsFromNotation, resolveNotationFromPoints } from '../../../utils/notationUtils';
-import { useDampedTurntableDrag } from '../../../hooks/useDampedTurntableDrag';
+// DEFINITIVE FIX: Import the correctly named hook from the correct file.
+import { useTurntableDrag } from '../../../hooks/useTurntableDrag'; 
 import RotarySVG from './RotarySVG';
 import './RotaryController.css';
 
@@ -19,43 +21,40 @@ const RotaryController = ({ deckId }) => {
     const globalIndex = ((selectedBar - 1) * STEPS_PER_BAR) + beatIndexToDisplay;
     const currentBeatData = songData[globalIndex] || { joints: { [jointId]: { grounding: `${jointId}0`, angle: 0 } } };
     const initialAngle = currentBeatData.joints[jointId]?.angle || 0;
-    const currentGrounding = currentBeatData.joints[jointId]?.grounding || `${jointId}0`;
-    const activePoints = getPointsFromNotation(currentGrounding);
+    const activePoints = getPointsFromNotation(currentBeatData.joints[jointId]?.grounding);
     const isEditing = editMode === side || editMode === 'both';
 
-    // This function is now called LIVE during the drag
-    const handleAngleChange = useCallback((newAngle) => {
-        if (isEditing && activePad !== null) {
-            const indexToUpdate = ((selectedBar - 1) * STEPS_PER_BAR) + activePad;
-            updateJointData(indexToUpdate, jointId, { angle: newAngle });
-        }
-    }, [activePad, isEditing, jointId, selectedBar, STEPS_PER_BAR, updateJointData]);
-    
-    // This function is now called ONLY when the spin stops
     const handleDragEnd = useCallback((finalAngle) => {
-        if (isEditing && activePad !== null) {
-            console.log(`[Rotary] Drag ended for ${jointId}. Final angle: ${finalAngle.toFixed(2)}`);
+        if (!isEditing || activePad === null) {
+            return;
         }
-    }, [activePad, isEditing, jointId]);
+        console.log(`[Rotary] Drag ended for ${jointId}. Saving final angle: ${finalAngle.toFixed(2)} to Pad ${activePad + 1}`);
+        const indexToUpdate = activePad;
+        updateJointData(indexToUpdate, jointId, { angle: finalAngle });
+    }, [activePad, isEditing, jointId, updateJointData]);
 
-    const { angle, handleMouseDown } = useDampedTurntableDrag(initialAngle, handleAngleChange, handleDragEnd);
+    // This now correctly calls the hook we have in our project.
+    const { angle, handleMouseDown } = useTurntableDrag(initialAngle, handleDragEnd);
 
-    const handleHotspotClick = (shortNotation) => {
+    const handleHotspotClick = useCallback((shortNotation) => {
         if (!isEditing) return;
         if (activePad === null) {
             showNotification("Please select a pad (1-16) to edit.");
             return;
         }
-        
-        const indexToUpdate = ((selectedBar - 1) * STEPS_PER_BAR) + activePad;
-        const newActivePoints = new Set(activePoints);
+        const indexToUpdate = activePad;
+        const currentPoints = getPointsFromNotation(songData[indexToUpdate]?.joints?.[jointId]?.grounding);
+        const newActivePoints = new Set(currentPoints);
 
-        if (newActivePoints.has(shortNotation)) newActivePoints.delete(shortNotation);
-        else newActivePoints.add(shortNotation);
+        if (newActivePoints.has(shortNotation)) {
+            newActivePoints.delete(shortNotation);
+        } else {
+            newActivePoints.add(shortNotation);
+        }
         
         const newGroundingNotation = resolveNotationFromPoints(newActivePoints, side);
         updateJointData(indexToUpdate, jointId, { grounding: newGroundingNotation });
-    };
+    }, [isEditing, activePad, showNotification, songData, jointId, side, updateJointData]);
 
     return (
         <div className="rotary-controller-container">

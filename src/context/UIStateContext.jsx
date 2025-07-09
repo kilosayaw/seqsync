@@ -3,6 +3,14 @@ import React, { createContext, useContext, useState } from 'react';
 
 const UIStateContext = createContext(null);
 
+const initialMixerState = {
+    kitSounds: true,
+    uploadedMedia: true,
+    cameraFeed: false,
+    motionOverlay: false,
+    motionOverlayOpacity: 0.5,
+};
+
 export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
     const [activePad, setActivePad] = useState(null);
@@ -11,6 +19,7 @@ export const UIStateProvider = ({ children }) => {
     const [activePanel, setActivePanel] = useState('none');
     const [notification, setNotification] = useState(null);
     const [selectedJoints, setSelectedJoints] = useState([]);
+    const [mixerState, setMixerState] = useState(initialMixerState);
 
     const showNotification = (message) => {
         setNotification(message);
@@ -24,8 +33,8 @@ export const UIStateProvider = ({ children }) => {
         noteDivision, setNoteDivision,
         activePanel, setActivePanel,
         selectedJoints, setSelectedJoints,
-        notification,
-        showNotification,
+        mixerState, setMixerState,
+        notification, showNotification,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;

@@ -4,38 +4,39 @@ import { useUIState } from '../../context/UIStateContext';
 import classNames from 'classnames';
 import './OptionButtons.css';
 
-const OptionButtons = () => {
+const OptionButtons = ({ side }) => {
     const { noteDivision, setNoteDivision, padMode, setPadMode, activePanel, setActivePanel } = useUIState();
 
     const handleNoteDivisionCycle = () => {
         const divisions = [16, 8, 4];
-        const currentIndex = divisions.indexOf(noteDivision);
-        const nextIndex = (currentIndex + 1) % divisions.length;
-        setNoteDivision(divisions[nextIndex]);
+        setNoteDivision(d => divisions[(divisions.indexOf(d) + 1) % divisions.length]);
     };
+    const handlePadModeToggle = () => setPadMode(p => p === 'TRIGGER' ? 'GATE' : 'TRIGGER');
+    const handlePanelToggle = (panel) => setActivePanel(p => p === panel ? 'none' : panel);
+
+    // DEFINITIVE FIX: Render a different set of buttons based on the 'side' prop.
+    if (side === 'left') {
+        return (
+            <div className="option-buttons-container">
+                <button className="option-btn" onClick={handleNoteDivisionCycle}>1/{noteDivision}</button>
+                <button className="option-btn" onClick={handlePadModeToggle}>{padMode}</button>
+                <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>SOUND</button>
+                <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>MIXER</button>
+            </div>
+        );
+    }
     
-    const handlePanelToggle = (panelName) => {
-        setActivePanel(prev => prev === panelName ? 'none' : panelName);
-    };
+    if (side === 'right') {
+        return (
+            <div className="option-buttons-container">
+                <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>FOOT</button>
+                <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>POSE</button>
+                <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>ABBR</button>
+                <div className="option-btn-slot" /> {/* Option 8 is open */}
+            </div>
+        );
+    }
 
-    const handlePadModeToggle = () => {
-        setPadMode(prev => prev === 'TRIGGER' ? 'GATE' : 'TRIGGER');
-    };
-
-    return (
-        <div className="option-buttons-container">
-            {/* Options 1-4 */}
-            <button className="option-btn" onClick={handleNoteDivisionCycle}>1/{noteDivision}</button>
-            <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>SOUND</button>
-            <button className="option-btn" onClick={handlePadModeToggle}>{padMode}</button>
-            <div className="option-btn-slot" />
-            
-            {/* Options 5-8 */}
-            <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>FOOT</button>
-            <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>POSE</button>
-            <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>ABBR</button>
-            <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>MIXER</button>
-        </div>
-    );
+    return null; // Should not happen
 };
 export default OptionButtons;

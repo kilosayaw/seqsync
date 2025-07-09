@@ -1,0 +1,12 @@
+/* src/components/ui/DirectionalControls.css */
+.directional-controls-container {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+.dir-btn {
+    flex: 1;
+    padding: var(--spacing-sm);
+    font-size: 0.8rem;
+    font-weight: bold;
+}
