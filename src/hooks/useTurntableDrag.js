@@ -74,7 +74,6 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
         const dx = e.clientX - centerRef.current.x;
         const dy = e.clientY - centerRef.current.y;
         lastMouseAngleRef.current = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
-        
     }, []);
 
     useEffect(() => {

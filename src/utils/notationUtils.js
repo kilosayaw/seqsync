@@ -1,6 +1,7 @@
 // src/utils/notationUtils.js
 import { FOOT_HOTSPOT_COORDINATES } from './constants';
 
+// --- Grounding Notation ---
 export const resolveNotationFromPoints = (pointsSet, side) => {
     const sideKey = side.charAt(0).toUpperCase();
     const sidePrefix = `${sideKey}F`;
@@ -30,10 +31,9 @@ export const getPointsFromNotation = (notation) => {
     return points;
 };
 
+// --- Display Formatting ---
 export const formatTime = (seconds) => {
-    if (isNaN(seconds) || seconds < 0) {
-        return '00:00:00';
-    }
+    if (isNaN(seconds) || seconds < 0) return '00:00:00';
     const time = new Date((seconds || 0) * 1000);
     const minutes = String(time.getUTCMinutes()).padStart(2, '0');
     const secs = String(time.getUTCSeconds()).padStart(2, '0');
@@ -45,21 +45,50 @@ export const formatFullNotation = (beatData, currentTime) => {
     if (!beatData || !beatData.joints) {
         return `poSĒQr™ | ${formatTime(currentTime || 0)} | 01 | LF123T12345 | RF123T12345`;
     }
-
     const { bar, joints } = beatData;
     const timeStr = formatTime(currentTime || 0);
     const barStr = String(bar).padStart(2, '0');
     
     const formatJoint = (joint) => {
         if (!joint || !joint.grounding) return '--';
-        if (joint.grounding.endsWith('0')) {
-             return `${joint.grounding.slice(0, 2)}000°`;
-        }
+        if (joint.grounding.endsWith('0')) return `${joint.grounding.slice(0, 2)}000°`;
         return `${joint.grounding}@${Math.round(joint.angle || 0)}°`;
     };
 
     const lfNotation = formatJoint(joints.LF);
     const rfNotation = formatJoint(joints.RF);
-
     return `poSĒQr™ | ${timeStr} | ${barStr} | ${lfNotation} | ${rfNotation}`;
+};
+
+// --- Pose Data Transformation (from poseUtils.js) ---
+const BLAZEPOSE_TO_SEQSYNC_MAP = {
+    'nose': 'N', 'left_eye': 'LE', 'right_eye': 'RE', 'left_ear': 'LEAR', 'right_ear': 'REAR',
+    'left_shoulder': 'LS', 'right_shoulder': 'RS', 'left_elbow': 'LE', 'right_elbow': 'RE',
+    'left_wrist': 'LW', 'right_wrist': 'RW', 'left_hip': 'LH', 'right_hip': 'RH',
+    'left_knee': 'LK', 'right_knee': 'RK', 'left_ankle': 'LA', 'right_ankle': 'RA',
+};
+
+export const transformBlazePoseToSEQSour = (blazePose, videoWidth, videoHeight) => {
+    if (!blazePose || !blazePose.keypoints || !videoWidth || !videoHeight) return null;
+    const jointInfo = {};
+    blazePose.keypoints.forEach(keypoint => {
+        const jointName = BLAZEPOSE_TO_SEQSYNC_MAP[keypoint.name];
+        if (jointName) {
+            jointInfo[jointName] = {
+                vector: {
+                    x: -( (keypoint.x / videoWidth) * 2 - 1 ),
+                    y: -( (keypoint.y / videoHeight) * 2 - 1 ),
+                    z: keypoint.z || 0,
+                },
+                score: keypoint.score,
+                orientation: 'NEU',
+            };
+        }
+    });
+    return {
+        id: `pose_${Date.now()}`,
+        timestamp: performance.now(),
+        jointInfo: jointInfo,
+        score: blazePose.score
+    };
 };
