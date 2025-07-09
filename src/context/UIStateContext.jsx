@@ -1,5 +1,5 @@
 // src/context/UIStateContext.jsx
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useRef } from 'react';
 
 const UIStateContext = createContext(null);
 
@@ -16,6 +16,9 @@ export const UIStateProvider = ({ children }) => {
     const [activePad, setActivePadState] = useState(null);
     const [animationState, setAnimationState] = useState('idle');
     const previousActivePadRef = useRef(null);
+    const [animationRange, setAnimationRange] = useState({ start: null, end: null });
+
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
     
     // Other states
     const [editMode, setEditMode] = useState('none');
@@ -38,10 +41,20 @@ export const UIStateProvider = ({ children }) => {
     };
 
     const triggerAnimation = () => {
-        const startPad = previousActivePadRef.current;
-        const endPad = activePad;
+        // This function will now only be used for the momentary animation
+        let startPad, endPad;
+
+        if (activePad !== null) {
+            startPad = previousActivePadRef.current;
+            endPad = activePad;
+        } else {
+            const barStartIndex = (selectedBar - 1) * 16;
+            startPad = barStartIndex;
+            endPad = barStartIndex + 1;
+        }
 
         if (startPad !== null && endPad !== null && startPad !== endPad) {
+            setAnimationRange({ start: startPad, end: endPad });
             setAnimationState('playing');
             setTimeout(() => setAnimationState('idle'), 500); 
         } else {
@@ -49,11 +62,16 @@ export const UIStateProvider = ({ children }) => {
         }
     };
 
+    const togglePreviewMode = () => {
+        setIsPreviewMode(prev => !prev);
+    };
+
     const value = {
         selectedBar, setSelectedBar,
         activePad, setActivePad,
-        previousActivePad: previousActivePadRef.current,
         animationState, triggerAnimation,
+        animationRange,
+        isPreviewMode, togglePreviewMode, // Export the new state and toggle function
         editMode, setEditMode,
         noteDivision, setNoteDivision,
         padMode, setPadMode,

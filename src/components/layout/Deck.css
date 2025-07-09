@@ -31,32 +31,39 @@
     grid-template-areas: "fader main-col joints";
 }
 
+/* 
+  DEFINITIVE FIX: Changed from flex to grid for precise vertical alignment.
+  - `grid-template-rows: auto 1fr;` allocates just enough space for the top directional
+    buttons (`auto`) and gives all remaining space to the interactive area (`1fr`).
+*/
 .deck-main-column {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto 1fr; /* This is the key change */
     gap: var(--spacing-md);
     min-height: 0;
     min-width: 0;
 }
 
-.deck-interactive-area {
-    flex-grow: 1; 
+/*
+  DEFINITIVE FIX: This container now also uses flexbox to perfectly center
+  its child (the square interactive area).
+*/
+.deck-interactive-area-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     min-height: 0;
+}
+
+.deck-interactive-area {
     display: grid;
     grid-template-rows: 1fr 1fr; 
     gap: var(--spacing-md);
     aspect-ratio: 1 / 1;
-    align-self: center; 
-    width: 100%; 
+    width: 100%;
     max-width: 400px;
-    margin: 0 auto; 
 }
 
-/*
-  DEFINITIVE FIX: The turntable group is now a grid to position the controller
-  on the left, leaving space on the right. It is no longer a flex container
-  for centering the entire controller.
-*/
 .turntable-group {
     min-width: 0;
     min-height: 0;
@@ -65,24 +72,36 @@
     padding: var(--spacing-sm);
     border: 1px solid var(--color-border);
     position: relative; 
-    display: grid; /* CHANGED from flex */
-    grid-template-columns: 1fr 1fr; /* Create two columns for the zoned layout */
-    align-items: center; /* Vertically align items in the grid cells */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
 }
 
-/*
-  DEFINITIVE FIX: The rotary controller now lives in the first grid column.
-  Its internal flex properties will center the SVG within that column.
-*/
 .rotary-controller-container {
-    grid-column: 1 / 2; /* Place it in the left column */
-    display: flex; /* Use flex to center the SVG inside me */
+    grid-column: 1 / -1; /* Make the controller span both columns to be centered */
+    display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
     height: 100%;
     min-height: 0;
 }
+
+/* Overlays should also span the entire grid area */
+.editor-overlays {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none; /* Let clicks pass through */
+}
+
+/* The XYZ grid inside the overlay needs to allow pointer events */
+.editor-overlays > * {
+    pointer-events: all;
+}
+
 
 .pads-group {
     background-color: var(--color-dark-surface-2);
@@ -99,7 +118,6 @@
     grid-column: 1 / -1; 
 }
 
-/* --- Edit Tool Placeholders --- */
 .edit-tool-placeholder {
     position: absolute;
     width: 40px;

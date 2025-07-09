@@ -1,13 +1,14 @@
 // src/utils/constants.js
 
 export const JOINT_LIST = [
+    { id: 'H', name: 'Head'}, // DEFINITIVE: Added Head joint
     { id: 'LS', name: 'LS' }, { id: 'RS', name: 'RS' },
     { id: 'LE', name: 'LE' }, { id: 'RE', name: 'RE' },
     { id: 'LW', name: 'LW' }, { id: 'RW', name: 'RW' },
     { id: 'LP', name: 'LP' }, { id: 'RP', name: 'RP' },
     { id: 'LH', name: 'LH' }, { id: 'RH', name: 'RH' },
     { id: 'LK', name: 'LK' }, { id: 'RK', name: 'RK' },
-    { id: 'LA', name: 'LA' }, { id: 'RA', name: 'RA' },
+    { id: 'LA', name: 'LA' }, { id: 'RA', 'name': 'RA' },
     { id: 'LF', name: 'LF' }, { id: 'RF', name: 'RF' },
 ];
 
@@ -19,6 +20,7 @@ export const BASE_FOOT_PATHS = {
 // DEFINITIVE: Added a default pose for initial rendering
 export const DEFAULT_POSE = {
     jointInfo: {
+        'H': { vector: { x: 0, y: 0.8, z: 0 }, score: 1, orientation: 'NEU' },
         'LS': { vector: { x: -0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU' },
         'RS': { vector: { x: 0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU' },
         'LE': { vector: { x: -0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU' },
@@ -36,14 +38,34 @@ export const DEFAULT_POSE = {
 
 // DEFINITIVE: More complete list of connections for a better stick figure
 export const POSE_CONNECTIONS = [
-    // Torso
-    ['LS', 'RS'], ['LH', 'RH'], ['LS', 'LH'], ['RS', 'RH'],
-    // Left Arm
-    ['LS', 'LE'], ['LE', 'LW'],
-    // Right Arm
-    ['RS', 'RE'], ['RE', 'RW'],
-    // Left Leg
-    ['LH', 'LK'], ['LK', 'LA'],
-    // Right Leg
-    ['RH', 'RK'], ['RK', 'RA']
+    ['H', 'LS'], ['H', 'RS'], // Head to shoulders
+    ['LS', 'RS'], ['LH', 'RH'], // Shoulders and Hips
+    ['LS', 'LH'], ['RS', 'RH'], // Torso
+    ['LS', 'LE'], ['LE', 'LW'], // Left Arm
+    ['RS', 'RE'], ['RE', 'RW'], // Right Arm
+    ['LH', 'LK'], ['LK', 'LA'], // Left Leg
+    ['RH', 'RK'], ['RK', 'RA']  // Right Leg
 ];
+
+export const FOOT_HOTSPOT_COORDINATES = {
+    L: [
+        { type: 'circle', notation: '3', cx: 276, cy: 403, r: 31 },
+        { type: 'circle', notation: '1', cx: 316, cy: 235, r: 31 },
+        { type: 'circle', notation: '2', cx: 231, cy: 276, r: 18 },
+        { type: 'ellipse', notation: 'T1', cx: 313, cy: 150, rx: 22, ry: 30, rotation: -17 },
+        { type: 'ellipse', notation: 'T2', cx: 265, cy: 153, rx: 13, ry: 16, rotation: -10 },
+        { type: 'ellipse', notation: 'T3', cx: 237, cy: 171, rx: 12, ry: 15, rotation: -25 },
+        { type: 'ellipse', notation: 'T4', cx: 215, cy: 197, rx: 11, ry: 14, rotation: -120 },
+        { type: 'ellipse', notation: 'T5', cx: 203, cy: 230, rx: 10, ry: 13, rotation: -25 },
+    ],
+    R: [
+        { type: 'circle', notation: '3', cx: 276, cy: 403, r: 31 },
+        { type: 'circle', notation: '1', cx: 233, cy: 235, r: 31 },
+        { type: 'circle', notation: '2', cx: 321, cy: 276, r: 18 },
+        { type: 'ellipse', notation: 'T1', cx: 236, cy: 150, rx: 22, ry: 30, rotation: 17 },
+        { type: 'ellipse', notation: 'T2', cx: 285, cy: 153, rx: 13, ry: 16, rotation: 10 },
+        { type: 'ellipse', notation: 'T3', cx: 313, cy: 170, rx: 11, ry: 15, rotation: 25 },
+        { type: 'ellipse', notation: 'T4', cx: 335, cy: 198, rx: 11, ry: 15, rotation: 35 },
+        { type: 'ellipse', notation: 'T5', cx: 347, cy: 230, rx: 11, ry: 14, rotation: 15 },
+    ]
+};

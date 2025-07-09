@@ -1,6 +1,6 @@
 // src/components/layout/ProLayout.jsx
 
-import React, { useRef } from 'react';
+import React from 'react';
 import TopNavBar from '../ui/TopNavBar';
 import WaveformNavigator from '../ui/WaveformNavigator';
 import NotationDisplay from '../ui/NotationDisplay';
@@ -11,23 +11,49 @@ import LoadingOverlay from '../ui/LoadingOverlay';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import SoundBankPanel from '../ui/SoundBankPanel';
 import SourceMixerPanel from '../ui/SourceMixerPanel';
-import { useKeyboardControls } from '../../hooks/useKeyboardControls';
+import { useKeyboardControls } from '../../hooks/useKeyboardControls'; // DEFINITIVE: Re-import hook
 import { useMedia } from '../../context/MediaContext';
-import OptionButtons from '../ui/OptionButtons';
+import { useUIState } from '../../context/UIStateContext';
+import { useSequence } from '../../context/SequenceContext';
+import { useSound } from '../../context/SoundContext';
+import { seekToPad } from '../../utils/notationUtils';
 import './ProLayout.css';
 
 const ProLayout = () => {
-    const { isLoading, pendingFile, confirmLoad, cancelLoad } = useMedia();
-    
-    // Refs to hold the trigger functions from each deck
-    const leftDeckTrigger = useRef(() => {});
-    const rightDeckTrigger = useRef(() => {});
+    const { isLoading, pendingFile, confirmLoad, cancelLoad, wavesurferInstance, duration, detectedBpm } = useMedia();
+    const { setActivePad, padMode, selectedBar, noteDivision } = useUIState();
+    const { songData, barStartTimes } = useSequence();
+    const { playSound, stopSound } = useSound();
 
-    // This hook listens for keyboard events and calls the appropriate deck's trigger function
-    useKeyboardControls(
-        (padIndex) => leftDeckTrigger.current(padIndex),
-        (padIndex) => rightDeckTrigger.current(padIndex)
-    );
+    // DEFINITIVE: Restore pad handling logic to the top-level component
+    const handlePadDown = (padIndex) => {
+        console.log(`[ProLayout] Pad Down: ${padIndex}`);
+        setActivePad(padIndex);
+        const soundNote = songData[padIndex]?.sounds?.[0];
+        if (soundNote) playSound(soundNote);
+
+        if (wavesurferInstance) {
+            seekToPad({
+                wavesurfer: wavesurferInstance,
+                duration,
+                bpm: detectedBpm,
+                padIndex,
+                bar: selectedBar,
+                barStartTimes,
+                noteDivision,
+            });
+        }
+    };
+
+    const handlePadUp = (padIndex) => {
+        if (padMode === 'GATE') {
+            const soundNote = songData[padIndex]?.sounds?.[0];
+            if (soundNote) stopSound(soundNote);
+        }
+    };
+    
+    // DEFINITIVE: Restore keyboard controls
+    useKeyboardControls(handlePadDown, handlePadUp);
 
     const mediaLoadActions = [
         { label: "Cue Mode Only", onClick: () => confirmLoad('cue_only'), className: 'confirm-btn' },
@@ -40,15 +66,13 @@ const ProLayout = () => {
             <TopNavBar />
             <WaveformNavigator />
             <NotationDisplay />
-            <div className="options-bar">
-                <OptionButtons />
-            </div>
+            
             <main className="main-content-area">
-                {/* Each deck receives a function to "register" its handler with the ProLayout */}
-                <LeftDeck registerPadTrigger={(handler) => (leftDeckTrigger.current = handler)} />
+                <LeftDeck onPadDown={handlePadDown} onPadUp={handlePadUp} />
                 <CenterConsole />
-                <RightDeck registerPadTrigger={(handler) => (rightDeckTrigger.current = handler)} />
+                <RightDeck onPadDown={handlePadDown} onPadUp={handlePadUp} />
             </main>
+
             {isLoading && <LoadingOverlay />}
             <ConfirmDialog
                 isVisible={!!pendingFile}

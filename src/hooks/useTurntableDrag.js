@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 const FRICTION = 0.95; 
 const MIN_VELOCITY = 0.05;
 
-export const useTurntableDrag = (initialAngle, onDragEnd) => {
+// DEFINITIVE: Added onDragMove callback to the hook's parameters
+export const useTurntableDrag = (initialAngle, onDragEnd, onDragMove) => {
     const [angle, setAngle] = useState(initialAngle);
     const [isDragging, setIsDragging] = useState(false);
     
@@ -12,9 +13,8 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
     const animationFrameRef = useRef();
     const centerRef = useRef({ x: 0, y: 0 });
     const lastMouseAngleRef = useRef(0);
-    const hasMovedRef = useRef(false); // DEFINITIVE: Track if a drag actually happened
+    const hasMovedRef = useRef(false);
 
-    // When the initialAngle prop changes (e.g., new pad selected), reset the visuals
     useEffect(() => {
         if (!isDragging) {
             setAngle(initialAngle);
@@ -41,7 +41,7 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
 
     const handleMouseMove = useCallback((e) => {
         if (!isDragging) return;
-        hasMovedRef.current = true; // Mark that a drag is happening
+        hasMovedRef.current = true;
         
         const dx = e.clientX - centerRef.current.x;
         const dy = e.clientY - centerRef.current.y;
@@ -51,10 +51,15 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
         if (delta < -180) delta += 360;
         else if (delta > 180) delta -= 360;
 
+        // DEFINITIVE: Call the onDragMove callback with the change in angle
+        if (onDragMove) {
+            onDragMove(delta);
+        }
+
         setAngle(prevAngle => prevAngle + delta);
         velocityRef.current = delta;
         lastMouseAngleRef.current = currentMouseAngle;
-    }, [isDragging]);
+    }, [isDragging, onDragMove]); // Add onDragMove to dependency array 
 
     const handleMouseUp = useCallback(() => {
         if (isDragging) {

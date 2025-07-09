@@ -5,20 +5,25 @@ import PropTypes from 'prop-types';
 import { POSE_CONNECTIONS, JOINT_LIST } from '../../utils/constants';
 
 function sketch(p5) {
+    // --- State Variables ---
     let startPose = null;
     let endPose = null;
     let animationState = 'idle';
     let highlightJoint = null;
     let canvasSize = { width: 300, height: 300 };
     let animationProgress = 0;
-    const animationDuration = 0.5; // seconds
+    const animationDuration = 0.5; // in seconds
 
+    // --- OPTIMIZATION: Pre-calculated Colors ---
+    let colors = {};
+
+    // --- Core P5 Functions ---
     p5.updateWithProps = props => {
         if (props.startPose) startPose = props.startPose;
         if (props.endPose) endPose = props.endPose;
         if (props.animationState) {
             if (props.animationState === 'playing' && animationState === 'idle') {
-                animationProgress = 0;
+                animationProgress = 0; // Reset animation on new play command
             }
             animationState = props.animationState;
         }
@@ -34,46 +39,70 @@ function sketch(p5) {
     p5.setup = () => {
         p5.createCanvas(canvasSize.width, canvasSize.height);
         p5.angleMode(p5.DEGREES);
+        
+        // OPTIMIZATION: Create color objects once to avoid recalculation in draw loop.
+        colors = {
+            highlight: p5.color('#FFDF00'), // Gold
+            in: p5.color('#ff5252'),         // Red
+            out: p5.color('#00b0ff'),        // Blue
+            neu: p5.color('#00e676'),        // Green
+            line: p5.color(255, 255, 255, 150) // White, semi-transparent
+        };
     };
 
     p5.draw = () => {
         p5.clear();
         
-        let poseToDraw;
-        if (animationState === 'playing' && startPose && endPose) {
+        const poseToDraw = calculateCurrentPose();
+        if (!poseToDraw) return;
+
+        drawSkeleton(poseToDraw);
+    };
+    
+    // --- Helper Functions ---
+    
+    function calculateCurrentPose() {
+        if (animationState === 'playing' && startPose?.jointInfo && endPose?.jointInfo) {
             animationProgress += p5.deltaTime / 1000;
             const t = p5.constrain(animationProgress / animationDuration, 0, 1);
             
-            poseToDraw = { jointInfo: {} };
+            const interpolatedPose = { jointInfo: {} };
             JOINT_LIST.forEach(({ id }) => {
-                const startJ = startPose.jointInfo?.[id];
-                const endJ = endPose.jointInfo?.[id];
+                // OPTIMIZATION & BUG FIX: Gracefully handle missing joints in either pose.
+                const startJ = startPose.jointInfo[id] || endPose.jointInfo[id];
+                const endJ = endPose.jointInfo[id] || startPose.jointInfo[id];
+
                 if (startJ && endJ) {
-                    poseToDraw.jointInfo[id] = {
+                    interpolatedPose.jointInfo[id] = {
                         vector: {
                             x: p5.lerp(startJ.vector.x, endJ.vector.x, t),
                             y: p5.lerp(startJ.vector.y, endJ.vector.y, t),
                             z: p5.lerp(startJ.vector.z || 0, endJ.vector.z || 0, t),
                         },
                         score: p5.lerp(startJ.score, endJ.score, t),
-                        orientation: endJ.orientation,
+                        orientation: endJ.orientation, // Snap to the target orientation
                     };
                 }
             });
-            if (t >= 1) animationState = 'idle';
-        } else {
-            poseToDraw = endPose || startPose;
+            
+            if (t >= 1) animationState = 'idle'; // End the animation
+            return interpolatedPose;
         }
+        // When not animating, prioritize drawing the end pose (the active pad)
+        return endPose || startPose;
+    }
 
-        if (!poseToDraw || !poseToDraw.jointInfo) return;
+    function drawSkeleton(pose) {
+        if (!pose?.jointInfo) return;
+        const { jointInfo } = pose;
 
-        const { jointInfo } = poseToDraw;
         const getCoords = (vector) => ({
             x: (vector.x + 1) / 2 * canvasSize.width,
             y: (-vector.y + 1) / 2 * canvasSize.height,
         });
 
-        p5.stroke(255, 255, 255, 150);
+        // Draw connections
+        p5.stroke(colors.line);
         p5.strokeWeight(3);
         POSE_CONNECTIONS.forEach(([startKey, endKey]) => {
             const startJ = jointInfo[startKey];
@@ -85,26 +114,28 @@ function sketch(p5) {
             }
         });
 
+        // Draw joints
         p5.noStroke();
         for (const key in jointInfo) {
             const joint = jointInfo[key];
             if (joint?.score > 0.5) {
                 const pos = getCoords(joint.vector);
                 const isHighlighted = key === highlightJoint;
-                let jointColor;
+                
+                let jointColor = colors.neu; // Default to neutral
                 if (isHighlighted) {
-                    jointColor = p5.color('#FFDF00');
+                    jointColor = colors.highlight;
                 } else {
                     const orientation = joint.orientation || 'NEU';
-                    if (orientation === 'IN') jointColor = p5.color('#ff5252');
-                    else if (orientation === 'OUT') jointColor = p5.color('#00b0ff');
-                    else jointColor = p5.color('#00e676');
+                    if (orientation === 'IN') jointColor = colors.in;
+                    else if (orientation === 'OUT') jointColor = colors.out;
                 }
+                
                 p5.fill(jointColor);
                 p5.circle(pos.x, pos.y, isHighlighted ? 16 : 10);
             }
         }
-    };
+    }
 }
 
 const P5SkeletalVisualizer = ({ startPose, endPose, animationState, highlightJoint, width, height }) => {

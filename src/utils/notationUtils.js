@@ -41,23 +41,34 @@ export const formatTime = (seconds) => {
     return `${minutes}:${secs}:${centiseconds}`;
 };
 
-export const formatFullNotation = (beatData, currentTime) => {
+export const formatFullNotation = (beatData, currentTime, barOverride) => {
     if (!beatData || !beatData.joints) {
         return `poSĒQr™ | ${formatTime(currentTime || 0)} | 01 | LF123T12345 | RF123T12345`;
     }
-    const { bar, joints } = beatData;
+    // DEFINITIVE FIX: Use the bar passed in, or calculate from beatData
+    const { joints, bar } = beatData;
     const timeStr = formatTime(currentTime || 0);
-    const barStr = String(bar).padStart(2, '0');
+    const barStr = String(barOverride || bar).padStart(2, '0');
     
-    const formatJoint = (joint) => {
-        if (!joint || !joint.grounding) return '--';
-        if (joint.grounding.endsWith('0')) return `${joint.grounding.slice(0, 2)}000°`;
-        return `${joint.grounding}@${Math.round(joint.angle || 0)}°`;
+    // DEFINITIVE FIX: Updated to show position for non-foot joints
+    const formatJoint = (joint, jointId) => {
+        if (!joint) return '--';
+        if (jointId.endsWith('F')) {
+            if (joint.grounding?.endsWith('0')) return `${joint.grounding.slice(0, 2)}000°`;
+            return `${joint.grounding || '--'}@${Math.round(joint.rotation || 0)}°`;
+        }
+        // For non-foot joints, show position
+        const pos = joint.position || [0,0,0];
+        return `P(${pos[0].toFixed(1)},${pos[1].toFixed(1)},${pos[2].toFixed(1)})`;
     };
 
-    const lfNotation = formatJoint(joints.LF);
-    const rfNotation = formatJoint(joints.RF);
-    return `poSĒQr™ | ${timeStr} | ${barStr} | ${lfNotation} | ${rfNotation}`;
+    const lfNotation = formatJoint(joints.LF, 'LF');
+    const rfNotation = formatJoint(joints.RF, 'RF');
+    // Add LS and RS for more context
+    const lsNotation = formatJoint(joints.LS, 'LS');
+    const rsNotation = formatJoint(joints.RS, 'RS');
+
+    return `poSĒQr™ | ${timeStr} | ${barStr} | ${lfNotation} | ${rfNotation} | ${lsNotation} | ${rsNotation}`;
 };
 
 // --- Pose Data Transformation (from poseUtils.js) ---
@@ -67,6 +78,7 @@ const BLAZEPOSE_TO_SEQSYNC_MAP = {
     'left_wrist': 'LW', 'right_wrist': 'RW', 'left_hip': 'LH', 'right_hip': 'RH',
     'left_knee': 'LK', 'right_knee': 'RK', 'left_ankle': 'LA', 'right_ankle': 'RA',
 };
+
 
 export const transformBlazePoseToSEQSour = (blazePose, videoWidth, videoHeight) => {
     if (!blazePose || !blazePose.keypoints || !videoWidth || !videoHeight) return null;
@@ -91,4 +103,27 @@ export const transformBlazePoseToSEQSour = (blazePose, videoWidth, videoHeight) 
         jointInfo: jointInfo,
         score: blazePose.score
     };
+};
+
+export const seekToPad = (params) => {
+    const { wavesurfer, duration, bpm, padIndex, bar, barStartTimes, noteDivision } = params;
+
+    if (!wavesurfer || padIndex === null || bar === null || !barStartTimes || !barStartTimes.length || bpm <= 0) {
+        return;
+    }
+
+    const STEPS_PER_BAR = 16;
+    const barStartTime = barStartTimes[bar - 1] || 0;
+    const stepMultiplier = STEPS_PER_BAR / noteDivision;
+    const padOffsetInSixteenths = (padIndex % noteDivision) * stepMultiplier;
+    
+    // Time for a single sixteenth note
+    const timePerSixteenth = (60 / bpm) / 4; 
+    const padOffsetTime = padOffsetInSixteenths * timePerSixteenth;
+    
+    const finalTime = barStartTime + padOffsetTime;
+
+    if (duration > 0) {
+        wavesurfer.seekTo(finalTime / duration);
+    }
 };
