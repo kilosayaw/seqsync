@@ -5,69 +5,56 @@ import * as Tone from 'tone';
 
 const SoundContext = createContext(null);
 export const useSound = () => useContext(SoundContext);
-
-// Map MIDI notes C1 through D#2 (16 notes) to the 16 provided TR-808 samples
 const tr808Kit = {
-    'C1': '/sounds/kits/tr808/BD7525.wav',    // Pad 1
-    'C#1': '/sounds/kits/tr808/BD2575.wav',   // Pad 2
-    'D1': '/sounds/kits/tr808/SD7575.wav',    // Pad 3
-    'D#1': '/sounds/kits/tr808/SD0050.wav',   // Pad 4
-    'E1': '/sounds/kits/tr808/LT00.wav',      // Pad 5
-    'F1': '/sounds/kits/tr808/MT25.wav',      // Pad 6
-    'F#1': '/sounds/kits/tr808/HT75.wav',     // Placeholder, HT file not in list
-    'G1': '/sounds/kits/tr808/RS.wav',       // Pad 8
-    'G#1': '/sounds/kits/tr808/CP.wav',       // Pad 9
-    'A1': '/sounds/kits/tr808/MA.wav',       // Pad 10
-    'A#1': '/sounds/kits/tr808/CB.wav',       // Pad 11
-    'B1': '/sounds/kits/tr808/CY7550.wav',    // Pad 12
-    'C2': '/sounds/kits/tr808/OH10.wav',      // Pad 13
-    'C#2': '/sounds/kits/tr808/CH.wav',       // Pad 14
-    'D2': '/sounds/kits/tr808/LC10.wav',      // Pad 15
-    'D#2': '/sounds/kits/tr808/HC75.wav',     // Pad 16
+    'C1': '/sounds/kits/tr808/BD7525.wav', 'C#1': '/sounds/kits/tr808/BD2575.wav',
+    'D1': '/sounds/kits/tr808/SD7575.wav', 'D#1': '/sounds/kits/tr808/SD0050.wav',
+    'E1': '/sounds/kits/tr808/LT00.wav', 'F1': '/sounds/kits/tr808/MT25.wav',
+    'F#1': '/sounds/kits/tr808/HC75.wav', // Corrected from HT
+    'G1': '/sounds/kits/tr808/RS.wav', 'G#1': '/sounds/kits/tr808/CP.wav',
+    'A1': '/sounds/kits/tr808/MA.wav', 'A#1': '/sounds/kits/tr808/CB.wav',
+    'B1': '/sounds/kits/tr808/CY7550.wav', 'C2': '/sounds/kits/tr808/OH10.wav',
+    'C#2': '/sounds/kits/tr808/CH.wav', 'D2': '/sounds/kits/tr808/LC10.wav',
+    'D#2': '/sounds/kits/tr808/HC75.wav',
 };
-
-// We will use this array to easily map a pad's index (0-15) to a MIDI note
 export const PAD_TO_NOTE_MAP = Object.keys(tr808Kit);
 
 export const SoundProvider = ({ children }) => {
-    const samplerRef = useRef(null);
     const [isLoaded, setIsLoaded] = useState(false);
+    const samplerRef = useRef(null);
 
     useEffect(() => {
-        // Ensure Tone.js is started by a user interaction
-        const startAudio = async () => {
-            await Tone.start();
-            console.log("AudioContext started");
-        };
-        document.body.addEventListener('click', startAudio, { once: true });
-
+        // We still create the sampler here on mount
         samplerRef.current = new Tone.Sampler({
             urls: tr808Kit,
-            baseUrl: '', // Sounds are relative to the /public folder
+            baseUrl: '',
             onload: () => {
                 setIsLoaded(true);
                 console.log('[Sound] TR-808 Kit loaded successfully.');
             }
         }).toDestination();
 
-        return () => {
-            samplerRef.current?.dispose();
-            document.body.removeEventListener('click', startAudio);
-        };
+        return () => samplerRef.current?.dispose();
     }, []);
 
-    const playSound = (note) => {
-        if (samplerRef.current) {
-            samplerRef.current.triggerAttack(note);
+    const playSound = async (note) => {
+        // DEFINITIVE FIX: Ensure the AudioContext is running before trying to play.
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+            console.log("AudioContext started on user interaction.");
+        }
+
+        if (isLoaded && samplerRef.current && note) {
+            samplerRef.current.triggerAttack(note, Tone.now());
         }
     };
-
+    
     const stopSound = (note) => {
-        if (samplerRef.current) {
-            samplerRef.current.triggerRelease(note);
+        if (isLoaded && samplerRef.current && note) {
+            samplerRef.current.triggerRelease(note, Tone.now());
         }
     };
 
-    const value = { playSound, stopSound }; // Export new function
+    const value = { playSound, stopSound };
+    
     return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;
 };

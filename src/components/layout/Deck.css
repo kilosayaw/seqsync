@@ -5,11 +5,13 @@
     gap: var(--spacing-sm);
     min-width: 0;
     min-height: 0;
+    flex: 1; 
 }
+
 .deck-container {
     flex-grow: 1;
     display: grid;
-    grid-template-columns: 60px 1fr 30px;
+    grid-template-columns: 30px 1fr 60px; /* Fader | Main Column | JointList */
     grid-template-rows: auto 1fr;
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
@@ -17,50 +19,51 @@
     border-radius: var(--border-radius-md);
     min-height: 0;
 }
+
 .deck-container > .directional-controls-container {
     grid-area: 1 / 1 / 2 / 4;
 }
 
-/* --- Layout Order --- */
-.deck-container[data-side="left"] > .deck-joint-list-container { grid-area: 2 / 1 / 3 / 2; }
-.deck-container[data-side="left"] > .deck-main-column { grid-area: 2 / 2 / 3 / 3; }
-.deck-container[data-side="left"] > .movement-fader-container { grid-area: 2 / 3 / 3 / 4; }
-.deck-container[data-side="right"] > .movement-fader-container { grid-area: 2 / 1 / 3 / 2; }
-.deck-container[data-side="right"] > .deck-main-column { grid-area: 2 / 2 / 3 / 3; }
-.deck-container[data-side="right"] > .deck-joint-list-container { grid-area: 2 / 3 / 3 / 4; }
+/* --- DEFINITIVE FIX: Swapped Layout Order --- */
+/* Left Deck: Fader, Main Column, Joint List */
+.deck-container[data-side="left"] > .movement-fader-container { order: 1; }
+.deck-container[data-side="left"] > .deck-main-column { order: 2; }
+.deck-container[data-side="left"] > .deck-joint-list-container { order: 3; }
+
+/* Right Deck: Joint List, Main Column, Fader */
+.deck-container[data-side="right"] > .deck-joint-list-container { order: 1; }
+.deck-container[data-side="right"] > .deck-main-column { order: 2; }
+.deck-container[data-side="right"] > .movement-fader-container { order: 3; }
 /* --- End Layout Order --- */
+
 
 .deck-main-column {
     display: grid;
-    /* This layout is correct: turntable takes flexible space, pads have fixed height */
-    grid-template-rows: 1fr 180px; 
+    grid-template-rows: 1fr auto;
     gap: var(--spacing-md);
     min-height: 0;
     min-width: 0;
 }
 
-/* DEFINITIVE FIX: The container itself is now a flex container */
 .turntable-group {
     min-width: 0;
     min-height: 0;
-    display: flex; /* This is key */
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
     justify-content: center;
     align-items: center;
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
-    padding: var(--spacing-sm);
+    /* DEFINITIVE FIX: Reduced padding for a tighter fit */
+    padding: var(--spacing-xs); 
     border: 1px solid var(--color-border);
 }
 
-/* 
-  And the child element (the RotaryController) is constrained by its parent.
-  This means we size the RotaryController's container directly.
-*/
 .rotary-controller-container {
-    width: 100%;
-    height: 100%;
-    max-width: 250px; /* <--- THIS IS THE VALUE TO TUNE */
-    max-height: 250px; /* <-- TUNE THIS ONE TOO */
+    flex-grow: 1;
+    width: 60%;
+    min-height: 0;
     aspect-ratio: 1 / 1;
 }
 
@@ -72,8 +75,9 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: auto 1fr 1fr;
-    gap: var(--spacing-sm); 
+    gap: var(--spacing-sm);
 }
+
 .pads-group > .option-buttons-container {
     grid-column: 1 / -1;
 }

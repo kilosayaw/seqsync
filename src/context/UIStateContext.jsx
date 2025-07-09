@@ -16,10 +16,14 @@ export const UIStateProvider = ({ children }) => {
     const [activePad, setActivePad] = useState(null);
     const [editMode, setEditMode] = useState('none');
     const [noteDivision, setNoteDivision] = useState(16);
+    const [padMode, setPadMode] = useState('TRIGGER');
     const [activePanel, setActivePanel] = useState('none');
     const [notification, setNotification] = useState(null);
     const [selectedJoints, setSelectedJoints] = useState([]);
     const [mixerState, setMixerState] = useState(initialMixerState);
+    
+    // NEW STATE for the directional control mode
+    const [activeDirection, setActiveDirection] = useState('l_r'); // 'up_down', 'l_r', or 'fwd_bwd'
 
     const showNotification = (message) => {
         setNotification(message);
@@ -31,10 +35,13 @@ export const UIStateProvider = ({ children }) => {
         activePad, setActivePad,
         editMode, setEditMode,
         noteDivision, setNoteDivision,
+        padMode, setPadMode,
         activePanel, setActivePanel,
         selectedJoints, setSelectedJoints,
         mixerState, setMixerState,
-        notification, showNotification,
+        activeDirection, setActiveDirection, // Export the new state and setter
+        notification,
+        showNotification,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;

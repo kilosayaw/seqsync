@@ -11,11 +11,14 @@ const DEFAULT_BAR_COUNT = 16;
 const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
-        const side = joint.id.charAt(0);
-        const initialGrounding = joint.id.endsWith('F') ? `${side}F123T12345` : `${side}F0`;
-        joints[joint.id] = { angle: 0, grounding: initialGrounding };
+        joints[joint.id] = { 
+            angle: 0, // For foot rotation
+            grounding: joint.id.endsWith('F') ? `${joint.id.charAt(0)}F123T12345` : null,
+            // NEW: Universal properties for all joints
+            position: [0, 0, 0], // [x, y, z] vector
+            rotation: 0, // Rotational value (e.g., for shoulders, hips)
+        };
     });
-    // Each beat now has a place to store sounds
     const sounds = [];
     return { bar, beat: beatInBar, joints, sounds };
 };
