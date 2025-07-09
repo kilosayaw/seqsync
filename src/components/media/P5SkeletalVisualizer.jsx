@@ -14,22 +14,8 @@ function sketch(p5) {
     let animationProgress = 0;
     const animationDuration = 0.5; // in seconds
 
-    // --- OPTIMIZATION: Pre-calculated Colors ---
+    // --- Pre-calculated Colors ---
     let colors = {};
-
-    p5.setup = () => {
-        p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
-        p5.angleMode(p5.DEGREES);
-        colors = {
-            highlight: p5.color('#FFDF00'),
-            line: p5.color(255, 255, 255, 150),
-            // DEFINITIVE: Role-based colors
-            mover: p5.color('#ff5252'),       // Red
-            stabilizer: p5.color('#00e676'),  // Green
-            frame: p5.color('#FFFFFF'),      // White
-            coiled: p5.color('#00b0ff'),      // Blue
-        };
-    };
 
     // --- Core P5 Functions ---
     p5.updateWithProps = props => {
@@ -51,23 +37,23 @@ function sketch(p5) {
     };
 
     p5.setup = () => {
-        // DEFINITIVE: Create a 3D WebGL canvas
         p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
         p5.angleMode(p5.DEGREES);
         
-        // OPTIMIZATION: Create color objects once.
+        // Define all colors once for performance.
         colors = {
             highlight: p5.color('#FFDF00'), // Gold
-            in: p5.color('#ff5252'),         // Red
-            out: p5.color('#00b0ff'),        // Blue
-            neu: p5.color('#00e676'),        // Green
-            line: p5.color(255, 255, 255, 150)
+            line: p5.color(255, 255, 255, 150),
+            mover: p5.color('#ff5252'),       // Red
+            stabilizer: p5.color('#00e676'),  // Green
+            frame: p5.color('#FFFFFF'),      // White
+            coiled: p5.color('#00b0ff'),      // Blue
         };
     };
 
     p5.draw = () => {
-        p5.background(0, 0, 0, 0); // Transparent background
-        p5.orbitControl(1, 1, 0.1); // Allows mouse dragging to rotate the 3D view
+        p5.background(0, 0, 0, 0);
+        p5.orbitControl(1, 1, 0.1);
         p5.ambientLight(150);
         p5.pointLight(255, 255, 255, 0, -200, 200);
         
@@ -89,13 +75,14 @@ function sketch(p5) {
 
                 if (startJ && endJ) {
                     interpolatedPose.jointInfo[id] = {
+                        ...startJ, // Carry over all properties like role
+                        ...endJ,   // Override with end properties
                         vector: {
                             x: p5.lerp(startJ.vector.x, endJ.vector.x, t),
                             y: p5.lerp(startJ.vector.y, endJ.vector.y, t),
                             z: p5.lerp(startJ.vector.z || 0, endJ.vector.z || 0, t),
                         },
                         score: p5.lerp(startJ.score, endJ.score, t),
-                        orientation: endJ.orientation,
                     };
                 }
             });
@@ -109,30 +96,28 @@ function sketch(p5) {
     function drawSkeleton(pose) {
         if (!pose?.jointInfo) return;
         
-        // --- DEFINITIVE: Dynamic Rigging Logic ---
-        let processedJointInfo = JSON.parse(JSON.stringify(pose.jointInfo)); // Deep copy to avoid mutating state
-        const leftFootGrounded = processedJointInfo.LF?.grounding?.includes('3');
-        const rightFootGrounded = processedJointInfo.RF?.grounding?.includes('3');
+        let processedJointInfo = JSON.parse(JSON.stringify(pose.jointInfo));
+        
+        const leftFootGrounded = pose.jointInfo.LF?.grounding?.includes('3');
+        const rightFootGrounded = pose.jointInfo.RF?.grounding?.includes('3');
 
-        // Apply dynamic adjustments for Left Leg if heel is up
-        if (!leftFootGrounded && processedJointInfo.LA) {
-            processedJointInfo.L3.vector.y = processedJointInfo.LA.vector.y + 0.05; // Lift heel
-            processedJointInfo.LK.vector.y = processedJointInfo.LA.vector.y - 0.25; // Bend knee
-            processedJointInfo.LH.vector.y = processedJointInfo.LK.vector.y + 0.4;  // Raise hip
+        if (!leftFootGrounded && processedJointInfo.LA && processedJointInfo.L3) {
+            processedJointInfo.L3.vector.y = processedJointInfo.LA.vector.y + 0.05;
+            processedJointInfo.LK.vector.y = processedJointInfo.LA.vector.y - 0.25;
+            processedJointInfo.LH.vector.y = processedJointInfo.LK.vector.y + 0.4;
         }
-        // Apply dynamic adjustments for Right Leg if heel is up
-        if (!rightFootGrounded && processedJointInfo.RA) {
+        if (!rightFootGrounded && processedJointInfo.RA && processedJointInfo.R3) {
             processedJointInfo.R3.vector.y = processedJointInfo.RA.vector.y + 0.05;
             processedJointInfo.RK.vector.y = processedJointInfo.RA.vector.y - 0.25;
             processedJointInfo.RH.vector.y = processedJointInfo.RK.vector.y + 0.4;
         }
+        
         const getCoords = (vector) => ({
-            x: vector.x * (canvasSize.width / 4), // Use smaller scalar for better 3D depth
+            x: vector.x * (canvasSize.width / 4),
             y: -vector.y * (canvasSize.height / 3),
             z: (vector.z || 0) * (canvasSize.width / 4)
         });
 
-        // Draw connections
         p5.stroke(colors.line);
         p5.strokeWeight(3);
         POSE_CONNECTIONS.forEach(([startKey, endKey]) => {
@@ -145,17 +130,15 @@ function sketch(p5) {
             }
         });
 
-        // Draw joints with the *processed* joint info
         p5.noStroke();
         for (const key in processedJointInfo) {
             const joint = processedJointInfo[key];
-            if (!joint?.score || joint.score < 0.5) continue;
+            if (!joint?.score || joint.score < 0.5 || !joint.vector) continue;
 
             const pos = getCoords(joint.vector);
             const isHighlighted = highlightJoint === key;
             
-            // DEFINITIVE: Determine color based on role, with highlight override
-            let jointColor = colors.frame; // Default to frame color
+            let jointColor = colors.frame;
             if (isHighlighted) {
                 jointColor = colors.highlight;
             } else if (joint.role && colors[joint.role]) {
@@ -171,18 +154,10 @@ function sketch(p5) {
     }
 }
 
-const P5SkeletalVisualizer = ({ startPose, endPose, animationState, highlightJoint, width, height }) => {
+const P5SkeletalVisualizer = (props) => {
     return (
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'auto' }}>
-            <ReactP5Wrapper 
-                sketch={sketch} 
-                startPose={startPose}
-                endPose={endPose}
-                animationState={animationState}
-                highlightJoint={highlightJoint}
-                width={width}
-                height={height}
-            />
+            <ReactP5Wrapper {...props} sketch={sketch} />
         </div>
     );
 };

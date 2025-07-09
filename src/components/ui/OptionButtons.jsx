@@ -4,14 +4,12 @@ import { useUIState } from '../../context/UIStateContext';
 import classNames from 'classnames';
 import './OptionButtons.css';
 
-// DEFINITIVE: Component now takes a 'side' prop to render the correct set of buttons.
 const OptionButtons = ({ side }) => {
     const { 
         noteDivision, setNoteDivision, 
         padMode, setPadMode, 
         activePanel, setActivePanel, 
-        isPreviewMode, togglePreviewMode,
-        coreViewMode, toggleCoreView
+        activeVisualizer, setActiveVisualizer // Use new state
     } = useUIState();
 
     const handleNoteDivisionCycle = () => {
@@ -21,13 +19,15 @@ const OptionButtons = ({ side }) => {
     const handlePadModeToggle = () => setPadMode(p => p === 'TRIGGER' ? 'GATE' : 'TRIGGER');
     const handlePanelToggle = (panel) => setActivePanel(p => p === panel ? 'none' : panel);
 
+    const handleVisualizerToggle = (viz) => setActiveVisualizer(prev => prev === viz ? 'none' : viz);
+
     if (side === 'left') {
         return (
             <>
-                <button className="option-btn" onClick={handleNoteDivisionCycle}>1/{noteDivision}</button>
+                <button className="option-btn" onClick={handleNoteDivisionCycle}>CYCLE</button>
                 <button className="option-btn" onClick={handlePadModeToggle}>{padMode}</button>
                 <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>SOUND</button>
-                <button className={classNames('option-btn', { active: isPreviewMode })} onClick={togglePreviewMode}>PREVIEW</button>
+                <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>MIXER</button>
             </>
         );
     }
@@ -35,10 +35,10 @@ const OptionButtons = ({ side }) => {
     if (side === 'right') {
         return (
             <>
+                <button className={classNames('option-btn', { active: activeVisualizer === 'full' })} onClick={() => handleVisualizerToggle('full')}>PREVIEW</button>
                 <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>FOOT</button>
-                <button className="option-btn" onClick={toggleCoreView}>{coreViewMode.toUpperCase()}</button>
+                <button className={classNames('option-btn', { active: activeVisualizer === 'core' })} onClick={() => handleVisualizerToggle('core')}>POSE</button>
                 <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>ABBR</button>
-                <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>MIXER</button>
             </>
         );
     }

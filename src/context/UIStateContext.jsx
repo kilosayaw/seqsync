@@ -19,6 +19,7 @@ export const UIStateProvider = ({ children }) => {
     const [animationRange, setAnimationRange] = useState({ start: null, end: null });
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [coreViewMode, setCoreViewMode] = useState('2d');
+    const [activeVisualizer, setActiveVisualizer] = useState('none');
     const [editMode, setEditMode] = useState('none');
     const [noteDivision, setNoteDivision] = useState(8); // Default to 8 steps
     const [padMode, setPadMode] = useState('TRIGGER');
@@ -74,6 +75,7 @@ export const UIStateProvider = ({ children }) => {
         mixerState, setMixerState,
         activeDirection, setActiveDirection,
         notification, showNotification,
+        activeVisualizer, setActiveVisualizer,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
