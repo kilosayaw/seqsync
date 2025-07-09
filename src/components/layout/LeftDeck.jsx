@@ -12,17 +12,21 @@ import { usePlayback } from '../../context/PlaybackContext';
 import { useSequence } from '../../context/SequenceContext';
 import './Deck.css';
 
-const LeftDeck = ({ onPadDown, onPadUp }) => {
+// DEFINITIVE: Simplified props to a single event handler
+const LeftDeck = ({ onPadEvent }) => {
     const { selectedBar, activePad } = useUIState();
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     const { STEPS_PER_BAR } = useSequence();
     
     return (
         <div className="deck-container" data-side="left">
-            {/* Column 1: Joint List */}
             <DeckJointList side="left" />
-
-            {/* Column 2: Main Content */}
+            <div className="fader-options-group">
+                <MovementFader />
+                <div className="side-options-container">
+                    <OptionButtons side="left" />
+                </div>
+            </div>
             <DirectionalControls />
             <div className="turntable-group">
                 <div className="rotary-controller-container">
@@ -49,20 +53,13 @@ const LeftDeck = ({ onPadDown, onPadUp }) => {
                             beatNum={displayNumber}
                             isPulsing={isPulsing}
                             isSelected={activePad === globalPadIndex}
-                            onMouseDown={() => onPadDown(globalPadIndex)}
-                            onMouseUp={() => onPadUp(globalPadIndex)}
-                            onMouseLeave={() => onPadUp(globalPadIndex)}
+                            // DEFINITIVE: Simplified event handlers
+                            onMouseDown={() => onPadEvent('down', globalPadIndex)}
+                            onMouseUp={() => onPadEvent('up', globalPadIndex)}
+                            onMouseLeave={() => onPadEvent('up', globalPadIndex)}
                         />
                     );
                 })}
-            </div>
-            
-            {/* DEFINITIVE: New grouping container for fader and options */}
-            <div className="fader-options-group">
-                <MovementFader />
-                <div className="side-options-container">
-                    <OptionButtons side="left" />
-                </div>
             </div>
         </div>
     );

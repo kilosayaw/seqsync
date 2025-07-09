@@ -5,13 +5,16 @@
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-sm);
   display: flex;
-  justify-content: center;
-  align-items: center;
+  /* DEFINITIVE: Align number to top-right */
+  justify-content: flex-end;
+  align-items: flex-start;
   color: var(--color-text-secondary);
   transition: all 0.1s ease-in-out;
   cursor: pointer;
   font-family: var(--font-digital);
-  font-size: 2rem;
+  /* DEFINITIVE: Smaller font size */
+  font-size: 1.2rem;
+  padding: var(--spacing-xs);
 }
 
 .performance-pad:hover {

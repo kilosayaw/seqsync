@@ -11,17 +11,15 @@ const DeckJointList = ({ side }) => {
     const { selectedJoints, setSelectedJoints } = useUIState();
     
     const sideKey = side.charAt(0).toUpperCase();
-    const jointsForSide = JOINT_LIST.filter(j => j.id.startsWith(sideKey));
+    // Filter out the foot controllers (LF/RF) which are now implicitly handled
+    const jointsForSide = JOINT_LIST.filter(j => j.id.startsWith(sideKey) && !j.id.endsWith('F'));
 
-    // DEFINITIVE: Restore full joint selection logic
     const handleShortClick = (jointId) => {
-        // If the clicked joint is already the only one selected, deselect it. Otherwise, select it.
         setSelectedJoints(prev => (prev.length === 1 && prev[0] === jointId) ? [] : [jointId]);
     };
 
     const handleLongPress = (jointId) => {
         const counterpart = jointId.startsWith('L') ? `R${jointId.substring(1)}` : `L${jointId.substring(1)}`;
-        // Select both the clicked joint and its counterpart
         setSelectedJoints([jointId, counterpart]);
     };
 
@@ -30,7 +28,6 @@ const DeckJointList = ({ side }) => {
             <div className="joint-buttons-wrapper">
                 {jointsForSide.map(joint => {
                     const isSelected = selectedJoints.includes(joint.id);
-                    // useLongPress hook handles the timing for short vs long press
                     const longPressEvents = useLongPress(() => handleShortClick(joint.id), () => handleLongPress(joint.id));
                     
                     return (
@@ -44,6 +41,7 @@ const DeckJointList = ({ side }) => {
                     );
                 })}
             </div>
+            {/* DEFINITIVE: Relocated BPM button to be under the RF joint button */}
             {side === 'right' && (
                 <div className="bpm-control-wrapper">
                     <CircularBpmControl />

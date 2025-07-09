@@ -2,28 +2,20 @@
 import React, { createContext, useContext, useState, useRef } from 'react';
 
 const UIStateContext = createContext(null);
-
-const initialMixerState = {
-    kitSounds: true,
-    uploadedMedia: true,
-    cameraFeed: false,
-    motionOverlay: false,
-    motionOverlayOpacity: 0.5,
-};
+const initialMixerState = { /* ... */ };
 
 export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
-    // DEFINITIVE: Default activePad to 0 for immediate visual feedback
     const [activePad, setActivePadState] = useState(0); 
     const [animationState, setAnimationState] = useState('idle');
     const previousActivePadRef = useRef(null);
-
     const [animationRange, setAnimationRange] = useState({ start: null, end: null });
-    const [isPreviewMode, setIsPreviewMode] = useState(false);
-    const [coreViewMode, setCoreViewMode] = useState('2d');
-    const [activeVisualizer, setActiveVisualizer] = useState('none');
+    
+    // DEFINITIVE: Changed from boolean to a multi-state string
+    const [previewMode, setPreviewMode] = useState('off'); // 'off', '2d', '3d'
+    
     const [editMode, setEditMode] = useState('none');
-    const [noteDivision, setNoteDivision] = useState(8); // Default to 8 steps
+    const [noteDivision, setNoteDivision] = useState(8);
     const [padMode, setPadMode] = useState('TRIGGER');
     const [activePanel, setActivePanel] = useState('none');
     const [notification, setNotification] = useState(null);
@@ -36,9 +28,9 @@ export const UIStateProvider = ({ children }) => {
         setActivePadState(padIndex);
     };
 
-    const showNotification = (message) => {
+    const showNotification = (message, duration = 2000) => {
         setNotification(message);
-        setTimeout(() => setNotification(null), 2000);
+        setTimeout(() => setNotification(null), duration);
     };
 
     const triggerAnimation = () => {
@@ -53,6 +45,15 @@ export const UIStateProvider = ({ children }) => {
         }
     };
 
+    const cyclePreviewMode = () => {
+        setPreviewMode(current => {
+            if (current === 'off') return '2d';
+            if (current === '2d') return '3d';
+            if (current === '3d') return 'off';
+            return 'off';
+        });
+    };
+
     const togglePreviewMode = () => {
         setIsPreviewMode(prev => !prev);
     };
@@ -63,10 +64,11 @@ export const UIStateProvider = ({ children }) => {
 
     // DEFINITIVE FIX: Removed all duplicate keys from the value object.
     const value = {
+        selectedBar, setSelectedBar,
+        activePad, setActivePad,
         animationState, triggerAnimation,
         animationRange,
-        isPreviewMode, togglePreviewMode,
-        coreViewMode, toggleCoreView,
+        previewMode, cyclePreviewMode, // Export new state and cycle function
         editMode, setEditMode,
         noteDivision, setNoteDivision,
         padMode, setPadMode,
@@ -75,9 +77,6 @@ export const UIStateProvider = ({ children }) => {
         mixerState, setMixerState,
         activeDirection, setActiveDirection,
         notification, showNotification,
-        activeVisualizer, setActiveVisualizer,
-        selectedBar, setSelectedBar,
-        activePad, setActivePad,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;

@@ -15,9 +15,12 @@
 .deck-container {
     flex-grow: 1;
     display: grid;
-    /* DEFINITIVE: A 3-column grid is correct. The side columns will hold different components based on the deck. */
-    grid-template-columns: 60px 1fr 60px; /* Side | Main | Side */
-    grid-template-rows: auto 1fr auto; /* Dir-Controls | Turntable+Pads | (empty) */
+    grid-template-columns: 60px 1fr 60px;
+    grid-template-rows: auto 1fr auto; 
+    grid-template-areas:
+        "joints dir-controls fader"
+        "joints turntable-area fader"
+        "joints pads-area fader"; /* pads-area now spans the same column as turntable-area */
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
@@ -43,9 +46,10 @@
 
 /* --- Component Placement into Grid Areas --- */
 .deck-container > .deck-joint-list-container { grid-area: joints; }
-.deck-container > .fader-options-group { grid-area: fader; } /* This group now holds fader AND options */
+.deck-container > .fader-options-group { grid-area: fader; }
 .deck-container > .directional-controls-container { grid-area: dir-controls; }
 .deck-container > .turntable-group { grid-area: turntable-area; }
+/* DEFINITIVE: The pads group is now placed in the main central area */
 .deck-container > .pads-group { grid-area: pads-area; }
 
 .directional-controls-container {
@@ -88,6 +92,10 @@
 .editor-overlays > * { pointer-events: all; }
 
 .pads-group {
+    width: 100%; /* Span the full width of the central grid column */
+    margin: 0 auto; /* Ensure it's centered if max-width is applied */
+    max-width: 400px;
+    min-height: 100px; /* Increased height for bigger pads */
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-md);
@@ -96,7 +104,6 @@
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: 1fr;
     gap: var(--spacing-sm);
-    min-height: 80px;
 }
 
 .side-options-container {

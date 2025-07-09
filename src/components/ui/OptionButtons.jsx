@@ -9,22 +9,23 @@ const OptionButtons = ({ side }) => {
         noteDivision, setNoteDivision, 
         padMode, setPadMode, 
         activePanel, setActivePanel, 
-        activeVisualizer, setActiveVisualizer // Use new state
+        previewMode, cyclePreviewMode // Use new state and cycler
     } = useUIState();
 
-    const handleNoteDivisionCycle = () => {
-        const divisions = [16, 8, 4];
-        setNoteDivision(d => divisions[(divisions.indexOf(d) + 1) % divisions.length]);
-    };
     const handlePadModeToggle = () => setPadMode(p => p === 'TRIGGER' ? 'GATE' : 'TRIGGER');
     const handlePanelToggle = (panel) => setActivePanel(p => p === panel ? 'none' : panel);
-
-    const handleVisualizerToggle = (viz) => setActiveVisualizer(prev => prev === viz ? 'none' : viz);
+    
+    // Get the label for the preview button
+    const getPreviewLabel = () => {
+        if (previewMode === '2d') return '2D';
+        if (previewMode === '3d') return '3D';
+        return 'PREVIEW';
+    };
 
     if (side === 'left') {
         return (
             <>
-                <button className="option-btn" onClick={handleNoteDivisionCycle}>CYCLE</button>
+                <button className="option-btn" onClick={() => setNoteDivision(d => d === 8 ? 4 : 8)}>1/{noteDivision}</button>
                 <button className="option-btn" onClick={handlePadModeToggle}>{padMode}</button>
                 <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>SOUND</button>
                 <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>MIXER</button>
@@ -35,9 +36,9 @@ const OptionButtons = ({ side }) => {
     if (side === 'right') {
         return (
             <>
-                <button className={classNames('option-btn', { active: activeVisualizer === 'full' })} onClick={() => handleVisualizerToggle('full')}>PREVIEW</button>
+                <button className={classNames('option-btn', { active: previewMode !== 'off' })} onClick={cyclePreviewMode}>{getPreviewLabel()}</button>
                 <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>FOOT</button>
-                <button className={classNames('option-btn', { active: activeVisualizer === 'core' })} onClick={() => handleVisualizerToggle('core')}>POSE</button>
+                <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>POSE</button>
                 <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>ABBR</button>
             </>
         );

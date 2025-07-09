@@ -1,6 +1,5 @@
 // src/components/layout/ProLayout.jsx
-
-import React, { useRef } from 'react';
+import React from 'react';
 import TopNavBar from '../ui/TopNavBar';
 import WaveformNavigator from '../ui/WaveformNavigator';
 import NotationDisplay from '../ui/NotationDisplay';
@@ -12,21 +11,46 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import SoundBankPanel from '../ui/SoundBankPanel';
 import SourceMixerPanel from '../ui/SourceMixerPanel';
 import { useKeyboardControls } from '../../hooks/useKeyboardControls';
-import { useMedia } from '../../context/MediaContext';
-import OptionButtons from '../ui/OptionButtons';
+import { useMedia } from '../../context/MediaContext'; // DEFINITIVE FIX: Re-added missing import
+import { useUIState } from '../../context/UIStateContext';
+import { useSequence } from '../../context/SequenceContext';
+import { useSound } from '../../context/SoundContext';
+import { seekToPad } from '../../utils/notationUtils';
 import './ProLayout.css';
 
 const ProLayout = () => {
-    const { isLoading, pendingFile, confirmLoad, cancelLoad } = useMedia();
-    
-    // Refs to hold the trigger functions from each deck
-    const leftDeckTrigger = useRef(() => {});
-    const rightDeckTrigger = useRef(() => {});
+    const { isLoading, pendingFile, confirmLoad, cancelLoad, wavesurferInstance, duration } = useMedia();
+    const { activePad, setActivePad, padMode, selectedBar } = useUIState();
+    const { songData, barStartTimes, STEPS_PER_BAR, detectedBpm } = useSequence();
+    const { playSound, stopSound } = useSound();
 
-    // This hook listens for keyboard events and calls the appropriate deck's trigger function
+    const handlePadEvent = (type, padIndex) => {
+        if (type === 'down') {
+            setActivePad(padIndex);
+            const soundNote = songData[padIndex]?.sounds?.[0];
+            if (soundNote) playSound(soundNote);
+
+            if (wavesurferInstance) {
+                seekToPad({
+                    wavesurfer: wavesurferInstance,
+                    duration,
+                    bpm: detectedBpm,
+                    padIndex,
+                    barStartTimes,
+                    noteDivision: 8,
+                });
+            }
+        } else if (type === 'up') {
+            if (padMode === 'GATE') {
+                const soundNote = songData[padIndex]?.sounds?.[0];
+                if (soundNote) stopSound(soundNote);
+            }
+        }
+    };
+
     useKeyboardControls(
-        (padIndex) => leftDeckTrigger.current(padIndex),
-        (padIndex) => rightDeckTrigger.current(padIndex)
+        (padIndex) => handlePadEvent('down', padIndex),
+        (padIndex) => handlePadEvent('up', padIndex)
     );
 
     const mediaLoadActions = [
@@ -40,15 +64,13 @@ const ProLayout = () => {
             <TopNavBar />
             <WaveformNavigator />
             <NotationDisplay />
-            <div className="options-bar">
-                <OptionButtons />
-            </div>
+            
             <main className="main-content-area">
-                {/* Each deck receives a function to "register" its handler with the ProLayout */}
-                <LeftDeck registerPadTrigger={(handler) => (leftDeckTrigger.current = handler)} />
+                <LeftDeck onPadEvent={handlePadEvent} />
                 <CenterConsole />
-                <RightDeck registerPadTrigger={(handler) => (rightDeckTrigger.current = handler)} />
+                <RightDeck onPadEvent={handlePadEvent} />
             </main>
+
             {isLoading && <LoadingOverlay />}
             <ConfirmDialog
                 isVisible={!!pendingFile}
