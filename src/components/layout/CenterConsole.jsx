@@ -5,10 +5,12 @@ import TransportControls from '../ui/TransportControls';
 import Crossfader from '../ui/Crossfader';
 import P5SkeletalVisualizer from '../media/P5SkeletalVisualizer';
 import CoreVisualizer from '../ui/CoreVisualizer';
+import JointRoleSelector from '../ui/JointRoleSelector';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
 import { DEFAULT_POSE } from '../../utils/constants';
+
 import './CenterConsole.css';
 
 const CenterConsole = () => {
@@ -86,6 +88,7 @@ const CenterConsole = () => {
             <div className="center-controls-group">
                 <BarBeatDisplay />
                 <TransportControls />
+                <JointRoleSelector /> 
             </div>
             <Crossfader />
         </div>

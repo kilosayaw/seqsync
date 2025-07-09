@@ -11,15 +11,22 @@ const DEFAULT_BAR_COUNT = 16;
 const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
-        joints[joint.id] = { 
-            position: [0, 0, 0], // [x, y, z] vector
-            rotation: 0,         // Rotational value in degrees
-            orientation: 'NEU',  // 'IN', 'OUT', 'NEU'
-            grounding: joint.id.endsWith('F') ? `${joint.id.charAt(0)}F123T12345` : null,
-        };
+        // We only create data for actual body joints, not control objects like LF/RF
+        if (!['LF', 'RF'].includes(joint.id)) {
+            joints[joint.id] = { 
+                position: [0, 0, 0],
+                rotation: 0,
+                orientation: 'NEU',
+                // DEFINITIVE: Add the 'role' property
+                role: 'frame', // Default role
+            };
+        }
     });
+    // Add grounding property only to the foot controllers
+    joints['LF'] = { grounding: 'LF123T12345' };
+    joints['RF'] = { grounding: 'RF123T12345' };
+
     const sounds = [];
-    // DEFINITIVE: Prepare data structure for future facial detection logic
     const meta = { isFacingCamera: false };
     return { bar, beat: beatInBar, joints, sounds, meta };
 };

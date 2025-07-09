@@ -15,53 +15,48 @@ const RightDeck = ({ onPadDown, onPadUp }) => {
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     
     return (
+        // DEFINITIVE: The container now holds ALL deck elements.
         <div className="deck-container" data-side="right">
-            <MovementFader />
+            <DirectionalControls />
             
-            {/* DEFINITIVE REFACTOR: Main column now a flex container */}
-            <div className="deck-main-column">
-                 {/* DirectionalControls are now the first item in the column */}
-                 <DirectionalControls />
-
-                 {/* This new wrapper contains the square interactive area */}
-                <div className="deck-interactive-area">
-                    <div className="turntable-group">
-                        <div className="rotary-controller-container">
-                            <RotaryController deckId="deck2" />
-                        </div>
-                        {/* DEFINITIVE REFACTOR: Added placeholders */}
-                        <div className="edit-tool-placeholder top-left"></div>
-                        <div className="edit-tool-placeholder top-right"></div>
-                        <div className="edit-tool-placeholder bottom-left"></div>
-                        <div className="edit-tool-placeholder bottom-right"></div>
-                    </div>
-                    
-                    <div className="pads-group">
-                        <div className="option-buttons-container">
-                            <OptionButtons side="right" />
-                        </div>
-                        {Array.from({ length: 8 }).map((_, i) => {
-                            const globalPadIndex = i + 8;
-                            const displayNumber = i + 9;
-                            const isPulsing = isPlaying && selectedBar === currentBar && globalPadIndex === currentBeat;
-
-                            return (
-                                <PerformancePad
-                                    key={`right-${i}`}
-                                    padIndex={globalPadIndex}
-                                    beatNum={displayNumber}
-                                    isPulsing={isPulsing}
-                                    onMouseDown={() => onPadDown(globalPadIndex)}
-                                    onMouseUp={() => onPadUp(globalPadIndex)}
-                                    onMouseLeave={() => onPadUp(globalPadIndex)}
-                                />
-                            );
-                        })}
-                    </div>
+            <div className="turntable-group">
+                <div className="rotary-controller-container">
+                    <RotaryController deckId="deck2" />
                 </div>
+                <div className="editor-overlays">
+                    {/* XYZGrid is rendered inside RotaryController */}
+                </div>
+                <div className="edit-tool-placeholder top-left"></div>
+                <div className="edit-tool-placeholder top-right"></div>
+                <div className="edit-tool-placeholder bottom-left"></div>
+                <div className="edit-tool-placeholder bottom-right"></div>
             </div>
             
+            <div className="pads-group">
+                <div className="option-buttons-container">
+                    <OptionButtons side="right" />
+                </div>
+                {Array.from({ length: 8 }).map((_, i) => {
+                    const globalPadIndex = i + 8;
+                    const displayNumber = i + 9;
+                    const isPulsing = isPlaying && selectedBar === currentBar && globalPadIndex === currentBeat;
+
+                    return (
+                        <PerformancePad
+                            key={`right-${i}`}
+                            padIndex={globalPadIndex}
+                            beatNum={displayNumber}
+                            isPulsing={isPulsing}
+                            onMouseDown={() => onPadDown(globalPadIndex)}
+                            onMouseUp={() => onPadUp(globalPadIndex)}
+                            onMouseLeave={() => onPadUp(globalPadIndex)}
+                        />
+                    );
+                })}
+            </div>
+
             <DeckJointList side="right" />
+            <MovementFader />
         </div>
     );
 };

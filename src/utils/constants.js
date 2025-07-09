@@ -19,30 +19,31 @@ export const BASE_FOOT_PATHS = {
 
 export const DEFAULT_POSE = {
     jointInfo: {
-        'H': { vector: { x: 0, y: 0.8, z: 0 }, score: 1, orientation: 'NEU' },
-        'LS': { vector: { x: -0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU' },
-        'RS': { vector: { x: 0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU' },
-        'LE': { vector: { x: -0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU' },
-        'RE': { vector: { x: 0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU' },
-        'LW': { vector: { x: -0.6, y: -0.2, z: 0 }, score: 1, orientation: 'NEU' },
-        'RW': { vector: { x: 0.6, y: -0.2, z: 0 }, score: 1, orientation: 'NEU' },
-        'LH': { vector: { x: -0.15, y: -0.2, z: 0 }, score: 1, orientation: 'NEU' },
-        'RH': { vector: { x: 0.15, y: -0.2, z: 0 }, score: 1, orientation: 'NEU' },
-        'LK': { vector: { x: -0.2, y: -0.6, z: 0 }, score: 1, orientation: 'NEU' },
-        'RK': { vector: { x: 0.2, y: -0.6, z: 0 }, score: 1, orientation: 'NEU' },
-        'LA': { vector: { x: -0.25, y: -0.9, z: 0 }, score: 1, orientation: 'NEU' },
-        'RA': { vector: { x: 0.25, y: -0.9, z: 0 }, score: 1, orientation: 'NEU' },
+        'H': { vector: { x: 0, y: 0.8, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'LS': { vector: { x: -0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'RS': { vector: { x: 0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'LE': { vector: { x: -0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'RE': { vector: { x: 0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'LW': { vector: { x: -0.6, y: -0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'RW': { vector: { x: 0.6, y: -0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'LH': { vector: { x: -0.15, y: -0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'RH': { vector: { x: 0.15, y: -0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'LK': { vector: { x: -0.2, y: -0.6, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'RK': { vector: { x: 0.2, y: -0.6, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'LA': { vector: { x: -0.25, y: -0.9, z: 0 }, score: 1, orientation: 'NEU', role: 'stabilizer' },
+        'RA': { vector: { x: 0.25, y: -0.9, z: 0 }, score: 1, orientation: 'NEU', role: 'stabilizer' },
+        'L3': { vector: { x: -0.25, y: -0.9, z: 0.1 }, score: 1, orientation: 'NEU', role: 'stabilizer' },
+        'R3': { vector: { x: 0.25, y: -0.9, z: 0.1 }, score: 1, orientation: 'NEU', role: 'stabilizer' },
     }
 };
 
 export const POSE_CONNECTIONS = [
     ['H', 'LS'], ['H', 'RS'],
-    ['LS', 'RS'], ['LH', 'RH'],
-    ['LS', 'LH'], ['RS', 'RH'],
+    ['LS', 'RS'], ['LH', 'RH'], ['LS', 'LH'], ['RS', 'RH'],
     ['LS', 'LE'], ['LE', 'LW'],
     ['RS', 'RE'], ['RE', 'RW'],
-    ['LH', 'LK'], ['LK', 'LA'],
-    ['RH', 'RK'], ['RK', 'RA']
+    ['LH', 'LK'], ['LK', 'LA'], ['LA', 'L3'], // Connect ankle to heel
+    ['RH', 'RK'], ['RK', 'RA'], ['RA', 'R3'], // Connect ankle to heel
 ];
 
 // DEFINITIVE FIX: The 'export' keyword was missing from this constant declaration.

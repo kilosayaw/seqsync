@@ -17,6 +17,20 @@ function sketch(p5) {
     // --- OPTIMIZATION: Pre-calculated Colors ---
     let colors = {};
 
+    p5.setup = () => {
+        p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
+        p5.angleMode(p5.DEGREES);
+        colors = {
+            highlight: p5.color('#FFDF00'),
+            line: p5.color(255, 255, 255, 150),
+            // DEFINITIVE: Role-based colors
+            mover: p5.color('#ff5252'),       // Red
+            stabilizer: p5.color('#00e676'),  // Green
+            frame: p5.color('#FFFFFF'),      // White
+            coiled: p5.color('#00b0ff'),      // Blue
+        };
+    };
+
     // --- Core P5 Functions ---
     p5.updateWithProps = props => {
         if (props.startPose) startPose = props.startPose;
@@ -94,9 +108,24 @@ function sketch(p5) {
 
     function drawSkeleton(pose) {
         if (!pose?.jointInfo) return;
-        const { jointInfo } = pose;
+        
+        // --- DEFINITIVE: Dynamic Rigging Logic ---
+        let processedJointInfo = JSON.parse(JSON.stringify(pose.jointInfo)); // Deep copy to avoid mutating state
+        const leftFootGrounded = processedJointInfo.LF?.grounding?.includes('3');
+        const rightFootGrounded = processedJointInfo.RF?.grounding?.includes('3');
 
-        // Map normalized [-1, 1] space to a larger 3D drawing space
+        // Apply dynamic adjustments for Left Leg if heel is up
+        if (!leftFootGrounded && processedJointInfo.LA) {
+            processedJointInfo.L3.vector.y = processedJointInfo.LA.vector.y + 0.05; // Lift heel
+            processedJointInfo.LK.vector.y = processedJointInfo.LA.vector.y - 0.25; // Bend knee
+            processedJointInfo.LH.vector.y = processedJointInfo.LK.vector.y + 0.4;  // Raise hip
+        }
+        // Apply dynamic adjustments for Right Leg if heel is up
+        if (!rightFootGrounded && processedJointInfo.RA) {
+            processedJointInfo.R3.vector.y = processedJointInfo.RA.vector.y + 0.05;
+            processedJointInfo.RK.vector.y = processedJointInfo.RA.vector.y - 0.25;
+            processedJointInfo.RH.vector.y = processedJointInfo.RK.vector.y + 0.4;
+        }
         const getCoords = (vector) => ({
             x: vector.x * (canvasSize.width / 4), // Use smaller scalar for better 3D depth
             y: -vector.y * (canvasSize.height / 3),
@@ -107,8 +136,8 @@ function sketch(p5) {
         p5.stroke(colors.line);
         p5.strokeWeight(3);
         POSE_CONNECTIONS.forEach(([startKey, endKey]) => {
-            const startJ = jointInfo[startKey];
-            const endJ = jointInfo[endKey];
+            const startJ = processedJointInfo[startKey];
+            const endJ = processedJointInfo[endKey];
             if (startJ?.score > 0.5 && endJ?.score > 0.5) {
                 const start = getCoords(startJ.vector);
                 const end = getCoords(endJ.vector);
@@ -116,29 +145,28 @@ function sketch(p5) {
             }
         });
 
-        // Draw joints
+        // Draw joints with the *processed* joint info
         p5.noStroke();
-        for (const key in jointInfo) {
-            const joint = jointInfo[key];
-            if (joint?.score > 0.5) {
-                const pos = getCoords(joint.vector);
-                const isHighlighted = highlightJoint === key;
-                
-                let jointColor = colors.neu;
-                if (isHighlighted) {
-                    jointColor = colors.highlight;
-                } else {
-                    const orientation = joint.orientation || 'NEU';
-                    if (orientation === 'IN') jointColor = colors.in;
-                    else if (orientation === 'OUT') jointColor = colors.out;
-                }
-                
-                p5.push();
-                p5.translate(pos.x, pos.y, pos.z);
-                p5.ambientMaterial(jointColor); // Use material for 3D lighting
-                p5.sphere(isHighlighted ? 10 : 6); // Use sphere for 3D
-                p5.pop();
+        for (const key in processedJointInfo) {
+            const joint = processedJointInfo[key];
+            if (!joint?.score || joint.score < 0.5) continue;
+
+            const pos = getCoords(joint.vector);
+            const isHighlighted = highlightJoint === key;
+            
+            // DEFINITIVE: Determine color based on role, with highlight override
+            let jointColor = colors.frame; // Default to frame color
+            if (isHighlighted) {
+                jointColor = colors.highlight;
+            } else if (joint.role && colors[joint.role]) {
+                jointColor = colors[joint.role];
             }
+            
+            p5.push();
+            p5.translate(pos.x, pos.y, pos.z);
+            p5.ambientMaterial(jointColor);
+            p5.sphere(isHighlighted ? 10 : 8);
+            p5.pop();
         }
     }
 }

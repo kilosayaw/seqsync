@@ -8,11 +8,21 @@
     flex: 1; 
 }
 
+/* 
+  DEFINITIVE: A more complex grid to place all elements inside the deck.
+  - The grid has 3 columns: side, main, side.
+  - It has 3 rows: directional controls, main content, pads.
+  - Grid areas are used for precise placement.
+*/
 .deck-container {
     flex-grow: 1;
     display: grid;
-    /* Grid layout for the side panels and the main column */
-    grid-template-columns: 60px 1fr 30px; 
+    grid-template-columns: 60px 1fr 60px;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+        ". dir-controls ."
+        "joint-list turntable-area fader"
+        "joint-list pads-area fader";
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
@@ -20,64 +30,37 @@
     min-height: 0;
 }
 
-/* DEFINITIVE FIX: Use align-self to top-align the side columns */
-.deck-container > .deck-joint-list-container,
-.deck-container > .movement-fader-container {
-    align-self: start;
-}
+/* --- Area Placements --- */
+.deck-container > .directional-controls-container { grid-area: dir-controls; }
+.deck-container > .turntable-group { grid-area: turntable-area; }
+.deck-container > .pads-group { grid-area: pads-area; }
 
-.deck-container > .deck-main-column { grid-area: main / main-col; }
+/* Left Deck specific placements */
+.deck-container[data-side="left"] > .deck-joint-list-container { grid-area: joint-list; }
+.deck-container[data-side="left"] > .movement-fader-container { grid-area: fader; }
 
-.deck-container[data-side="left"] {
-    grid-template-areas: "joints main-col fader";
-}
+/* Right Deck specific placements (swap fader and joint list) */
+.deck-container[data-side="right"] > .deck-joint-list-container { grid-area: fader; }
+.deck-container[data-side="right"] > .movement-fader-container { grid-area: joint-list; }
 
-.deck-container[data-side="right"] {
-    grid-template-areas: "fader main-col joints";
-}
 
-.deck-main-column {
-    display: grid;
-    grid-template-rows: auto 1fr;
-    gap: var(--spacing-md);
-    min-height: 0;
-    min-width: 0;
-}
-
-/* DEFINITIVE FIX: Directional controls are a grid item, will be top-aligned by default */
 .directional-controls-container {
-    width: 90%;
-    margin: 0 auto; /* Center them horizontally */
-}
-
-.deck-interactive-area-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 0;
-}
-
-.deck-interactive-area {
-    display: grid;
-    grid-template-rows: 1fr 1fr; 
-    gap: var(--spacing-md);
-    aspect-ratio: 1 / 1;
     width: 100%;
-    max-width: 400px;
+    max-width: 300px;
+    margin: 0 auto;
 }
 
-/* DEFINITIVE FIX: Ensure the turntable group is a perfect square */
 .turntable-group {
     min-width: 0;
     min-height: 0;
-    aspect-ratio: 1 / 1; /* Make it square */
+    aspect-ratio: 1 / 1; 
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-sm);
     border: 1px solid var(--color-border);
     position: relative; 
     display: grid;
-    place-items: center; /* Center its contents */
+    place-items: center;
 }
 
 .rotary-controller-container {
@@ -96,7 +79,6 @@
 }
 .editor-overlays > * { pointer-events: all; }
 
-
 .pads-group {
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
@@ -112,7 +94,6 @@
     grid-column: 1 / -1; 
 }
 
-/* --- Edit Tool Placeholders --- */
 .edit-tool-placeholder {
     position: absolute;
     width: 40px;
@@ -121,7 +102,6 @@
     border: 1px dashed var(--color-border);
     border-radius: var(--border-radius-sm);
 }
-
 .edit-tool-placeholder.top-left { top: var(--spacing-sm); left: var(--spacing-sm); }
 .edit-tool-placeholder.top-right { top: var(--spacing-sm); right: var(--spacing-sm); }
 .edit-tool-placeholder.bottom-left { bottom: var(--spacing-sm); left: var(--spacing-sm); }
