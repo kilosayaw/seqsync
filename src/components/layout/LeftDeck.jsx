@@ -1,4 +1,3 @@
-// src/components/layout/LeftDeck.jsx
 import React from 'react';
 import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
@@ -25,7 +24,6 @@ const LeftDeck = ({ onPadDown, onPadUp }) => {
                     </div>
                     <div className="pads-group">
                         <OptionButtons side="left" />
-                        {/* Pads are now direct children of the grid */}
                         {Array.from({ length: 8 }).map((_, i) => {
                             const globalPadIndex = i;
                             const displayNumber = i + 1;

@@ -1,4 +1,3 @@
-// src/components/layout/RightDeck.jsx
 import React from 'react';
 import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
@@ -18,14 +17,13 @@ const RightDeck = ({ onPadDown, onPadUp }) => {
         <div className="deck-wrapper">
             <DirectionalControls />
             <div className="deck-container" data-side="right">
-                <DeckJointList side="right" />
+                <MovementFader />
                 <div className="deck-main-column">
                     <div className="turntable-group">
                         <RotaryController deckId="deck2" />
                     </div>
                     <div className="pads-group">
                         <OptionButtons side="right" />
-                        {/* Pads are now direct children of the grid */}
                         {Array.from({ length: 8 }).map((_, i) => {
                             const globalPadIndex = i + 8;
                             const displayNumber = i + 9;
@@ -44,7 +42,7 @@ const RightDeck = ({ onPadDown, onPadUp }) => {
                         })}
                     </div>
                 </div>
-                <MovementFader />
+                <DeckJointList side="right" />
             </div>
         </div>
     );

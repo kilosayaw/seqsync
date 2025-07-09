@@ -2,6 +2,7 @@
 .deck-wrapper {
     display: flex;
     flex-direction: column;
+    gap: var(--spacing-sm);
     min-width: 0;
     min-height: 0;
 }
@@ -16,34 +17,53 @@
     border-radius: var(--border-radius-md);
     min-height: 0;
 }
-.deck-container > .directional-controls-container { grid-area: 1 / 1 / 2 / 4; }
+.deck-container > .directional-controls-container {
+    grid-area: 1 / 1 / 2 / 4;
+}
+
+/* --- Layout Order --- */
 .deck-container[data-side="left"] > .deck-joint-list-container { grid-area: 2 / 1 / 3 / 2; }
 .deck-container[data-side="left"] > .deck-main-column { grid-area: 2 / 2 / 3 / 3; }
 .deck-container[data-side="left"] > .movement-fader-container { grid-area: 2 / 3 / 3 / 4; }
 .deck-container[data-side="right"] > .movement-fader-container { grid-area: 2 / 1 / 3 / 2; }
 .deck-container[data-side="right"] > .deck-main-column { grid-area: 2 / 2 / 3 / 3; }
 .deck-container[data-side="right"] > .deck-joint-list-container { grid-area: 2 / 3 / 3 / 4; }
+/* --- End Layout Order --- */
 
 .deck-main-column {
     display: grid;
-    grid-template-rows: 1fr auto;
+    /* This layout is correct: turntable takes flexible space, pads have fixed height */
+    grid-template-rows: 1fr 180px; 
     gap: var(--spacing-md);
     min-height: 0;
     min-width: 0;
 }
+
+/* DEFINITIVE FIX: The container itself is now a flex container */
 .turntable-group {
-    min-width: 0; min-height: 0;
-    display: flex;
+    min-width: 0;
+    min-height: 0;
+    display: flex; /* This is key */
     justify-content: center;
     align-items: center;
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-sm);
     border: 1px solid var(--color-border);
+}
+
+/* 
+  And the child element (the RotaryController) is constrained by its parent.
+  This means we size the RotaryController's container directly.
+*/
+.rotary-controller-container {
+    width: 100%;
+    height: 100%;
+    max-width: 250px; /* <--- THIS IS THE VALUE TO TUNE */
+    max-height: 250px; /* <-- TUNE THIS ONE TOO */
     aspect-ratio: 1 / 1;
 }
 
-/* DEFINITIVE FIX: The pads-group is now a single grid for all its children */
 .pads-group {
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
@@ -51,10 +71,9 @@
     border: 1px solid var(--color-border);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: auto repeat(2, 1fr); /* 1 row for options, 2 for pads */
-    gap: var(--spacing-sm);
+    grid-template-rows: auto 1fr 1fr;
+    gap: var(--spacing-sm); 
 }
-/* The OptionButtons component will now span all 4 columns of the first row */
 .pads-group > .option-buttons-container {
     grid-column: 1 / -1;
 }
