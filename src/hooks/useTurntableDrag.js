@@ -12,9 +12,11 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
     const animationFrameRef = useRef();
     const centerRef = useRef({ x: 0, y: 0 });
     const lastMouseAngleRef = useRef(0);
+    const hasMovedRef = useRef(false); // DEFINITIVE: Track if a drag actually happened
 
+    // When the initialAngle prop changes (e.g., new pad selected), reset the visuals
     useEffect(() => {
-        if (!isDragging && Math.abs(velocityRef.current) < MIN_VELOCITY) {
+        if (!isDragging) {
             setAngle(initialAngle);
         }
     }, [initialAngle, isDragging]);
@@ -27,7 +29,8 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
             if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
                 cancelAnimationFrame(animationFrameRef.current);
                 velocityRef.current = 0;
-                if (onDragEnd) onDragEnd(newAngle);
+                // Only call onDragEnd if a drag actually occurred
+                if (onDragEnd && hasMovedRef.current) onDragEnd(newAngle);
                 return newAngle;
             }
             
@@ -38,6 +41,7 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
 
     const handleMouseMove = useCallback((e) => {
         if (!isDragging) return;
+        hasMovedRef.current = true; // Mark that a drag is happening
         
         const dx = e.clientX - centerRef.current.x;
         const dy = e.clientY - centerRef.current.y;
@@ -58,7 +62,8 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
             if (Math.abs(velocityRef.current) > MIN_VELOCITY) {
                 animationFrameRef.current = requestAnimationFrame(animate);
             } else {
-                if (onDragEnd) onDragEnd(angle);
+                // Only call onDragEnd if a drag actually occurred
+                if (onDragEnd && hasMovedRef.current) onDragEnd(angle);
             }
         }
     }, [isDragging, animate, onDragEnd, angle]);
@@ -66,6 +71,7 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
     const handleMouseDown = useCallback((e) => {
         e.stopPropagation();
         setIsDragging(true);
+        hasMovedRef.current = false; // Reset move tracker on new drag
         cancelAnimationFrame(animationFrameRef.current);
         velocityRef.current = 0;
         const rect = e.currentTarget.ownerSVGElement.getBoundingClientRect();

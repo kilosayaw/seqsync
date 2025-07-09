@@ -1,17 +1,15 @@
 // src/components/ui/XYZGrid.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './XYZGrid.css';
 
 const XYZGrid = ({ position = [0, 0, 0], onPositionChange }) => {
     const [zDragStart, setZDragStart] = useState(null);
 
     const handleCellClick = (x, y) => {
-        // On first click, just set X and Y
         onPositionChange([x, y, position[2]]);
     };
 
     const handleZDragStart = (e, x, y) => {
-        // If this isn't the active cell, make it active first
         if (x !== position[0] || y !== position[1]) {
             handleCellClick(x, y);
         }
@@ -25,8 +23,8 @@ const XYZGrid = ({ position = [0, 0, 0], onPositionChange }) => {
     const handleZDragMove = (e) => {
         if (!zDragStart) return;
         const deltaY = zDragStart.screenY - e.screenY;
-        let newZ = zDragStart.initialZ + (deltaY / 100); // Sensitivity
-        newZ = Math.max(-1, Math.min(1, newZ)); // Clamp between -1 and 1
+        let newZ = zDragStart.initialZ + (deltaY / 100);
+        newZ = Math.max(-1, Math.min(1, newZ));
         onPositionChange([position[0], position[1], newZ]);
     };
 
@@ -45,12 +43,12 @@ const XYZGrid = ({ position = [0, 0, 0], onPositionChange }) => {
         };
     }, [zDragStart, handleZDragMove, handleZDragEnd]);
 
-    const zToScale = (z) => 0.5 + (z * 0.45); // Maps z from [-1, 1] to scale [0.05, 0.95]
+    const zToScale = (z) => 0.5 + (z * 0.45);
 
     return (
         <div className="xyz-grid-container">
             {[-1, 0, 1].map(y => 
-                [-1, 0, 1].map(x => {
+                [1, 0, -1].map(x => { 
                     const isActive = position[0] === x && position[1] === y;
                     return (
                         <div 

@@ -2,7 +2,6 @@
 import React, { useCallback } from 'react';
 import { useUIState } from '../../../context/UIStateContext';
 import { useSequence } from '../../../context/SequenceContext';
-import { usePlayback } from '../../../context/PlaybackContext';
 import { getPointsFromNotation, resolveNotationFromPoints } from '../../../utils/notationUtils';
 import { useTurntableDrag } from '../../../hooks/useTurntableDrag';
 import RotarySVG from './RotarySVG';
@@ -10,35 +9,42 @@ import XYZGrid from '../XYZGrid';
 import './RotaryController.css';
 
 const RotaryController = ({ deckId }) => {
-    const { editMode, activePad, selectedBar, selectedJoints, showNotification } = useUIState(); 
-    const { songData, updateJointData, STEPS_PER_BAR } = useSequence();
-    const { isPlaying, currentBar, currentBeat } = usePlayback();
+    // DEFINITIVE: Get activeDirection for conditional logic
+    const { activePad, selectedJoints, showNotification, activeDirection } = useUIState(); 
+    const { songData, updateJointData } = useSequence();
     
     const side = deckId === 'deck1' ? 'left' : 'right';
-    const activeJointId = selectedJoints[0] || (side === 'left' ? 'LF' : 'RF');
+    const isEditing = selectedJoints.length > 0;
+    const activeJointId = isEditing ? selectedJoints[0] : (side === 'left' ? 'LF' : 'RF');
     const isFootMode = activeJointId.endsWith('F');
 
-    const beatIndexToDisplay = isPlaying && selectedBar === currentBar ? currentBeat : (activePad ?? 0);
-    const globalIndex = ((selectedBar - 1) * STEPS_PER_BAR) + beatIndexToDisplay;
-
-    const sourceData = songData[globalIndex]?.joints?.[activeJointId] || {};
+    const sourceData = songData[activePad]?.joints?.[activeJointId] || {};
     
-    const initialAngle = sourceData.angle || 0;
+    // Use 'rotation' as the primary source of truth for the angle
+    const initialAngle = sourceData.rotation || 0;
     const initialPosition = sourceData.position || [0, 0, 0];
     const activePoints = isFootMode ? getPointsFromNotation(sourceData.grounding) : new Set();
-    
-    const isEditing = selectedJoints.length > 0;
 
+    // --- DEFINITIVE: UNIFIED CONTROL LOGIC ---
     const handleDragEnd = useCallback((finalAngle) => {
-        if (!isEditing || activePad === null) return;
+        // Only update rotation if a pad is selected, a joint is selected, AND the L/R button is active
+        if (!isEditing || activePad === null || activeDirection !== 'l_r') {
+            showNotification('Activate L/R to edit rotation.');
+            return;
+        }
         updateJointData(activePad, activeJointId, { rotation: finalAngle });
-    }, [activePad, isEditing, activeJointId, updateJointData]);
+    }, [activePad, isEditing, activeJointId, activeDirection, showNotification, updateJointData]);
 
     const handlePositionChange = useCallback((newPosition) => {
-        if (!isEditing || activePad === null) return;
+        // Only update position if a pad and joint are selected, and direction is NOT L/R
+        if (!isEditing || activePad === null || activeDirection === 'l_r') {
+            showNotification('Activate UP/DOWN or FWD/BWD to edit position.');
+            return;
+        }
         updateJointData(activePad, activeJointId, { position: newPosition });
-    }, [activePad, isEditing, activeJointId, updateJointData]);
+    }, [activePad, isEditing, activeJointId, activeDirection, showNotification, updateJointData]);
 
+    // The turntable drag hook is now conditionally controlled by the callbacks above
     const { angle, handleMouseDown } = useTurntableDrag(initialAngle, handleDragEnd);
 
     const handleHotspotClick = useCallback((shortNotation) => {
@@ -48,32 +54,35 @@ const RotaryController = ({ deckId }) => {
         }
         const currentPoints = getPointsFromNotation(songData[activePad]?.joints?.[activeJointId]?.grounding);
         const newActivePoints = new Set(currentPoints);
-        if (newActivePoints.has(shortNotation)) {
-            newActivePoints.delete(shortNotation);
-        } else {
-            newActivePoints.add(shortNotation);
-        }
+        if (newActivePoints.has(shortNotation)) newActivePoints.delete(shortNotation);
+        else newActivePoints.add(shortNotation);
+        
         const newGroundingNotation = resolveNotationFromPoints(newActivePoints, side);
         updateJointData(activePad, activeJointId, { grounding: newGroundingNotation });
     }, [isFootMode, isEditing, activePad, showNotification, songData, activeJointId, side, updateJointData]);
 
+    // Determine what to show in the center: XYZ Grid for position, or Foot controls for grounding.
+    const centerContent = !isFootMode && isEditing ? (
+        <XYZGrid 
+            position={initialPosition} 
+            onPositionChange={handlePositionChange}
+        />
+    ) : isFootMode && isEditing ? (
+        <div className="foot-editor-placeholder" /> // Placeholder for future foot controls
+    ) : null;
+
     return (
         <div className="rotary-controller-container">
-            {isFootMode ? (
-                <RotarySVG
-                    side={side}
-                    angle={angle}
-                    activePoints={activePoints}
-                    onHotspotClick={handleHotspotClick}
-                    isEditing={isEditing}
-                    handleWheelMouseDown={handleMouseDown}
-                />
-            ) : (
-                <XYZGrid 
-                    position={initialPosition} 
-                    onPositionChange={handlePositionChange}
-                />
-            )}
+            <RotarySVG
+                side={side}
+                angle={angle}
+                activePoints={activePoints}
+                onHotspotClick={handleHotspotClick}
+                isEditing={isEditing}
+                handleWheelMouseDown={handleMouseDown}
+            />
+            {/* The XYZGrid or other controls will overlay the turntable */}
+            {centerContent}
         </div>
     );
 };

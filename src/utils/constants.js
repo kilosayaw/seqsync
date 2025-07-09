@@ -16,46 +16,34 @@ export const BASE_FOOT_PATHS = {
     R: '/ground/foot-right.png',
 };
 
-export const NOTE_DIVISIONS = [
-  { value: 16, label: '1/16' },
-  { value: 8, label: '1/8' },
-  { value: 4, label: '1/4' },
-];
-
-export const POSE_DEFAULT_VECTOR = { x: 0, y: 0, z: 0 };
-
-export const FOOT_HOTSPOT_COORDINATES = {
-    L: [
-        { type: 'circle', notation: '3', cx: 276, cy: 403, r: 31 },
-        { type: 'circle', notation: '1', cx: 316, cy: 235, r: 31 },
-        { type: 'circle', notation: '2', cx: 231, cy: 276, r: 18 },
-        { type: 'ellipse', notation: 'T1', cx: 313, cy: 150, rx: 22, ry: 30, rotation: -17 },
-        { type: 'ellipse', notation: 'T2', cx: 265, cy: 153, rx: 13, ry: 16, rotation: -10 },
-        { type: 'ellipse', notation: 'T3', cx: 237, cy: 171, rx: 12, ry: 15, rotation: -25 },
-        { type: 'ellipse', notation: 'T4', cx: 215, cy: 197, rx: 11, ry: 14, rotation: -120 },
-        { type: 'ellipse', notation: 'T5', cx: 203, cy: 230, rx: 10, ry: 13, rotation: -25 },
-    ],
-    R: [
-        { type: 'circle', notation: '3', cx: 276, cy: 403, r: 31 },
-        { type: 'circle', notation: '1', cx: 233, cy: 235, r: 31 },
-        { type: 'circle', notation: '2', cx: 321, cy: 276, r: 18 },
-        { type: 'ellipse', notation: 'T1', cx: 236, cy: 150, rx: 22, ry: 30, rotation: 17 },
-        { type: 'ellipse', notation: 'T2', cx: 285, cy: 153, rx: 13, ry: 16, rotation: 10 },
-        { type: 'ellipse', notation: 'T3', cx: 313, cy: 170, rx: 11, ry: 15, rotation: 25 },
-        { type: 'ellipse', notation: 'T4', cx: 335, cy: 198, rx: 11, ry: 15, rotation: 35 },
-        { type: 'ellipse', notation: 'T5', cx: 347, cy: 230, rx: 11, ry: 14, rotation: 15 },
-    ]
+// DEFINITIVE: Added a default pose for initial rendering
+export const DEFAULT_POSE = {
+    jointInfo: {
+        'LS': { vector: { x: -0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU' },
+        'RS': { vector: { x: 0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU' },
+        'LE': { vector: { x: -0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU' },
+        'RE': { vector: { x: 0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU' },
+        'LW': { vector: { x: -0.6, y: -0.2, z: 0 }, score: 1, orientation: 'NEU' },
+        'RW': { vector: { x: 0.6, y: -0.2, z: 0 }, score: 1, orientation: 'NEU' },
+        'LH': { vector: { x: -0.15, y: -0.2, z: 0 }, score: 1, orientation: 'NEU' },
+        'RH': { vector: { x: 0.15, y: -0.2, z: 0 }, score: 1, orientation: 'NEU' },
+        'LK': { vector: { x: -0.2, y: -0.6, z: 0 }, score: 1, orientation: 'NEU' },
+        'RK': { vector: { x: 0.2, y: -0.6, z: 0 }, score: 1, orientation: 'NEU' },
+        'LA': { vector: { x: -0.25, y: -0.9, z: 0 }, score: 1, orientation: 'NEU' },
+        'RA': { vector: { x: 0.25, y: -0.9, z: 0 }, score: 1, orientation: 'NEU' },
+    }
 };
 
-// DEFINITIVE FIX: Add the missing export for the skeletal connections.
+// DEFINITIVE: More complete list of connections for a better stick figure
 export const POSE_CONNECTIONS = [
-    ['nose', 'left_eye'], ['left_eye', 'left_ear'],
-    ['nose', 'right_eye'], ['right_eye', 'right_ear'],
-    ['left_shoulder', 'right_shoulder'],
-    ['left_shoulder', 'left_elbow'], ['left_elbow', 'left_wrist'],
-    ['right_shoulder', 'right_elbow'], ['right_elbow', 'right_wrist'],
-    ['left_shoulder', 'left_hip'], ['right_shoulder', 'right_hip'],
-    ['left_hip', 'right_hip'],
-    ['left_hip', 'left_knee'], ['left_knee', 'left_ankle'],
-    ['right_hip', 'right_knee'], ['right_knee', 'right_ankle']
+    // Torso
+    ['LS', 'RS'], ['LH', 'RH'], ['LS', 'LH'], ['RS', 'RH'],
+    // Left Arm
+    ['LS', 'LE'], ['LE', 'LW'],
+    // Right Arm
+    ['RS', 'RE'], ['RE', 'RW'],
+    // Left Leg
+    ['LH', 'LK'], ['LK', 'LA'],
+    // Right Leg
+    ['RH', 'RK'], ['RK', 'RA']
 ];

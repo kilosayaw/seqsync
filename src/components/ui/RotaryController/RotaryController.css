@@ -1,56 +1,70 @@
 /* src/components/ui/RotaryController/RotaryController.css */
 
-.rotary-controller-container {
-    flex-grow: 1; /* Allows the container to fill vertical space */
-    min-height: 0;
+.universal-editor-wrapper {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 40px 1fr 40px;
+    grid-template-rows: 40px 1fr 40px;
+    align-items: center;
+    justify-items: center;
+    gap: var(--spacing-xs);
+}
+
+.rotary-editor-container {
+    grid-area: 2 / 2 / 3 / 3;
+    position: relative;
+    width: 100%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
+.corner-tool {
+    width: 100%;
+    height: 100%;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--border-radius-sm);
+    background-color: rgba(42, 42, 42, 0.5); /* Semi-transparent */
+}
+
+.top-left { grid-area: 1 / 1; }
+.top-right { grid-area: 1 / 3; }
+.bottom-left { grid-area: 3 / 1; }
+.bottom-right { grid-area: 3 / 3; }
+
 .rotary-svg-wrapper {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+}
+.rotary-svg { max-width: 100%; max-height: 100%; object-fit: contain; }
+.rotary-wheel-grab-area { fill: transparent; cursor: grab; }
+.rotary-wheel-grab-area:active { cursor: grabbing; }
+
+.editor-overlays {
+    position: absolute;
+    width: 65%; /* Size to fit inside the wheel */
+    height: 65%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+}
+.editor-overlays > * {
+    pointer-events: all;
+}
+
+.foot-editor-placeholder,
+.xyz-grid-container {
     width: 100%;
     height: 100%;
 }
 
-.rotary-svg {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-}
-
-/* The invisible, draggable part of the wheel */
-.rotary-wheel-grab-area {
-    fill: transparent;
-    cursor: grab;
-}
-
-.rotary-wheel-grab-area:active {
-    cursor: grabbing;
-}
-
-/* The faint, non-interactive foot template image */
-.base-foot-img {
-    opacity: 0.4;
-    pointer-events: none; /* The image itself is not interactive */
-}
-
-/* The glowing green dots that are VISIBLE but NOT interactive */
-.hotspot-indicator.active {
-    fill: var(--color-accent-green);
-    opacity: 0.8;
-    filter: url(#glow);
-    pointer-events: none; /* These are purely visual */
-}
-
-/* The invisible, clickable area for each hotspot */
-.hotspot-clickable-area {
-    fill: transparent;
-    cursor: pointer;
-    transition: fill 0.15s ease-out;
-}
-
-/* Provides the hover "ghosting" effect */
-.hotspot-clickable-area:hover {
-    fill: rgba(0, 255, 127, 0.3);
+.foot-editor-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: var(--color-text-secondary);
 }

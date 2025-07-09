@@ -12,11 +12,13 @@ const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
         joints[joint.id] = { 
-            angle: 0, // For foot rotation
-            grounding: joint.id.endsWith('F') ? `${joint.id.charAt(0)}F123T12345` : null,
-            // NEW: Universal properties for all joints
+            // 'angle' is the legacy property for foot rotation, we will phase it out
+            angle: 0, 
+            // Universal properties for all joints
             position: [0, 0, 0], // [x, y, z] vector
-            rotation: 0, // Rotational value (e.g., for shoulders, hips)
+            rotation: 0,         // Rotational value in degrees
+            orientation: 'NEU',  // 'IN', 'OUT', 'NEU'
+            grounding: joint.id.endsWith('F') ? `${joint.id.charAt(0)}F123T12345` : null,
         };
     });
     const sounds = [];
@@ -57,29 +59,38 @@ export const SequenceProvider = ({ children }) => {
     }, [isMediaReady, duration, detectedBpm, firstBeatOffset]);
 
     const updateJointData = useCallback((globalBeatIndex, jointId, jointDataUpdate) => {
+        if (globalBeatIndex === null || jointId === null) return;
+
         setSongData(prevData => {
+            // Create a shallow copy to avoid direct mutation
             const newData = [...prevData];
-            if (newData[globalBeatIndex]?.joints?.[jointId]) {
-                newData[globalBeatIndex].joints[jointId] = { ...newData[globalBeatIndex].joints[jointId], ...jointDataUpdate };
+            const beatToUpdate = newData[globalBeatIndex];
+            const jointToUpdate = beatToUpdate?.joints?.[jointId];
+
+            if (jointToUpdate) {
+                // Log the exact update for debugging
+                console.log(`[Sequence] Updating Pad ${globalBeatIndex}, Joint ${jointId} with:`, jointDataUpdate);
+                // Create new objects for immutability
+                newData[globalBeatIndex] = {
+                    ...beatToUpdate,
+                    joints: {
+                        ...beatToUpdate.joints,
+                        [jointId]: { ...jointToUpdate, ...jointDataUpdate }
+                    }
+                };
             }
             return newData;
         });
     }, []);
 
-    // NEW FUNCTION to add sounds to a pad's data
     const assignSoundToPad = useCallback((globalPadIndex, soundNote) => {
         setSongData(prevData => {
             const newData = [...prevData];
             const beat = newData[globalPadIndex];
             if (beat) {
-                // Initialize sounds array if it doesn't exist
-                if (!beat.sounds) {
-                    beat.sounds = [];
-                }
-                // Prevents adding more than 4 sounds or duplicates
+                if (!beat.sounds) beat.sounds = [];
                 if (beat.sounds.length < 4 && !beat.sounds.includes(soundNote)) {
                     beat.sounds.push(soundNote);
-                    console.log(`[Sequence] Assigned sound ${soundNote} to Pad ${globalPadIndex + 1}`);
                 }
             }
             return newData;

@@ -1,5 +1,5 @@
 // src/context/UIStateContext.jsx
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 const UIStateContext = createContext(null);
 
@@ -13,7 +13,11 @@ const initialMixerState = {
 
 export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
-    const [activePad, setActivePad] = useState(null);
+    const [activePad, setActivePadState] = useState(null);
+    const [animationState, setAnimationState] = useState('idle');
+    const previousActivePadRef = useRef(null);
+    
+    // Other states
     const [editMode, setEditMode] = useState('none');
     const [noteDivision, setNoteDivision] = useState(16);
     const [padMode, setPadMode] = useState('TRIGGER');
@@ -21,27 +25,43 @@ export const UIStateProvider = ({ children }) => {
     const [notification, setNotification] = useState(null);
     const [selectedJoints, setSelectedJoints] = useState([]);
     const [mixerState, setMixerState] = useState(initialMixerState);
-    
-    // NEW STATE for the directional control mode
-    const [activeDirection, setActiveDirection] = useState('l_r'); // 'up_down', 'l_r', or 'fwd_bwd'
+    const [activeDirection, setActiveDirection] = useState('l_r');
 
     const showNotification = (message) => {
         setNotification(message);
         setTimeout(() => setNotification(null), 2000);
     };
 
+    const setActivePad = (padIndex) => {
+        previousActivePadRef.current = activePad; 
+        setActivePadState(padIndex);
+    };
+
+    const triggerAnimation = () => {
+        const startPad = previousActivePadRef.current;
+        const endPad = activePad;
+
+        if (startPad !== null && endPad !== null && startPad !== endPad) {
+            setAnimationState('playing');
+            setTimeout(() => setAnimationState('idle'), 500); 
+        } else {
+            showNotification("Select a start pad, then a different end pad to preview.");
+        }
+    };
+
     const value = {
         selectedBar, setSelectedBar,
         activePad, setActivePad,
+        previousActivePad: previousActivePadRef.current,
+        animationState, triggerAnimation,
         editMode, setEditMode,
         noteDivision, setNoteDivision,
         padMode, setPadMode,
         activePanel, setActivePanel,
         selectedJoints, setSelectedJoints,
         mixerState, setMixerState,
-        activeDirection, setActiveDirection, // Export the new state and setter
-        notification,
-        showNotification,
+        activeDirection, setActiveDirection,
+        notification, showNotification,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
