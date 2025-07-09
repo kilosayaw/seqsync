@@ -11,6 +11,7 @@
 .deck-container {
     flex-grow: 1;
     display: grid;
+    /* Grid layout for the side panels and the main column */
     grid-template-columns: 60px 1fr 30px; 
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
@@ -19,9 +20,13 @@
     min-height: 0;
 }
 
-.deck-container > .deck-joint-list-container { grid-area: main / joints; }
+/* DEFINITIVE FIX: Use align-self to top-align the side columns */
+.deck-container > .deck-joint-list-container,
+.deck-container > .movement-fader-container {
+    align-self: start;
+}
+
 .deck-container > .deck-main-column { grid-area: main / main-col; }
-.deck-container > .movement-fader-container { grid-area: main / fader; }
 
 .deck-container[data-side="left"] {
     grid-template-areas: "joints main-col fader";
@@ -32,57 +37,65 @@
 }
 
 .deck-main-column {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto 1fr;
     gap: var(--spacing-md);
     min-height: 0;
     min-width: 0;
 }
 
-.deck-interactive-area {
-    flex-grow: 1; 
+/* DEFINITIVE FIX: Directional controls are a grid item, will be top-aligned by default */
+.directional-controls-container {
+    width: 90%;
+    margin: 0 auto; /* Center them horizontally */
+}
+
+.deck-interactive-area-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     min-height: 0;
+}
+
+.deck-interactive-area {
     display: grid;
     grid-template-rows: 1fr 1fr; 
     gap: var(--spacing-md);
     aspect-ratio: 1 / 1;
-    align-self: center; 
-    width: 100%; 
+    width: 100%;
     max-width: 400px;
-    margin: 0 auto; 
 }
 
-/*
-  DEFINITIVE FIX: The turntable group is now a grid to position the controller
-  on the left, leaving space on the right. It is no longer a flex container
-  for centering the entire controller.
-*/
+/* DEFINITIVE FIX: Ensure the turntable group is a perfect square */
 .turntable-group {
     min-width: 0;
     min-height: 0;
+    aspect-ratio: 1 / 1; /* Make it square */
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-sm);
     border: 1px solid var(--color-border);
     position: relative; 
-    display: grid; /* CHANGED from flex */
-    grid-template-columns: 1fr 1fr; /* Create two columns for the zoned layout */
-    align-items: center; /* Vertically align items in the grid cells */
+    display: grid;
+    place-items: center; /* Center its contents */
 }
 
-/*
-  DEFINITIVE FIX: The rotary controller now lives in the first grid column.
-  Its internal flex properties will center the SVG within that column.
-*/
 .rotary-controller-container {
-    grid-column: 1 / 2; /* Place it in the left column */
-    display: flex; /* Use flex to center the SVG inside me */
-    justify-content: center;
-    align-items: center;
     width: 100%;
     height: 100%;
-    min-height: 0;
+    display: grid;
+    place-items: center;
 }
+
+.editor-overlays {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+}
+.editor-overlays > * { pointer-events: all; }
+
 
 .pads-group {
     background-color: var(--color-dark-surface-2);

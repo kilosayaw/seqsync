@@ -2,11 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import './XYZGrid.css';
 
-const XYZGrid = ({ position = [0, 0, 0], onPositionChange }) => {
+const XYZGrid = ({ position = [0, 0, 0], onPositionChange, onZChange, zValue }) => {
+    // DEFINITIVE: This component now manages its own internal Z state during a drag for responsiveness
+    // but reports the final value up. It receives the canonical Z value as a prop.
+    const [localZ, setLocalZ] = useState(zValue);
     const [zDragStart, setZDragStart] = useState(null);
+    
+    // Sync local Z with prop from parent
+    useEffect(() => {
+        setLocalZ(zValue);
+    }, [zValue]);
 
     const handleCellClick = (x, y) => {
-        onPositionChange([x, y, position[2]]);
+        // Report X and Y change immediately
+        if (onPositionChange) onPositionChange([x, y, localZ]);
     };
 
     const handleZDragStart = (e, x, y) => {
@@ -15,7 +24,7 @@ const XYZGrid = ({ position = [0, 0, 0], onPositionChange }) => {
         }
         setZDragStart({
             screenY: e.screenY,
-            initialZ: position[2]
+            initialZ: localZ
         });
         e.stopPropagation();
     };
@@ -25,10 +34,14 @@ const XYZGrid = ({ position = [0, 0, 0], onPositionChange }) => {
         const deltaY = zDragStart.screenY - e.screenY;
         let newZ = zDragStart.initialZ + (deltaY / 100);
         newZ = Math.max(-1, Math.min(1, newZ));
-        onPositionChange([position[0], position[1], newZ]);
+        setLocalZ(newZ); // Update local state for smooth visual feedback
     };
 
     const handleZDragEnd = () => {
+        // On mouse up, report the final Z value to the parent
+        if (zDragStart && onZChange) {
+            onZChange(localZ);
+        }
         setZDragStart(null);
     };
 
@@ -41,7 +54,7 @@ const XYZGrid = ({ position = [0, 0, 0], onPositionChange }) => {
             window.removeEventListener('mousemove', handleZDragMove);
             window.removeEventListener('mouseup', handleZDragEnd);
         };
-    }, [zDragStart, handleZDragMove, handleZDragEnd]);
+    }, [zDragStart]);
 
     const zToScale = (z) => 0.5 + (z * 0.45);
 
@@ -60,7 +73,7 @@ const XYZGrid = ({ position = [0, 0, 0], onPositionChange }) => {
                             {isActive && (
                                 <div 
                                     className="xyz-indicator" 
-                                    style={{ transform: `scale(${zToScale(position[2])})` }}
+                                    style={{ transform: `scale(${zToScale(localZ)})` }}
                                 />
                             )}
                         </div>

@@ -12,9 +12,6 @@ const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
         joints[joint.id] = { 
-            // 'angle' is the legacy property for foot rotation, we will phase it out
-            angle: 0, 
-            // Universal properties for all joints
             position: [0, 0, 0], // [x, y, z] vector
             rotation: 0,         // Rotational value in degrees
             orientation: 'NEU',  // 'IN', 'OUT', 'NEU'
@@ -22,7 +19,9 @@ const createBeatData = (bar, beatInBar) => {
         };
     });
     const sounds = [];
-    return { bar, beat: beatInBar, joints, sounds };
+    // DEFINITIVE: Prepare data structure for future facial detection logic
+    const meta = { isFacingCamera: false };
+    return { bar, beat: beatInBar, joints, sounds, meta };
 };
 
 const createDefaultSequence = () => {
