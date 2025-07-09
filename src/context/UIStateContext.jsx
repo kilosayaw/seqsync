@@ -13,9 +13,11 @@ const initialMixerState = {
 
 export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
-    const [activePad, setActivePadState] = useState(null);
+    // DEFINITIVE: Default activePad to 0 for immediate visual feedback
+    const [activePad, setActivePadState] = useState(0); 
     const [animationState, setAnimationState] = useState('idle');
     const previousActivePadRef = useRef(null);
+
     const [animationRange, setAnimationRange] = useState({ start: null, end: null });
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [coreViewMode, setCoreViewMode] = useState('2d');
@@ -61,8 +63,6 @@ export const UIStateProvider = ({ children }) => {
 
     // DEFINITIVE FIX: Removed all duplicate keys from the value object.
     const value = {
-        selectedBar, setSelectedBar,
-        activePad, setActivePad,
         animationState, triggerAnimation,
         animationRange,
         isPreviewMode, togglePreviewMode,
@@ -76,6 +76,8 @@ export const UIStateProvider = ({ children }) => {
         activeDirection, setActiveDirection,
         notification, showNotification,
         activeVisualizer, setActiveVisualizer,
+        selectedBar, setSelectedBar,
+        activePad, setActivePad,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;

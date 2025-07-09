@@ -1,5 +1,5 @@
 // src/components/ui/RotaryController/RotaryController.jsx
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { useUIState } from '../../../context/UIStateContext';
 import { useSequence } from '../../../context/SequenceContext';
 import { getPointsFromNotation, resolveNotationFromPoints } from '../../../utils/notationUtils';
@@ -9,7 +9,6 @@ import XYZGrid from '../XYZGrid';
 import './RotaryController.css';
 
 const RotaryController = ({ deckId }) => {
-    // DEFINITIVE: Get activeDirection for conditional logic
     const { activePad, selectedJoints, showNotification, activeDirection } = useUIState(); 
     const { songData, updateJointData } = useSequence();
     
@@ -18,58 +17,84 @@ const RotaryController = ({ deckId }) => {
     const activeJointId = isEditing ? selectedJoints[0] : (side === 'left' ? 'LF' : 'RF');
     const isFootMode = activeJointId.endsWith('F');
 
-    const sourceData = songData[activePad]?.joints?.[activeJointId] || {};
+    const defaultGrounding = `${side.charAt(0).toUpperCase()}F123T12345`;
+    // DEFINITIVE: This logic ensures we have valid data whether a pad is selected or not.
+    const sourceData = (activePad !== null && songData[activePad]?.joints?.[activeJointId]) 
+        || (isFootMode ? { grounding: defaultGrounding, rotation: 0, position: [0,0,0] } : { rotation: 0, position: [0,0,0] });
     
-    // Use 'rotation' as the primary source of truth for the angle
     const initialAngle = sourceData.rotation || 0;
     const initialPosition = sourceData.position || [0, 0, 0];
-    const activePoints = isFootMode ? getPointsFromNotation(sourceData.grounding) : new Set();
+    const activePoints = getPointsFromNotation(sourceData.grounding);
+    
+    const positionRef = useRef(initialPosition);
+    positionRef.current = initialPosition;
 
-    // --- DEFINITIVE: UNIFIED CONTROL LOGIC ---
+    const handleDragMove = useCallback((delta) => {
+        if (!isEditing || !activePad || isFootMode || activeDirection === 'l_r') return;
+
+        const SENSITIVITY = 0.01;
+        const newPos = [...positionRef.current];
+        const dragAmount = delta * SENSITIVITY;
+
+        if (activeDirection === 'up_down') {
+            newPos[1] = Math.max(-1, Math.min(1, newPos[1] - dragAmount));
+        } else if (activeDirection === 'fwd_bwd') {
+            newPos[2] = Math.max(-1, Math.min(1, newPos[2] + dragAmount));
+        }
+        updateJointData(activePad, activeJointId, { position: newPos });
+    }, [activePad, isEditing, isFootMode, activeJointId, activeDirection, updateJointData]);
+
     const handleDragEnd = useCallback((finalAngle) => {
-        // Only update rotation if a pad is selected, a joint is selected, AND the L/R button is active
-        if (!isEditing || activePad === null || activeDirection !== 'l_r') {
-            showNotification('Activate L/R to edit rotation.');
+        if (!isEditing || !activePad || activeDirection !== 'l_r') {
+            if (activeDirection !== 'l_r' && isEditing) showNotification('Activate L/R to edit rotation.');
             return;
         }
         updateJointData(activePad, activeJointId, { rotation: finalAngle });
     }, [activePad, isEditing, activeJointId, activeDirection, showNotification, updateJointData]);
-
+    
     const handlePositionChange = useCallback((newPosition) => {
-        // Only update position if a pad and joint are selected, and direction is NOT L/R
-        if (!isEditing || activePad === null || activeDirection === 'l_r') {
-            showNotification('Activate UP/DOWN or FWD/BWD to edit position.');
+        if (!isEditing || !activePad || activeDirection === 'l_r') {
+            if (activeDirection === 'l_r' && isEditing) showNotification('Activate UP/DOWN or FWD/BWD to edit position.');
             return;
         }
         updateJointData(activePad, activeJointId, { position: newPosition });
     }, [activePad, isEditing, activeJointId, activeDirection, showNotification, updateJointData]);
 
-    // The turntable drag hook is now conditionally controlled by the callbacks above
-    const { angle, handleMouseDown } = useTurntableDrag(initialAngle, handleDragEnd);
-
+    const { angle, handleMouseDown } = useTurntableDrag(initialAngle, handleDragEnd, handleDragMove);
+    
     const handleHotspotClick = useCallback((shortNotation) => {
-        if (!isFootMode || !isEditing || activePad === null) {
-            showNotification("Select a foot and a pad to edit contact points.");
+        if (!isFootMode) return;
+        
+        // Editing is now possible as long as a pad is active.
+        if (activePad === null) {
+            showNotification("Select a pad to edit contact points.");
             return;
         }
-        const currentPoints = getPointsFromNotation(songData[activePad]?.joints?.[activeJointId]?.grounding);
+
+        const currentGrounding = songData[activePad]?.joints?.[activeJointId]?.grounding;
+        const currentPoints = getPointsFromNotation(currentGrounding);
         const newActivePoints = new Set(currentPoints);
-        if (newActivePoints.has(shortNotation)) newActivePoints.delete(shortNotation);
-        else newActivePoints.add(shortNotation);
+
+        if (newActivePoints.has(shortNotation)) {
+            newActivePoints.delete(shortNotation);
+        } else {
+            newActivePoints.add(shortNotation);
+        }
         
         const newGroundingNotation = resolveNotationFromPoints(newActivePoints, side);
         updateJointData(activePad, activeJointId, { grounding: newGroundingNotation });
-    }, [isFootMode, isEditing, activePad, showNotification, songData, activeJointId, side, updateJointData]);
+    }, [isFootMode, activePad, showNotification, songData, activeJointId, side, updateJointData]);
 
-    // Determine what to show in the center: XYZ Grid for position, or Foot controls for grounding.
-    const centerContent = !isFootMode && isEditing ? (
-        <XYZGrid 
-            position={initialPosition} 
-            onPositionChange={handlePositionChange}
-        />
-    ) : isFootMode && isEditing ? (
-        <div className="foot-editor-placeholder" /> // Placeholder for future foot controls
-    ) : null;
+    const CenterControl = () => {
+        if (isFootMode || !isEditing) return null;
+        
+        return (
+            <XYZGrid 
+                position={initialPosition} 
+                onPositionChange={handlePositionChange}
+            />
+        );
+    };
 
     return (
         <div className="rotary-controller-container">
@@ -78,13 +103,18 @@ const RotaryController = ({ deckId }) => {
                 angle={angle}
                 activePoints={activePoints}
                 onHotspotClick={handleHotspotClick}
-                isEditing={isEditing}
+                isFootMode={isFootMode}
                 handleWheelMouseDown={handleMouseDown}
             />
-            {/* The XYZGrid or other controls will overlay the turntable */}
-            {centerContent}
+            <div className="editor-overlays">
+                <CenterControl />
+                {isFootMode && activePad === null && (
+                    <div className="placeholder-text-small">
+                        Select a pad to edit contact points.
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
-
 export default RotaryController;

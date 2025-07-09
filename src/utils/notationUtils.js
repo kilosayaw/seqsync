@@ -16,21 +16,6 @@ export const resolveNotationFromPoints = (pointsSet, side) => {
     return notation;
 };
 
-export const getPointsFromNotation = (notation) => {
-    const points = new Set();
-    if (!notation || notation.endsWith('0')) return points;
-    const side = notation.charAt(0).toUpperCase();
-    if (!FOOT_HOTSPOT_COORDINATES[side]) return points;
-    if (notation.endsWith('123T12345')) {
-        return new Set(FOOT_HOTSPOT_COORDINATES[side].map(p => p.notation));
-    }
-    const remainder = notation.substring(2);
-    const [ballHeelPart = '', toePart = ''] = remainder.split('T');
-    for (const char of ballHeelPart) { points.add(char); }
-    for (const char of toePart) { points.add(`T${char}`); }
-    return points;
-};
-
 // --- Display Formatting ---
 export const formatTime = (seconds) => {
     if (isNaN(seconds) || seconds < 0) return '00:00:00';
@@ -91,4 +76,25 @@ export const transformBlazePoseToSEQSour = (blazePose, videoWidth, videoHeight) 
         jointInfo: jointInfo,
         score: blazePose.score
     };
+};
+
+export const getPointsFromNotation = (notation) => {
+    const points = new Set();
+    if (!notation || notation.endsWith('0')) return points;
+    
+    const side = notation.charAt(0).toUpperCase();
+    if (!FOOT_HOTSPOT_COORDINATES[side]) return points;
+    
+    // DEFINITIVE FIX: Correctly handle the full foot plant notation
+    if (notation.includes('123T12345')) {
+        return new Set(FOOT_HOTSPOT_COORDINATES[side].map(p => p.notation));
+    }
+    
+    const remainder = notation.substring(2);
+    const [ballHeelPart = '', toePart = ''] = remainder.split('T');
+    
+    for (const char of ballHeelPart) { points.add(char); }
+    for (const char of toePart) { points.add(`T${char}`); }
+    
+    return points;
 };
