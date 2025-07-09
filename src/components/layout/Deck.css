@@ -9,20 +9,16 @@
 }
 
 /* 
-  DEFINITIVE: A more complex grid to place all elements inside the deck.
-  - The grid has 3 columns: side, main, side.
-  - It has 3 rows: directional controls, main content, pads.
-  - Grid areas are used for precise placement.
+  DEFINITIVE: This is the final, correct grid layout for the decks.
+  It uses named grid areas for maximum clarity and control.
 */
 .deck-container {
     flex-grow: 1;
     display: grid;
-    grid-template-columns: 60px 1fr 60px;
+    /* Define columns for the side panels and the main content area */
+    grid-template-columns: 60px 1fr 30px; 
+    /* Define rows for the three main vertical sections */
     grid-template-rows: auto 1fr auto;
-    grid-template-areas:
-        ". dir-controls ."
-        "joint-list turntable-area fader"
-        "joint-list pads-area fader";
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
@@ -30,23 +26,36 @@
     min-height: 0;
 }
 
-/* --- Area Placements --- */
+/* --- Left Deck Area Assignments --- */
+.deck-container[data-side="left"] {
+    grid-template-areas:
+        "joints dir-controls fader"
+        "joints turntable-area fader"
+        "joints pads-area fader";
+}
+
+/* --- Right Deck Area Assignments --- */
+.deck-container[data-side="right"] {
+    /* The areas are swapped for the right side layout */
+    grid-template-areas:
+        "fader dir-controls joints"
+        "fader turntable-area joints"
+        "fader pads-area joints";
+}
+
+/* --- Component Placement into Grid Areas --- */
+.deck-container > .deck-joint-list-container { grid-area: joints; }
+.deck-container > .movement-fader-container { grid-area: fader; }
 .deck-container > .directional-controls-container { grid-area: dir-controls; }
 .deck-container > .turntable-group { grid-area: turntable-area; }
 .deck-container > .pads-group { grid-area: pads-area; }
 
-/* Left Deck specific placements */
-.deck-container[data-side="left"] > .deck-joint-list-container { grid-area: joint-list; }
-.deck-container[data-side="left"] > .movement-fader-container { grid-area: fader; }
-
-/* Right Deck specific placements (swap fader and joint list) */
-.deck-container[data-side="right"] > .deck-joint-list-container { grid-area: fader; }
-.deck-container[data-side="right"] > .movement-fader-container { grid-area: joint-list; }
-
 
 .directional-controls-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-sm);
     width: 100%;
-    max-width: 300px;
     margin: 0 auto;
 }
 
@@ -54,6 +63,8 @@
     min-width: 0;
     min-height: 0;
     aspect-ratio: 1 / 1; 
+    width: 100%;
+    margin: 0 auto;
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-sm);
