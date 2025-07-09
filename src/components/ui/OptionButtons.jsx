@@ -5,7 +5,13 @@ import classNames from 'classnames';
 import './OptionButtons.css';
 
 const OptionButtons = ({ side }) => {
-    const { noteDivision, setNoteDivision, padMode, setPadMode, activePanel, setActivePanel, triggerAnimation } = useUIState();
+    const { 
+        noteDivision, setNoteDivision, 
+        padMode, setPadMode, 
+        activePanel, setActivePanel, 
+        isPreviewMode, togglePreviewMode,
+        coreViewMode, toggleCoreView
+    } = useUIState();
 
     const handleNoteDivisionCycle = () => {
         const divisions = [16, 8, 4];
@@ -20,7 +26,7 @@ const OptionButtons = ({ side }) => {
                 <button className="option-btn" onClick={handleNoteDivisionCycle}>1/{noteDivision}</button>
                 <button className="option-btn" onClick={handlePadModeToggle}>{padMode}</button>
                 <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>SOUND</button>
-                <button className="option-btn" onClick={triggerAnimation}>PREVIEW</button>
+                <button className={classNames('option-btn', { active: isPreviewMode })} onClick={togglePreviewMode}>PREVIEW</button>
             </div>
         );
     }
@@ -29,7 +35,7 @@ const OptionButtons = ({ side }) => {
         return (
             <div className="option-buttons-container">
                 <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>FOOT</button>
-                <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>POSE</button>
+                <button className="option-btn" onClick={toggleCoreView}>{coreViewMode.toUpperCase()}</button>
                 <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>ABBR</button>
                 <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>MIXER</button>
             </div>
