@@ -8,25 +8,27 @@ import OptionButtons from '../ui/OptionButtons';
 import DirectionalControls from '../ui/DirectionalControls';
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
+// DEFINITIVE FIX: Import useSequence
+import { useSequence } from '../../context/SequenceContext';
 import './Deck.css';
 
 const LeftDeck = ({ onPadDown, onPadUp }) => {
     const { selectedBar, activePad } = useUIState();
     const { isPlaying, currentBar, currentBeat } = usePlayback();
+    const { STEPS_PER_BAR } = useSequence();
     
     return (
-        // DEFINITIVE: The container now holds ALL deck elements.
         <div className="deck-container" data-side="left">
+            {/* Column 1: Joint List */}
             <DeckJointList side="left" />
-            <DirectionalControls />
 
+            {/* Column 2: Main Content */}
+            <DirectionalControls />
             <div className="turntable-group">
                 <div className="rotary-controller-container">
                     <RotaryController deckId="deck1" />
                 </div>
-                <div className="editor-overlays">
-                    {/* XYZGrid is rendered inside RotaryController */}
-                </div>
+                <div className="editor-overlays"></div>
                 <div className="edit-tool-placeholder top-left"></div>
                 <div className="edit-tool-placeholder top-right"></div>
                 <div className="edit-tool-placeholder bottom-left"></div>
@@ -34,13 +36,11 @@ const LeftDeck = ({ onPadDown, onPadUp }) => {
             </div>
 
             <div className="pads-group">
-                <div className="option-buttons-container">
-                    <OptionButtons side="left" />
-                </div>
-                {Array.from({ length: 8 }).map((_, i) => {
-                    const globalPadIndex = i;
+                {Array.from({ length: 4 }).map((_, i) => {
+                    const stepInBar = i;
+                    const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + stepInBar;
                     const displayNumber = i + 1;
-                    const isPulsing = isPlaying && selectedBar === currentBar && globalPadIndex === currentBeat;
+                    const isPulsing = isPlaying && selectedBar === currentBar && stepInBar === currentBeat;
                     
                     return (
                         <PerformancePad
@@ -48,6 +48,7 @@ const LeftDeck = ({ onPadDown, onPadUp }) => {
                             padIndex={globalPadIndex}
                             beatNum={displayNumber}
                             isPulsing={isPulsing}
+                            isSelected={activePad === globalPadIndex}
                             onMouseDown={() => onPadDown(globalPadIndex)}
                             onMouseUp={() => onPadUp(globalPadIndex)}
                             onMouseLeave={() => onPadUp(globalPadIndex)}
@@ -55,8 +56,14 @@ const LeftDeck = ({ onPadDown, onPadUp }) => {
                     );
                 })}
             </div>
-
-            <MovementFader />
+            
+            {/* DEFINITIVE: New grouping container for fader and options */}
+            <div className="fader-options-group">
+                <MovementFader />
+                <div className="side-options-container">
+                    <OptionButtons side="left" />
+                </div>
+            </div>
         </div>
     );
 };

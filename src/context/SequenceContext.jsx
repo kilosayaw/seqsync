@@ -5,7 +5,8 @@ import { JOINT_LIST } from '../utils/constants';
 
 const SequenceContext = createContext(null);
 export const useSequence = () => useContext(SequenceContext);
-export const STEPS_PER_BAR = 16;
+// DEFINITIVE: The sequencer now works with 8 steps per bar (4 per deck)
+export const STEPS_PER_BAR = 8;
 const DEFAULT_BAR_COUNT = 16;
 
 const createBeatData = (bar, beatInBar) => {
@@ -32,8 +33,8 @@ const createBeatData = (bar, beatInBar) => {
 };
 
 const createDefaultSequence = () => {
-    const totalSixteenths = DEFAULT_BAR_COUNT * STEPS_PER_BAR;
-    return Array.from({ length: totalSixteenths }, (_, i) => 
+    const totalSteps = DEFAULT_BAR_COUNT * STEPS_PER_BAR;
+    return Array.from({ length: totalSteps }, (_, i) => 
         createBeatData(Math.floor(i / STEPS_PER_BAR) + 1, i % STEPS_PER_BAR)
     );
 };
@@ -42,27 +43,28 @@ export const SequenceProvider = ({ children }) => {
     const [songData, setSongData] = useState(createDefaultSequence());
     const [totalBars, setTotalBars] = useState(DEFAULT_BAR_COUNT);
     const [barStartTimes, setBarStartTimes] = useState([]);
-    const { isMediaReady, duration, detectedBpm, firstBeatOffset } = useMedia();
+    const { isMediaReady, duration, detectedBpm } = useMedia();
 
     useEffect(() => {
         if (isMediaReady && duration > 0 && detectedBpm) {
             console.log("SequenceContext: Re-initializing sequence for loaded media.");
             const beatsPerMinute = detectedBpm;
-            const totalBeats = (duration / 60) * beatsPerMinute;
-            const calculatedTotalBars = Math.ceil(totalBeats / 4);
+            // A "beat" in music is a quarter note. Our steps are now eighth notes.
+            const timePerStep = (60 / beatsPerMinute) / 2;
+            const totalSteps = Math.ceil(duration / timePerStep);
+            const calculatedTotalBars = Math.ceil(totalSteps / STEPS_PER_BAR);
+
             setTotalBars(calculatedTotalBars);
-            const totalSixteenths = calculatedTotalBars * STEPS_PER_BAR;
-            const newSongData = Array.from({ length: totalSixteenths }, (_, i) => 
+            const newSongData = Array.from({ length: totalSteps }, (_, i) => 
                 createBeatData(Math.floor(i / STEPS_PER_BAR) + 1, i % STEPS_PER_BAR)
             );
             setSongData(newSongData);
-            const timePerBar = (60 / beatsPerMinute) * 4;
-            const newBarStartTimes = Array.from({ length: calculatedTotalBars }, (_, i) => 
-                (i * timePerBar) + (firstBeatOffset || 0)
-            );
+
+            const timePerBar = timePerStep * STEPS_PER_BAR;
+            const newBarStartTimes = Array.from({ length: calculatedTotalBars }, (_, i) => i * timePerBar);
             setBarStartTimes(newBarStartTimes);
         }
-    }, [isMediaReady, duration, detectedBpm, firstBeatOffset]);
+    }, [isMediaReady, duration, detectedBpm]);
 
     const updateJointData = useCallback((globalBeatIndex, jointId, jointDataUpdate) => {
         if (globalBeatIndex === null || jointId === null) return;

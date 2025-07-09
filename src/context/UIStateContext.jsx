@@ -19,63 +19,53 @@ export const UIStateProvider = ({ children }) => {
     const [animationRange, setAnimationRange] = useState({ start: null, end: null });
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [coreViewMode, setCoreViewMode] = useState('2d');
-    const [selectedJoints, setSelectedJoints] = useState([]);
-    
-    // Other state declarations...
     const [editMode, setEditMode] = useState('none');
-    const [noteDivision, setNoteDivision] = useState(16);
+    const [noteDivision, setNoteDivision] = useState(8); // Default to 8 steps
     const [padMode, setPadMode] = useState('TRIGGER');
     const [activePanel, setActivePanel] = useState('none');
     const [notification, setNotification] = useState(null);
+    const [selectedJoints, setSelectedJoints] = useState([]);
     const [mixerState, setMixerState] = useState(initialMixerState);
     const [activeDirection, setActiveDirection] = useState('l_r');
-
-    const showNotification = (message) => {
-        setNotification(message);
-        setTimeout(() => setNotification(null), 2000);
-    };
 
     const setActivePad = (padIndex) => {
         previousActivePadRef.current = activePad; 
         setActivePadState(padIndex);
     };
 
+    const showNotification = (message) => {
+        setNotification(message);
+        setTimeout(() => setNotification(null), 2000);
+    };
+
     const triggerAnimation = () => {
-        let startPad, endPad;
-
-        if (activePad !== null) {
-            startPad = previousActivePadRef.current;
-            endPad = activePad;
-        } else {
-            const barStartIndex = (selectedBar - 1) * 16;
-            startPad = barStartIndex;
-            endPad = barStartIndex + 1;
-        }
-
+        const startPad = previousActivePadRef.current;
+        const endPad = activePad;
         if (startPad !== null && endPad !== null && startPad !== endPad) {
             setAnimationRange({ start: startPad, end: endPad });
             setAnimationState('playing');
             setTimeout(() => setAnimationState('idle'), 500); 
         } else {
-            showNotification("Select a start pad, then a different end pad to preview.");
+            showNotification("Select two pads to preview an animation.");
         }
-    };
-
-    const toggleCoreView = () => {
-        setCoreViewMode(prev => (prev === '2d' ? '3d' : '2d'));
     };
 
     const togglePreviewMode = () => {
         setIsPreviewMode(prev => !prev);
     };
 
+    const toggleCoreView = () => {
+        setCoreViewMode(prev => (prev === '2d' ? '3d' : '2d'));
+    };
+
+    // DEFINITIVE FIX: Removed all duplicate keys from the value object.
     const value = {
         selectedBar, setSelectedBar,
         activePad, setActivePad,
         animationState, triggerAnimation,
-        animationRange, // DEFINITIVE FIX: Export animationRange
+        animationRange,
         isPreviewMode, togglePreviewMode,
-        coreViewMode, setCoreViewMode,
+        coreViewMode, toggleCoreView,
         editMode, setEditMode,
         noteDivision, setNoteDivision,
         padMode, setPadMode,
@@ -84,8 +74,6 @@ export const UIStateProvider = ({ children }) => {
         mixerState, setMixerState,
         activeDirection, setActiveDirection,
         notification, showNotification,
-        selectedJoints, setSelectedJoints,
-        coreViewMode, toggleCoreView,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
