@@ -8,20 +8,26 @@ export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
     const [activePad, setActivePadState] = useState(0); 
     const [animationState, setAnimationState] = useState('idle');
+    const [previewMode, setPreviewMode] = useState('off');
     const previousActivePadRef = useRef(null);
     const [animationRange, setAnimationRange] = useState({ start: null, end: null });
-    
-    // DEFINITIVE: Changed from boolean to a multi-state string
-    const [previewMode, setPreviewMode] = useState('off'); // 'off', '2d', '3d'
-    
     const [editMode, setEditMode] = useState('none');
     const [noteDivision, setNoteDivision] = useState(8);
     const [padMode, setPadMode] = useState('TRIGGER');
     const [activePanel, setActivePanel] = useState('none');
     const [notification, setNotification] = useState(null);
+    const [movementFaderValue, setMovementFaderValue] = useState(0.1);
     const [selectedJoints, setSelectedJoints] = useState([]);
     const [mixerState, setMixerState] = useState(initialMixerState);
     const [activeDirection, setActiveDirection] = useState('l_r');
+
+    const cyclePreviewMode = () => {
+        setPreviewMode(current => {
+            if (current === 'off') return '2d';
+            if (current === '2d') return '3d';
+            return 'off';
+        });
+    };
 
     const setActivePad = (padIndex) => {
         previousActivePadRef.current = activePad; 
@@ -43,15 +49,6 @@ export const UIStateProvider = ({ children }) => {
         } else {
             showNotification("Select two pads to preview an animation.");
         }
-    };
-
-    const cyclePreviewMode = () => {
-        setPreviewMode(current => {
-            if (current === 'off') return '2d';
-            if (current === '2d') return '3d';
-            if (current === '3d') return 'off';
-            return 'off';
-        });
     };
 
     const togglePreviewMode = () => {
@@ -77,6 +74,9 @@ export const UIStateProvider = ({ children }) => {
         mixerState, setMixerState,
         activeDirection, setActiveDirection,
         notification, showNotification,
+        previewMode, cyclePreviewMode,
+        movementFaderValue, setMovementFaderValue,
+        
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;

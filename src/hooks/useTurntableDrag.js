@@ -1,10 +1,10 @@
 // src/hooks/useTurntableDrag.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const FRICTION = 0.95; 
+const FRICTION = 0.95;
 const MIN_VELOCITY = 0.05;
 
-export const useTurntableDrag = (initialAngle, onDragEnd) => {
+export const useTurntableDrag = (initialAngle, onDragEnd, onDragMove) => {
     const [angle, setAngle] = useState(initialAngle);
     const [isDragging, setIsDragging] = useState(false);
     
@@ -12,13 +12,10 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
     const animationFrameRef = useRef();
     const centerRef = useRef({ x: 0, y: 0 });
     const lastMouseAngleRef = useRef(0);
-    const hasMovedRef = useRef(false); // DEFINITIVE: Track if a drag actually happened
+    const hasMovedRef = useRef(false);
 
-    // When the initialAngle prop changes (e.g., new pad selected), reset the visuals
     useEffect(() => {
-        if (!isDragging) {
-            setAngle(initialAngle);
-        }
+        if (!isDragging) setAngle(initialAngle);
     }, [initialAngle, isDragging]);
 
     const animate = useCallback(() => {
@@ -41,7 +38,7 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
 
     const handleMouseMove = useCallback((e) => {
         if (!isDragging) return;
-        hasMovedRef.current = true; // Mark that a drag is happening
+        hasMovedRef.current = true;
         
         const dx = e.clientX - centerRef.current.x;
         const dy = e.clientY - centerRef.current.y;
@@ -51,10 +48,16 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
         if (delta < -180) delta += 360;
         else if (delta > 180) delta -= 360;
 
+        // DEFINITIVE: If the onDragMove callback is provided, use it for linear control.
+        if (onDragMove) {
+            onDragMove(delta);
+        }
+
+        // Always update the visual angle of the turntable
         setAngle(prevAngle => prevAngle + delta);
         velocityRef.current = delta;
         lastMouseAngleRef.current = currentMouseAngle;
-    }, [isDragging]);
+    }, [isDragging, onDragMove]);
 
     const handleMouseUp = useCallback(() => {
         if (isDragging) {
