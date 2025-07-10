@@ -1,4 +1,3 @@
-// src/components/ui/MovementFader.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useUIState } from '../../context/UIStateContext';
 import './MovementFader.css';
@@ -38,15 +37,21 @@ const MovementFader = () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isDragging]);
 
     const handleTop = `${(1 - movementFaderValue) * 100}%`;
 
     return (
-        <div ref={faderRef} className="movement-fader-container" onMouseDown={handleMouseDown}>
-            <div className="movement-fader-track">
-                <div className="movement-fader-handle" style={{ top: handleTop }}></div>
+        // DEFINITIVE REFACTOR: Added wrapper and labels, track now uses faderRef.
+        <div className="movement-fader-wrapper">
+            <div className="fader-label top-label">-O-</div>
+            <div ref={faderRef} className="movement-fader-container" onMouseDown={handleMouseDown}>
+                <div className="movement-fader-track">
+                    <div className="movement-fader-handle" style={{ top: handleTop }}></div>
+                </div>
             </div>
+            <div className="fader-label bottom-label">-o-</div>
         </div>
     );
 };

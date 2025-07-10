@@ -35,7 +35,7 @@ const LeftDeck = ({ onPadEvent }) => {
                 <div className="edit-tool-placeholder bottom-right"></div>
             </div>
 
-            {/* DEFINITIVE REFACTOR: .pads-group now contains both pads and presets */ }
+            {/* DEFINITIVE REFACTOR: Re-introducing the wrapper for the grid layout */ }
             <div className="pads-group">
                 <div className="performance-pads-wrapper">
                     {Array.from({ length: 4 }).map((_, i) => {

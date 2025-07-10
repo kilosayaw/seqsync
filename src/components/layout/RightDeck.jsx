@@ -35,7 +35,7 @@ const RightDeck = ({ onPadEvent }) => {
                 <div className="edit-tool-placeholder bottom-right"></div>
             </div>
             
-            {/* DEFINITIVE REFACTOR: The order is reversed for the right deck for symmetry */ }
+            {/* DEFINITIVE REFACTOR: Re-introducing the wrapper for the grid layout */ }
             <div className="pads-group">
                 <PresetPageSelectors side="right" />
                 <div className="performance-pads-wrapper">

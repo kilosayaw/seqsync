@@ -1,18 +1,20 @@
 /* src/components/ui/PresetPageSelectors.css */
 
 .preset-page-selectors {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch; /* Distribute space to make buttons fill height */
     gap: var(--spacing-sm);
-    width: 100%;
+    width: auto; 
+    height: 100%;
 }
 
 .page-btn {
-    width: 100%; 
-    aspect-ratio: 1 / 1;
-    font-size: 0.9rem;
+    width: 35px; 
+    flex-grow: 1; /* Allow buttons to expand to fill the height */
+    font-size: 1.1rem;
     padding: 0;
-    background-color: var(--color-dark-surface-2);
+    background-color: var(--color-dark-surface-3);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-sm);
     color: var(--color-text-secondary);
