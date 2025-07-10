@@ -1,15 +1,25 @@
+// src/components/ui/OptionButtons.jsx
 import React from 'react';
 import { useUIState } from '../../context/UIStateContext';
 import classNames from 'classnames';
 import './OptionButtons.css';
 
 const OptionButtons = ({ side }) => {
+    // Get all necessary state and functions from the UI context
     const { 
         noteDivision, setNoteDivision, 
         padMode, setPadMode, 
         activePanel, setActivePanel, 
-        previewMode, cyclePreviewMode,
+        activeVisualizer, cycleVisualizerMode 
     } = useUIState();
+
+    // Define handlers for button actions
+    const handleNoteDivisionCycle = () => {
+        const divisions = [8, 4, 2]; // The available note divisions
+        const currentIndex = divisions.indexOf(noteDivision);
+        const nextIndex = (currentIndex + 1) % divisions.length;
+        setNoteDivision(divisions[nextIndex]);
+    };
 
     const handlePadModeToggle = () => {
         setPadMode(currentMode => (currentMode === 'TRIGGER' ? 'GATE' : 'TRIGGER'));
@@ -19,38 +29,43 @@ const OptionButtons = ({ side }) => {
         setActivePanel(currentPanel => (currentPanel === panelName ? 'none' : panelName));
     };
     
+    // Determine the correct label for the multi-state preview button
     const getPreviewLabel = () => {
-        if (previewMode === '2d') return 'VIEW: 2D';
-        if (previewMode === '3d') return 'VIEW: 3D';
-        return 'VIEW: OFF';
+        if (activeVisualizer === 'full') return 'FULL';
+        if (activeVisualizer === 'core') return 'CORE';
+        return 'PREVIEW';
     };
 
-    // DEFINITIVE FIX: The locally defined PresetPageSelectors sub-component has been removed.
-    // The main component now only renders the main options stack.
-
+    // Render the left stack of buttons
     if (side === 'left') {
         return (
-            <div className="main-options-stack">
-                <button className="option-btn" onClick={() => setNoteDivision(d => d === 8 ? 4 : 8)}>1/{noteDivision}</button>
+            <>
+                <button className="option-btn" onClick={handleNoteDivisionCycle}>CYCLE</button>
                 <button className="option-btn" onClick={handlePadModeToggle}>{padMode}</button>
                 <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>SOUND</button>
                 <button className={classNames('option-btn', { active: activePanel === 'mixer' })} onClick={() => handlePanelToggle('mixer')}>MIXER</button>
-            </div>
+            </>
         );
     }
     
+    // Render the right stack of buttons
     if (side === 'right') {
         return (
-            <div className="main-options-stack">
-                <button className={classNames('option-btn', { active: previewMode !== 'off' })} onClick={cyclePreviewMode}>{getPreviewLabel()}</button>
+            <>
+                <button 
+                    className={classNames('option-btn', { active: activeVisualizer !== 'none' })} 
+                    onClick={cycleVisualizerMode}
+                >
+                    {getPreviewLabel()}
+                </button>
                 <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>FOOT</button>
                 <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>POSE</button>
                 <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>ABBR</button>
-            </div>
+            </>
         );
     }
 
-    return null;
+    return null; // Should not happen if 'side' prop is always provided
 };
 
 export default OptionButtons;

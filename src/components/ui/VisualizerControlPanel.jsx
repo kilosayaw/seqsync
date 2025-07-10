@@ -1,3 +1,4 @@
+// src/components/ui/VisualizerControlPanel.jsx
 import React from 'react';
 import { useUIState } from '../../context/UIStateContext';
 import JointRoleSelector from './JointRoleSelector';

@@ -4,15 +4,13 @@ import PropTypes from 'prop-types';
 import { POSE_CONNECTIONS, JOINT_LIST } from '../../utils/constants';
 
 function sketch(p5) {
-    let startPose = null;
-    let endPose = null;
-    let animationState = 'idle';
-    // DEFINITIVE: Change from single joint to array of joints
-    let highlightJoints = [];
+    // --- State Variables ---
+    let startPose, endPose, animationState = 'idle';
+    // DEFINITIVE: Changed to highlightJoints (plural) to accept an array
+    let highlightJoints = []; 
     let canvasSize = { width: 300, height: 300 };
     let animationProgress = 0;
     const animationDuration = 0.5;
-
     let colors = {};
 
     p5.updateWithProps = props => {
@@ -24,8 +22,10 @@ function sketch(p5) {
             }
             animationState = props.animationState;
         }
-        // DEFINITIVE: Update to handle the new array prop
-        if (props.highlightJoints !== undefined) highlightJoints = props.highlightJoints;
+        // DEFINITIVE: Update with the array of joints to highlight
+        if (props.highlightJoints !== undefined) {
+            highlightJoints = props.highlightJoints;
+        }
         if (props.width && props.height) {
             if (canvasSize.width !== props.width || canvasSize.height !== props.height) {
                 canvasSize = { width: props.width, height: props.height };
@@ -133,7 +133,7 @@ function sketch(p5) {
 
             const pos = getCoords(joint.vector);
             // DEFINITIVE: Check if the current joint's key is in the highlight array
-            const isHighlighted = highlightJoints.includes(key);
+            const isHighlighted = highlightJoints.includes(key); 
             
             let jointColor = colors.frame;
             if (isHighlighted) {
@@ -163,7 +163,6 @@ P5SkeletalVisualizer.propTypes = {
     startPose: PropTypes.object,
     endPose: PropTypes.object,
     animationState: PropTypes.string,
-    // DEFINITIVE: Update prop type to be an array of strings
     highlightJoints: PropTypes.arrayOf(PropTypes.string),
     width: PropTypes.number.isRequired,
     height: PropTypes.number.isRequired,

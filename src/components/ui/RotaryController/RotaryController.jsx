@@ -106,6 +106,9 @@ const RotaryController = ({ deckId }) => {
                 isFootMode={isFootMode}
                 handleWheelMouseDown={handleMouseDown}
             />
+            <div className="turntable-placeholder-btn placeholder-top-left">ROT</div>
+            <div className="turntable-placeholder-btn placeholder-top-right">NRG</div>
+            <div className="turntable-placeholder-btn placeholder-bottom-left">INT</div>
             <div className="editor-overlays">
                 <CenterControl />
                 {isFootMode && activePad === null && (

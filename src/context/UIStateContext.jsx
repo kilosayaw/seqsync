@@ -26,7 +26,8 @@ export const UIStateProvider = ({ children }) => {
     const [movementFaderValue, setMovementFaderValue] = useState(0.1);
     const [selectedJoints, setSelectedJoints] = useState([]);
     const [activeDirection, setActiveDirection] = useState('l_r');
-    const [activeVisualizer, setActiveVisualizer] = useState('full');
+    const [activeVisualizer, setActiveVisualizer] = useState('none');
+    const [isCameraActive, setIsCameraActive] = useState(false);
     // DEFINITIVE FIX: Re-introducing the missing state declaration for activePresetPage.
     const [activePresetPage, setActivePresetPage] = useState({ left: 0, right: 0 });
 
@@ -35,6 +36,14 @@ export const UIStateProvider = ({ children }) => {
             if (current === 'off') return '2d';
             if (current === '2d') return '3d';
             return 'off';
+        });
+    };
+
+    const cycleVisualizerMode = () => {
+        setActiveVisualizer(current => {
+            if (current === 'none') return 'full';
+            if (current === 'full') return 'core';
+            return 'none';
         });
     };
 
@@ -77,7 +86,9 @@ export const UIStateProvider = ({ children }) => {
         movementFaderValue, setMovementFaderValue,
         activeVisualizer, setActiveVisualizer,
         mixerState, setMixerState,
-        activePresetPage, setActivePresetPage
+        activePresetPage, setActivePresetPage,
+        cycleVisualizerMode,
+        isCameraActive, setIsCameraActive,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
