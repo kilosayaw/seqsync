@@ -1,13 +1,15 @@
 /* src/components/ui/XYZGrid.css */
 .xyz-grid-container {
     width: 100%;
-    height: 100%;
+    height: auto; /* Height will be determined by aspect-ratio */
+    /* DEFINITIVE FIX: Force the container to be a perfect square. */
+    aspect-ratio: 1 / 1;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
-    gap: 4px;
-    background-color: #000;
-    padding: 4px;
+    gap: 2px;
+    background-color: transparent; 
+    padding: 2px;
     border-radius: 50%;
 }
 .xyz-grid-cell {
@@ -17,6 +19,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: background-color 0.2s ease;
+    border-radius: 2px;
 }
 .xyz-grid-cell:hover {
     background-color: var(--color-dark-surface-3);

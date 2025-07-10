@@ -36,19 +36,19 @@
         "side-controls turntable-area joints"
         "side-controls pads-area joints";
 }
+
 .deck-container > .deck-joint-list-container { grid-area: joints; }
 .deck-container > .directional-controls-container { grid-area: dir-controls; }
 .deck-container > .turntable-group { grid-area: turntable-area; }
 .deck-container > .side-controls-column { grid-area: side-controls; }
 .deck-container > .pads-group { grid-area: pads-area; }
 
+/* DEFINITIVE REFACTOR: Using grid for precise control over vertical space. */
 .side-controls-column {
-    display: flex;
-    flex-direction: column;
-    /* DEFINITIVE FIX: Align items to the top and use a gap for spacing. */
-    justify-content: flex-start;
-    align-items: center;
-    gap: var(--spacing-lg); /* Increased gap for better visual separation */
+    display: grid;
+    grid-template-rows: auto 1fr auto; /* Fader (auto), Options (1fr), Presets (auto) */
+    justify-items: center;
+    gap: var(--spacing-lg);
 }
 
 .directional-controls-container {
@@ -83,7 +83,6 @@
 .editor-overlays { pointer-events: none; }
 .editor-overlays > * { pointer-events: all; }
 
-/* DEFINITIVE FIX: Revert .pads-group to its original simple 4-column grid state. */
 .pads-group {
     width: 100%;
     margin: 0 auto;
@@ -95,15 +94,3 @@
     padding: var(--spacing-md);
     border: 1px solid var(--color-border);
 }
-
-.edit-tool-placeholder {
-    position: absolute;
-    width: 40px; height: 40px;
-    background-color: rgba(0,0,0,0.5);
-    border: 1px dashed var(--color-border);
-    border-radius: var(--border-radius-sm);
-}
-.edit-tool-placeholder.top-left { top: var(--spacing-sm); left: var(--spacing-sm); }
-.edit-tool-placeholder.top-right { top: var(--spacing-sm); right: var(--spacing-sm); }
-.edit-tool-placeholder.bottom-left { bottom: var(--spacing-sm); left: var(--spacing-sm); }
-.edit-tool-placeholder.bottom-right { bottom: var(--spacing-sm); right: var(--spacing-sm); }

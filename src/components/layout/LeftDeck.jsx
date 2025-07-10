@@ -19,7 +19,6 @@ const LeftDeck = ({ onPadEvent }) => {
     return (
         <div className="deck-container" data-side="left">
             <DeckJointList side="left" />
-            {/* DEFINITIVE REFACTOR: The side column now holds the controls in the specified order. */}
             <div className="side-controls-column">
                 <MovementFader />
                 <OptionButtons side="left" />
@@ -30,13 +29,7 @@ const LeftDeck = ({ onPadEvent }) => {
                 <div className="rotary-controller-container">
                     <RotaryController deckId="deck1" />
                 </div>
-                <div className="editor-overlays"></div>
-                <div className="edit-tool-placeholder top-left"></div>
-                <div className="edit-tool-placeholder top-right"></div>
-                <div className="edit-tool-placeholder bottom-left"></div>
-                <div className="edit-tool-placeholder bottom-right"></div>
             </div>
-
             <div className="pads-group">
                 {Array.from({ length: 4 }).map((_, i) => {
                     const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + i;

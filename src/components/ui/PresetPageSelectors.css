@@ -1,18 +1,19 @@
 /* src/components/ui/PresetPageSelectors.css */
 
 .preset-page-selectors {
-    /* DEFINITIVE REFACTOR: Horizontal row, full width of its container */
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-xs);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--spacing-sm);
     width: 100%;
 }
 
 .page-btn {
     width: 100%; 
-    /* DEFINITIVE REFACTOR: Smaller, square buttons */
+    /* DEFINITIVE FIX: Use aspect-ratio to force a square shape and remove flex-grow. */
     aspect-ratio: 1 / 1;
-    font-size: 0.9rem;
+    flex-grow: 0; /* Prevent the button from growing vertically */
+    font-size: 1.1rem;
     padding: 0;
     background-color: var(--color-dark-surface-3);
     border: 1px solid var(--color-border);

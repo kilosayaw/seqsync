@@ -6,6 +6,7 @@ import PerformancePad from '../ui/PerformancePad';
 import OptionButtons from '../ui/OptionButtons';
 import DirectionalControls from '../ui/DirectionalControls';
 import PresetPageSelectors from '../ui/PresetPageSelectors';
+import CircularBpmControl from '../ui/CircularBpmControl';
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -19,7 +20,6 @@ const RightDeck = ({ onPadEvent }) => {
     return (
         <div className="deck-container" data-side="right">
             <DeckJointList side="right" />
-            {/* DEFINITIVE REFACTOR: The side column now holds the controls in the specified order. */}
             <div className="side-controls-column">
                 <MovementFader />
                 <OptionButtons side="right" />
@@ -30,13 +30,7 @@ const RightDeck = ({ onPadEvent }) => {
                 <div className="rotary-controller-container">
                     <RotaryController deckId="deck2" />
                 </div>
-                <div className="editor-overlays"></div>
-                <div className="edit-tool-placeholder top-left"></div>
-                <div className="edit-tool-placeholder top-right"></div>
-                <div className="edit-tool-placeholder bottom-left"></div>
-                <div className="edit-tool-placeholder bottom-right"></div>
             </div>
-            
             <div className="pads-group">
                 {Array.from({ length: 4 }).map((_, i) => {
                     const stepInBar = i + 4;

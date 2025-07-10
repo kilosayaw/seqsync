@@ -3,21 +3,28 @@ import { useUIState } from '../../context/UIStateContext';
 import { JOINT_LIST } from '../../utils/constants';
 import { useLongPress } from '../../hooks/useLongPress';
 import classNames from 'classnames';
-import CircularBpmControl from './CircularBpmControl';
 import './DeckJointList.css';
 
 const DeckJointList = ({ side }) => {
     const { selectedJoints, setSelectedJoints } = useUIState();
     
     const sideKey = side.charAt(0).toUpperCase();
-    const jointsForSide = JOINT_LIST.filter(j => j.id.startsWith(sideKey) && !j.id.endsWith('F'));
+    const jointsForSide = JOINT_LIST.filter(j => j.id.startsWith(sideKey));
 
     const handleShortClick = (jointId) => {
+        // DEFINITIVE FIX: Added console log as requested.
+        console.log(`[Joint Select] Side: ${side}, Joint: ${jointId}`);
         setSelectedJoints(prev => (prev.length === 1 && prev[0] === jointId) ? [] : [jointId]);
     };
 
     const handleLongPress = (jointId) => {
+        if (jointId === 'LF' || jointId === 'RF') {
+            console.log(`[Joint Select] Long Press: Both Feet`);
+            setSelectedJoints(['LF', 'RF']);
+            return;
+        }
         const counterpart = jointId.startsWith('L') ? `R${jointId.substring(1)}` : `L${jointId.substring(1)}`;
+        console.log(`[Joint Select] Long Press: ${jointId} & ${counterpart}`);
         setSelectedJoints([jointId, counterpart]);
     };
 
@@ -39,14 +46,8 @@ const DeckJointList = ({ side }) => {
                     );
                 })}
             </div>
-            {/* DEFINITIVE CHANGE: Adding two filler containers to fill the empty space. */}
             <div className="filler-container"></div>
             <div className="filler-container"></div>
-            {side === 'right' && (
-                <div className="bpm-control-wrapper">
-                    <CircularBpmControl />
-                </div>
-            )}
         </div>
     );
 };

@@ -1,44 +1,12 @@
-// src/hooks/useTurntableDrag.js
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 
-const FRICTION = 0.95;
-const MIN_VELOCITY = 0.05;
-
-export const useTurntableDrag = (initialAngle, onDragEnd, onDragMove) => {
-    const [angle, setAngle] = useState(initialAngle);
-    const [isDragging, setIsDragging] = useState(false);
-    
-    const velocityRef = useRef(0);
-    const animationFrameRef = useRef();
+export const useTurntableDrag = (onDragMove, onDragEnd) => {
     const centerRef = useRef({ x: 0, y: 0 });
     const lastMouseAngleRef = useRef(0);
-    const hasMovedRef = useRef(false);
-
-    useEffect(() => {
-        if (!isDragging) setAngle(initialAngle);
-    }, [initialAngle, isDragging]);
-
-    const animate = useCallback(() => {
-        setAngle(prevAngle => {
-            const newAngle = prevAngle + velocityRef.current;
-            velocityRef.current *= FRICTION;
-
-            if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
-                cancelAnimationFrame(animationFrameRef.current);
-                velocityRef.current = 0;
-                // Only call onDragEnd if a drag actually occurred
-                if (onDragEnd && hasMovedRef.current) onDragEnd(newAngle);
-                return newAngle;
-            }
-            
-            animationFrameRef.current = requestAnimationFrame(animate);
-            return newAngle;
-        });
-    }, [onDragEnd]);
+    const isDraggingRef = useRef(false);
 
     const handleMouseMove = useCallback((e) => {
-        if (!isDragging) return;
-        hasMovedRef.current = true;
+        if (!isDraggingRef.current) return;
         
         const dx = e.clientX - centerRef.current.x;
         const dy = e.clientY - centerRef.current.y;
@@ -48,53 +16,52 @@ export const useTurntableDrag = (initialAngle, onDragEnd, onDragMove) => {
         if (delta < -180) delta += 360;
         else if (delta > 180) delta -= 360;
 
-        // DEFINITIVE: If the onDragMove callback is provided, use it for linear control.
+        lastMouseAngleRef.current = currentMouseAngle;
+
         if (onDragMove) {
             onDragMove(delta);
         }
-
-        // Always update the visual angle of the turntable
-        setAngle(prevAngle => prevAngle + delta);
-        velocityRef.current = delta;
-        lastMouseAngleRef.current = currentMouseAngle;
-    }, [isDragging, onDragMove]);
+    }, [onDragMove]);
 
     const handleMouseUp = useCallback(() => {
-        if (isDragging) {
-            setIsDragging(false);
-            if (Math.abs(velocityRef.current) > MIN_VELOCITY) {
-                animationFrameRef.current = requestAnimationFrame(animate);
-            } else {
-                // Only call onDragEnd if a drag actually occurred
-                if (onDragEnd && hasMovedRef.current) onDragEnd(angle);
-            }
+        isDraggingRef.current = false;
+        if (onDragEnd) {
+            onDragEnd();
         }
-    }, [isDragging, animate, onDragEnd, angle]);
+    }, [onDragEnd]);
     
     const handleMouseDown = useCallback((e) => {
         e.stopPropagation();
-        setIsDragging(true);
-        hasMovedRef.current = false; // Reset move tracker on new drag
-        cancelAnimationFrame(animationFrameRef.current);
-        velocityRef.current = 0;
-        const rect = e.currentTarget.ownerSVGElement.getBoundingClientRect();
-        centerRef.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, };
+        isDraggingRef.current = true;
+
+        const svgElement = e.currentTarget.ownerSVGElement || e.currentTarget;
+        const rect = svgElement.getBoundingClientRect();
+        centerRef.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 
         const dx = e.clientX - centerRef.current.x;
         const dy = e.clientY - centerRef.current.y;
         lastMouseAngleRef.current = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
     }, []);
 
+    // DEFINITIVE FIX: This useEffect now correctly adds and removes listeners based on the drag state.
+    // This was the primary bug causing the drag to fail.
     useEffect(() => {
-        if (isDragging) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-        }
+        const handleMouseUpGlobal = () => {
+            if (isDraggingRef.current) {
+                handleMouseUp();
+            }
+        };
+
+        // Add listeners when the component mounts
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUpGlobal);
+
+        // Cleanup function to remove listeners when the component unmounts
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('mouseup', handleMouseUpGlobal);
         };
-    }, [isDragging, handleMouseMove, handleMouseUp]);
+    }, [handleMouseMove, handleMouseUp]);
 
-    return { angle, handleMouseDown };
+    return { handleMouseDown };
 };

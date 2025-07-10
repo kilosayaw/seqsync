@@ -1,4 +1,4 @@
-/* src/components/ui/RotaryController/RotaryController.css */
+/* src/components/ui/RotaryController.css */
 .base-foot-img {
     fill: var(--color-dark-surface-1);
     opacity: 0.6;
@@ -10,11 +10,6 @@
 .hotspot-indicator.active {
     fill: var(--color-accent-green);
     opacity: 0.9;
-    /* 
-      DEFINITIVE: This line applies the glow.
-      - To REMOVE the glow entirely, delete or comment out this line.
-      - The glow's properties (size, blur) are controlled in the <filter> tag in RotarySVG.jsx.
-    */
     filter: url(#glow);
     pointer-events: none;
 }
@@ -62,7 +57,8 @@
 
 .editor-overlays {
     position: absolute;
-    width: 65%; /* Size to fit inside the wheel */
+    /* DEFINITIVE REFACTOR: Resized the grid to fit inside the turntable graphic */
+    width: 65%;
     height: 65%;
     display: flex;
     justify-content: center;
@@ -104,13 +100,4 @@
 }
 .hotspot-clickable-area:hover {
     fill: rgba(0, 255, 127, 0.3);
-}
-.placeholder-text-small {
-    font-family: var(--font-primary);
-    font-size: 0.8rem;
-    color: var(--color-accent-blue);
-    padding: 0 var(--spacing-md);
-    text-align: center;
-    pointer-events: none;
-    line-height: 1.2;
 }

@@ -15,8 +15,8 @@ const DirectionalControls = () => {
     return (
         <div className="directional-controls-container">
             <button className={classNames('dir-btn', {active: activeDirection === 'up_down'})} onClick={() => handleClick('up_down')}>UP/DOWN</button>
-            <button className={classNames('dir-btn', {active: activeDirection === 'l_r'})} onClick={() => handleClick('l_r')}>L/R</button>
-            <button className={classNames('dir-btn', {active: activeDirection === 'fwd_bwd'})} onClick={() => handleClick('fwd_bwd')}>FWD/BWD</button>
+            <button className={classNames('dir-btn', {active: activeDirection === 'l_r'})} onClick={() => handleClick('l_r')}>LEFT/RIGHT</button>
+            <button className={classNames('dir-btn', {active: activeDirection === 'fwd_bwd'})} onClick={() => handleClick('fwd_bwd')}>FWD/BACK</button>
         </div>
     );
 };
