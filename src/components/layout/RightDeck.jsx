@@ -5,7 +5,6 @@ import RotaryController from '../ui/RotaryController/RotaryController';
 import PerformancePad from '../ui/PerformancePad';
 import OptionButtons from '../ui/OptionButtons';
 import DirectionalControls from '../ui/DirectionalControls';
-import PresetControls from '../ui/PresetControls'; // DEFINITIVE CHANGE: Import the new component.
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -40,14 +39,9 @@ const RightDeck = ({ onPadEvent }) => {
                 <div className="edit-tool-placeholder bottom-right"></div>
             </div>
             
-            {/* DEFINITIVE CHANGE: Added PresetControls component in its grid area. */}
-            <div className="preset-controls-container">
-                <PresetControls side="right" />
-            </div>
-            
             <div className="pads-group">
                 {Array.from({ length: 4 }).map((_, i) => {
-                    const stepInBar = i + 4; // Pads 5-8 of the bar
+                    const stepInBar = i + 4;
                     const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + stepInBar;
                     const displayNumber = i + 5;
                     const isPulsing = isPlaying && selectedBar === currentBar && stepInBar === currentBeat;
@@ -62,6 +56,7 @@ const RightDeck = ({ onPadEvent }) => {
                             onMouseDown={() => onPadEvent('down', globalPadIndex)}
                             onMouseUp={() => onPadEvent('up', globalPadIndex)}
                             onMouseLeave={() => onPadEvent('up', globalPadIndex)}
+                            side="right" /* DEFINITIVE: Pass side prop */
                         />
                     );
                 })}

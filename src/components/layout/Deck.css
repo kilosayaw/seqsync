@@ -12,13 +12,11 @@
     flex-grow: 1;
     display: grid;
     grid-template-columns: 60px 1fr 60px;
-    /* DEFINITIVE CHANGE: Added a new 'auto' row for the presets. */
-    grid-template-rows: auto 1fr auto auto; 
-    /* DEFINITIVE CHANGE: Added 'presets-area' to the grid definition. */
+    /* DEFINITIVE FIX: Reverted to a 3-row layout, removing the preset area. */
+    grid-template-rows: auto 1fr auto; 
     grid-template-areas:
         "joints dir-controls fader"
         "joints turntable-area fader"
-        "joints presets-area fader"
         "joints pads-area fader";
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
@@ -32,7 +30,6 @@
     grid-template-areas:
         "joints dir-controls fader"
         "joints turntable-area fader"
-        "joints presets-area fader"
         "joints pads-area fader";
 }
 
@@ -41,7 +38,6 @@
     grid-template-areas:
         "fader dir-controls joints"
         "fader turntable-area joints"
-        "fader presets-area joints"
         "fader pads-area joints";
 }
 
@@ -50,8 +46,6 @@
 .deck-container > .fader-options-group { grid-area: fader; }
 .deck-container > .directional-controls-container { grid-area: dir-controls; }
 .deck-container > .turntable-group { grid-area: turntable-area; }
-/* DEFINITIVE CHANGE: Add placement rule for the new preset controls container. */
-.deck-container > .preset-controls-container { grid-area: presets-area; }
 .deck-container > .pads-group { grid-area: pads-area; }
 
 .directional-controls-container {

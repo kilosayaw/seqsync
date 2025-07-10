@@ -5,7 +5,6 @@ import RotaryController from '../ui/RotaryController/RotaryController';
 import PerformancePad from '../ui/PerformancePad';
 import OptionButtons from '../ui/OptionButtons';
 import DirectionalControls from '../ui/DirectionalControls';
-import PresetControls from '../ui/PresetControls'; // DEFINITIVE CHANGE: Import the new component.
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -37,11 +36,6 @@ const LeftDeck = ({ onPadEvent }) => {
                 <div className="edit-tool-placeholder bottom-right"></div>
             </div>
 
-            {/* DEFINITIVE CHANGE: Added PresetControls component in its grid area. */}
-            <div className="preset-controls-container">
-                <PresetControls side="left" />
-            </div>
-
             <div className="pads-group">
                 {Array.from({ length: 4 }).map((_, i) => {
                     const stepInBar = i;
@@ -59,6 +53,7 @@ const LeftDeck = ({ onPadEvent }) => {
                             onMouseDown={() => onPadEvent('down', globalPadIndex)}
                             onMouseUp={() => onPadEvent('up', globalPadIndex)}
                             onMouseLeave={() => onPadEvent('up', globalPadIndex)}
+                            side="left" /* DEFINITIVE: Pass side prop */
                         />
                     );
                 })}

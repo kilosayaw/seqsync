@@ -4,21 +4,14 @@ import classNames from 'classnames';
 import './OptionButtons.css';
 
 const OptionButtons = ({ side }) => {
-    // DEFINITIVE: Destructure all necessary state and functions from the context.
     const { 
         noteDivision, setNoteDivision, 
         padMode, setPadMode, 
         activePanel, setActivePanel, 
-        previewMode, cyclePreviewMode
+        previewMode, cyclePreviewMode,
+        activePresetPage, setActivePresetPage // Get preset page state
     } = useUIState();
 
-    const getPreviewLabel = () => {
-        if (previewMode === '2d') return '2D';
-        if (previewMode === '3d') return '3D';
-        return 'PREVIEW';
-    };
-
-    // DEFINITIVE FIX: Define the missing event handlers.
     const handlePadModeToggle = () => {
         setPadMode(currentMode => (currentMode === 'TRIGGER' ? 'GATE' : 'TRIGGER'));
     };
@@ -27,9 +20,29 @@ const OptionButtons = ({ side }) => {
         setActivePanel(currentPanel => (currentPanel === panelName ? 'none' : panelName));
     };
 
+    const handlePageChange = (pageIndex) => {
+        setActivePresetPage(prev => ({ ...prev, [side]: pageIndex }));
+    };
+
+    // New component for the preset page selectors
+    const PresetPageSelectors = () => (
+        <div className="preset-page-selectors">
+            {[0, 1, 2].map(i => (
+                <button
+                    key={`page-${i}`}
+                    className={classNames('page-btn', { 'active': activePresetPage[side] === i })}
+                    onClick={() => handlePageChange(i)}
+                >
+                    {i + 1}
+                </button>
+            ))}
+        </div>
+    );
+
     if (side === 'left') {
         return (
             <>
+                <PresetPageSelectors />
                 <button className="option-btn" onClick={() => setNoteDivision(d => d === 8 ? 4 : 8)}>1/{noteDivision}</button>
                 <button className="option-btn" onClick={handlePadModeToggle}>{padMode}</button>
                 <button className={classNames('option-btn', { active: activePanel === 'sound' })} onClick={() => handlePanelToggle('sound')}>SOUND</button>
@@ -41,7 +54,8 @@ const OptionButtons = ({ side }) => {
     if (side === 'right') {
         return (
             <>
-                <button className={classNames('option-btn', { active: previewMode !== 'off' })} onClick={cyclePreviewMode}>{getPreviewLabel()}</button>
+                <PresetPageSelectors />
+                <button className={classNames('option-btn', { active: previewMode !== 'off' })} onClick={cyclePreviewMode}>PREVIEW</button>
                 <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>FOOT</button>
                 <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>POSE</button>
                 <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>ABBR</button>
