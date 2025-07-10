@@ -5,16 +5,18 @@
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-sm);
   display: flex;
-  /* DEFINITIVE: Align number to top-right */
-  justify-content: flex-end;
-  align-items: flex-start;
+  /* DEFINITIVE CHANGE: Center the number in the larger pad. */
+  justify-content: center;
+  align-items: center;
   color: var(--color-text-secondary);
   transition: all 0.1s ease-in-out;
   cursor: pointer;
   font-family: var(--font-digital);
-  /* DEFINITIVE: Smaller font size */
-  font-size: 1.2rem;
+  /* DEFINITIVE CHANGE: Larger font size for bigger pads. */
+  font-size: 2rem;
   padding: var(--spacing-xs);
+  /* DEFINITIVE CHANGE: Make pads responsive and square. */
+  aspect-ratio: 1 / 1;
 }
 
 .performance-pad:hover {

@@ -1,30 +1,29 @@
-// src/App.jsx
-
 import React from 'react';
 import { MediaProvider } from './context/MediaContext';
 import { SequenceProvider } from './context/SequenceContext';
 import { UIStateProvider } from './context/UIStateContext';
 import { PlaybackProvider } from './context/PlaybackContext';
 import { MotionProvider } from './context/MotionContext';
-import { SoundProvider } from './context/SoundContext'; // IMPORT NEW PROVIDER
+import { SoundProvider } from './context/SoundContext';
 import ProLayout from './components/layout/ProLayout';
 import './App.css';
 
 function App() {
   return (
+    // DEFINITIVE FIX: Re-ordered providers to resolve the dependency error.
+    // UIStateProvider must be a parent of SequenceProvider because SequenceProvider now uses the useUIState hook.
     <MediaProvider>
-      <SequenceProvider>
-        <UIStateProvider>
+      <UIStateProvider>
+        <SequenceProvider>
           <PlaybackProvider>
             <MotionProvider>
-              {/* WRAP with SoundProvider */}
               <SoundProvider>
                 <ProLayout />
               </SoundProvider>
             </MotionProvider>
           </PlaybackProvider>
-        </UIStateProvider>
-      </SequenceProvider>
+        </SequenceProvider>
+      </UIStateProvider>
     </MediaProvider>
   );
 }

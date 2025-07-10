@@ -1,0 +1,58 @@
+/* src/components/ui/PresetControls.css */
+
+.preset-controls-container {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background-color: var(--color-dark-surface-2);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--color-border);
+}
+
+.preset-page-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.page-btn {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: bold;
+    font-family: var(--font-digital);
+    background-color: var(--color-dark-surface-3);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+.page-btn.active {
+    background-color: var(--color-accent-blue);
+    color: var(--color-dark-bg);
+    border-color: var(--color-accent-blue);
+}
+
+.preset-slot-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-sm);
+}
+
+.slot-btn {
+    font-size: 0.8rem;
+    font-weight: bold;
+    background-color: var(--color-dark-surface-3);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    border-radius: var(--border-radius-sm);
+}
+
+.slot-btn.filled {
+    border-color: var(--color-accent-green);
+    color: var(--color-accent-green);
+}
+
+.slot-btn:active {
+    background-color: var(--color-accent-primary);
+    color: var(--color-dark-bg);
+}

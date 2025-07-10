@@ -8,19 +8,18 @@
     flex: 1; 
 }
 
-/* 
-  DEFINITIVE: This is the final, correct grid layout for the decks.
-  It uses named grid areas for maximum clarity and control.
-*/
 .deck-container {
     flex-grow: 1;
     display: grid;
     grid-template-columns: 60px 1fr 60px;
-    grid-template-rows: auto 1fr auto; 
+    /* DEFINITIVE CHANGE: Added a new 'auto' row for the presets. */
+    grid-template-rows: auto 1fr auto auto; 
+    /* DEFINITIVE CHANGE: Added 'presets-area' to the grid definition. */
     grid-template-areas:
         "joints dir-controls fader"
         "joints turntable-area fader"
-        "joints pads-area fader"; /* pads-area now spans the same column as turntable-area */
+        "joints presets-area fader"
+        "joints pads-area fader";
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
@@ -33,6 +32,7 @@
     grid-template-areas:
         "joints dir-controls fader"
         "joints turntable-area fader"
+        "joints presets-area fader"
         "joints pads-area fader";
 }
 
@@ -41,6 +41,7 @@
     grid-template-areas:
         "fader dir-controls joints"
         "fader turntable-area joints"
+        "fader presets-area joints"
         "fader pads-area joints";
 }
 
@@ -49,7 +50,8 @@
 .deck-container > .fader-options-group { grid-area: fader; }
 .deck-container > .directional-controls-container { grid-area: dir-controls; }
 .deck-container > .turntable-group { grid-area: turntable-area; }
-/* DEFINITIVE: The pads group is now placed in the main central area */
+/* DEFINITIVE CHANGE: Add placement rule for the new preset controls container. */
+.deck-container > .preset-controls-container { grid-area: presets-area; }
 .deck-container > .pads-group { grid-area: pads-area; }
 
 .directional-controls-container {
@@ -92,10 +94,8 @@
 .editor-overlays > * { pointer-events: all; }
 
 .pads-group {
-    width: 100%; /* Span the full width of the central grid column */
-    margin: 0 auto; /* Ensure it's centered if max-width is applied */
-    max-width: 400px;
-    min-height: 100px; /* Increased height for bigger pads */
+    width: 100%;
+    margin: 0 auto;
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-md);
@@ -103,7 +103,7 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: 1fr;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
 }
 
 .side-options-container {
@@ -130,21 +130,15 @@
 .edit-tool-placeholder.bottom-left { bottom: var(--spacing-sm); left: var(--spacing-sm); }
 .edit-tool-placeholder.bottom-right { bottom: var(--spacing-sm); right: var(--spacing-sm); }
 
-/* New container for the relocated option buttons */
 .side-options-container {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
-    justify-content: flex-start; /* Align to the top */
+    justify-content: flex-start;
 }
 
-/* --- Visibility control for Option Buttons --- */
-.deck-container[data-side="left"] .option-btn.right-deck-only {
-    display: none;
-}
-.deck-container[data-side="right"] .option-btn.left-deck-only {
-    display: none;
-}
+.deck-container[data-side="left"] .option-btn.right-deck-only { display: none; }
+.deck-container[data-side="right"] .option-btn.left-deck-only { display: none; }
 
 .side-options-container {
     display: flex;

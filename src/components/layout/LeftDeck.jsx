@@ -1,4 +1,3 @@
-// src/components/layout/LeftDeck.jsx
 import React from 'react';
 import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
@@ -6,13 +5,12 @@ import RotaryController from '../ui/RotaryController/RotaryController';
 import PerformancePad from '../ui/PerformancePad';
 import OptionButtons from '../ui/OptionButtons';
 import DirectionalControls from '../ui/DirectionalControls';
+import PresetControls from '../ui/PresetControls'; // DEFINITIVE CHANGE: Import the new component.
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
-// DEFINITIVE FIX: Import useSequence
 import { useSequence } from '../../context/SequenceContext';
 import './Deck.css';
 
-// DEFINITIVE: Simplified props to a single event handler
 const LeftDeck = ({ onPadEvent }) => {
     const { selectedBar, activePad } = useUIState();
     const { isPlaying, currentBar, currentBeat } = usePlayback();
@@ -39,6 +37,11 @@ const LeftDeck = ({ onPadEvent }) => {
                 <div className="edit-tool-placeholder bottom-right"></div>
             </div>
 
+            {/* DEFINITIVE CHANGE: Added PresetControls component in its grid area. */}
+            <div className="preset-controls-container">
+                <PresetControls side="left" />
+            </div>
+
             <div className="pads-group">
                 {Array.from({ length: 4 }).map((_, i) => {
                     const stepInBar = i;
@@ -53,7 +56,6 @@ const LeftDeck = ({ onPadEvent }) => {
                             beatNum={displayNumber}
                             isPulsing={isPulsing}
                             isSelected={activePad === globalPadIndex}
-                            // DEFINITIVE: Simplified event handlers
                             onMouseDown={() => onPadEvent('down', globalPadIndex)}
                             onMouseUp={() => onPadEvent('up', globalPadIndex)}
                             onMouseLeave={() => onPadEvent('up', globalPadIndex)}
