@@ -1,31 +1,44 @@
 /* src/components/ui/OptionButtons.css */
-.option-buttons-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-xs);
+
+/* DEFINITIVE REFACTOR: New wrapper to create the hierarchical layout. */
+.option-group-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm); /* Creates space between page selectors and main buttons */
+    width: 100%;
 }
 
-/* Container for the new preset page buttons */
+/* Container for the preset page buttons (1, 2, 3) */
 .preset-page-selectors {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
     width: 100%;
 }
 
 .page-btn {
-    font-size: 0.8rem;
+    font-size: 0.9rem; /* Slightly larger for better visibility */
     padding: 0;
-    height: 25px;
+    height: 30px; /* Taller to match main buttons */
     background-color: var(--color-dark-surface-2);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-sm);
     color: var(--color-text-secondary);
+    font-family: var(--font-digital); /* Use digital font for consistency */
+    font-weight: bold;
 }
 
 .page-btn.active {
     background-color: var(--color-accent-blue);
     color: var(--color-dark-bg);
+    border-color: var(--color-accent-blue);
+}
+
+/* DEFINITIVE REFACTOR: New wrapper for the main vertical stack of buttons. */
+.main-options-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
 }
 
 .option-btn {

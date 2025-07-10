@@ -1,4 +1,3 @@
-// src/components/layout/ProLayout.jsx
 import React from 'react';
 import TopNavBar from '../ui/TopNavBar';
 import WaveformNavigator from '../ui/WaveformNavigator';
@@ -11,7 +10,7 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import SoundBankPanel from '../ui/SoundBankPanel';
 import SourceMixerPanel from '../ui/SourceMixerPanel';
 import { useKeyboardControls } from '../../hooks/useKeyboardControls';
-import { useMedia } from '../../context/MediaContext'; // DEFINITIVE FIX: Re-added missing import
+import { useMedia } from '../../context/MediaContext';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
 import { useSound } from '../../context/SoundContext';
@@ -48,9 +47,16 @@ const ProLayout = () => {
         }
     };
 
+    // DEFINITIVE FIX: Updated keyboard handler logic.
+    const handleKeyEvent = (type, localPadIndex) => {
+        // Translate the local pad index (0-7) to a global pad index.
+        const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + localPadIndex;
+        handlePadEvent(type, globalPadIndex);
+    };
+
     useKeyboardControls(
-        (padIndex) => handlePadEvent('down', padIndex),
-        (padIndex) => handlePadEvent('up', padIndex)
+        (localPadIndex) => handleKeyEvent('down', localPadIndex),
+        (localPadIndex) => handleKeyEvent('up', localPadIndex)
     );
 
     const mediaLoadActions = [

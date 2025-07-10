@@ -12,12 +12,11 @@
     flex-grow: 1;
     display: grid;
     grid-template-columns: 60px 1fr 60px;
-    /* DEFINITIVE FIX: Reverted to a 3-row layout, removing the preset area. */
     grid-template-rows: auto 1fr auto; 
     grid-template-areas:
-        "joints dir-controls fader"
-        "joints turntable-area fader"
-        "joints pads-area fader";
+        "joints dir-controls side-controls"
+        "joints turntable-area side-controls"
+        "joints pads-area side-controls";
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
@@ -25,28 +24,31 @@
     min-height: 0;
 }
 
-/* --- Left Deck Area Assignments --- */
 .deck-container[data-side="left"] {
     grid-template-areas:
-        "joints dir-controls fader"
-        "joints turntable-area fader"
-        "joints pads-area fader";
+        "joints dir-controls side-controls"
+        "joints turntable-area side-controls"
+        "joints pads-area side-controls";
 }
-
-/* --- Right Deck Area Assignments --- */
 .deck-container[data-side="right"] {
     grid-template-areas:
-        "fader dir-controls joints"
-        "fader turntable-area joints"
-        "fader pads-area joints";
+        "side-controls dir-controls joints"
+        "side-controls turntable-area joints"
+        "side-controls pads-area joints";
 }
-
-/* --- Component Placement into Grid Areas --- */
 .deck-container > .deck-joint-list-container { grid-area: joints; }
-.deck-container > .fader-options-group { grid-area: fader; }
 .deck-container > .directional-controls-container { grid-area: dir-controls; }
 .deck-container > .turntable-group { grid-area: turntable-area; }
+.deck-container > .side-controls-column { grid-area: side-controls; }
 .deck-container > .pads-group { grid-area: pads-area; }
+
+.side-controls-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+}
 
 .directional-controls-container {
     display: grid;
@@ -71,50 +73,49 @@
     place-items: center;
 }
 
-.rotary-controller-container {
-    width: 100%;
-    height: 100%;
-    display: grid;
-    place-items: center;
-}
-
-.editor-overlays {
+.rotary-controller-container, .editor-overlays {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%; height: 100%;
     display: grid;
     place-items: center;
-    pointer-events: none;
 }
+.editor-overlays { pointer-events: none; }
 .editor-overlays > * { pointer-events: all; }
 
+/* DEFINITIVE REFACTOR: .pads-group is now a two-column container */
 .pads-group {
     width: 100%;
     margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto; /* Pads take main space, presets take auto width */
+    gap: var(--spacing-md);
+    align-items: flex-start; /* Aligns the top of the preset column with the top of the pads */
+}
+/* For the right deck, we reverse the column order for symmetry */
+.deck-container[data-side="right"] .pads-group {
+    grid-template-columns: auto 1fr;
+}
+.deck-container[data-side="right"] .performance-pads-wrapper {
+    grid-column: 2 / 3;
+}
+.deck-container[data-side="right"] .preset-page-selectors {
+    grid-column: 1 / 2;
+}
+
+/* This new wrapper now contains the 4 performance pads */
+.performance-pads-wrapper {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-md);
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-md);
     border: 1px solid var(--color-border);
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: 1fr;
-    gap: var(--spacing-md);
-}
-
-.side-options-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    margin-top: var(--spacing-md);
-}
-
-.pads-group > .option-buttons-container {
-    display: none;
 }
 
 .edit-tool-placeholder {
     position: absolute;
-    width: 40px;
-    height: 40px;
+    width: 40px; height: 40px;
     background-color: rgba(0,0,0,0.5);
     border: 1px dashed var(--color-border);
     border-radius: var(--border-radius-sm);
@@ -123,37 +124,3 @@
 .edit-tool-placeholder.top-right { top: var(--spacing-sm); right: var(--spacing-sm); }
 .edit-tool-placeholder.bottom-left { bottom: var(--spacing-sm); left: var(--spacing-sm); }
 .edit-tool-placeholder.bottom-right { bottom: var(--spacing-sm); right: var(--spacing-sm); }
-
-.side-options-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    justify-content: flex-start;
-}
-
-.deck-container[data-side="left"] .option-btn.right-deck-only { display: none; }
-.deck-container[data-side="right"] .option-btn.left-deck-only { display: none; }
-
-.side-options-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    width: 100%;
-}
-.side-options-container .option-btn {
-    width: 100%;
-    height: 30px;
-    font-size: 0.8rem;
-    padding: 0;
-}
-.fader-options-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    align-items: center;
-}
-
-.movement-fader-container {
-    height: 200px;
-    width: 30px;
-}
