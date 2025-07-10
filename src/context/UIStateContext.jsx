@@ -1,4 +1,3 @@
-// src/context/UIStateContext.jsx
 import React, { createContext, useContext, useState, useRef } from 'react';
 
 const UIStateContext = createContext(null);
@@ -20,6 +19,8 @@ export const UIStateProvider = ({ children }) => {
     const [selectedJoints, setSelectedJoints] = useState([]);
     const [mixerState, setMixerState] = useState(initialMixerState);
     const [activeDirection, setActiveDirection] = useState('l_r');
+    // DEFINITIVE CHANGE: Added state for managing active preset pages.
+    const [activePresetPage, setActivePresetPage] = useState({ left: 0, right: 0 });
 
     const cyclePreviewMode = () => {
         setPreviewMode(current => {
@@ -51,21 +52,12 @@ export const UIStateProvider = ({ children }) => {
         }
     };
 
-    const togglePreviewMode = () => {
-        setIsPreviewMode(prev => !prev);
-    };
-
-    const toggleCoreView = () => {
-        setCoreViewMode(prev => (prev === '2d' ? '3d' : '2d'));
-    };
-
-    // DEFINITIVE FIX: Removed all duplicate keys from the value object.
     const value = {
         selectedBar, setSelectedBar,
         activePad, setActivePad,
         animationState, triggerAnimation,
         animationRange,
-        previewMode, cyclePreviewMode, // Export new state and cycle function
+        previewMode, cyclePreviewMode,
         editMode, setEditMode,
         noteDivision, setNoteDivision,
         padMode, setPadMode,
@@ -74,9 +66,9 @@ export const UIStateProvider = ({ children }) => {
         mixerState, setMixerState,
         activeDirection, setActiveDirection,
         notification, showNotification,
-        previewMode, cyclePreviewMode,
         movementFaderValue, setMovementFaderValue,
-        
+        // DEFINITIVE CHANGE: Export the new state and its setter.
+        activePresetPage, setActivePresetPage
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
