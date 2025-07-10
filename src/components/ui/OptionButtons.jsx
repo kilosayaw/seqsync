@@ -55,7 +55,7 @@ const OptionButtons = ({ side }) => {
         return (
             <>
                 <PresetPageSelectors />
-                <button className={classNames('option-btn', { active: previewMode !== 'off' })} onClick={cyclePreviewMode}>PREVIEW</button>
+                <button className={classNames('option-btn', { active: previewMode !== 'off' })} onClick={cyclePreviewMode}>VIEW</button>
                 <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>FOOT</button>
                 <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>POSE</button>
                 <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>ABBR</button>
