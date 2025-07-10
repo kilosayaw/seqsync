@@ -9,13 +9,14 @@ import XYZGrid from '../XYZGrid';
 import './RotaryController.css';
 
 const RotaryController = ({ deckId }) => {
-    const { activePad, selectedJoints, showNotification, activeDirection } = useUIState(); 
+    const { activePad, selectedJoints, showNotification, activeDirection, movementFaderValue } = useUIState(); 
     const { songData, updateJointData } = useSequence();
     
     const side = deckId === 'deck1' ? 'left' : 'right';
     const isEditing = selectedJoints.length > 0;
     const activeJointId = isEditing ? selectedJoints[0] : (side === 'left' ? 'LF' : 'RF');
     const isFootMode = activeJointId.endsWith('F');
+    
 
     const defaultGrounding = `${side.charAt(0).toUpperCase()}F123T12345`;
     // DEFINITIVE: This logic ensures we have valid data whether a pad is selected or not.
@@ -30,36 +31,35 @@ const RotaryController = ({ deckId }) => {
     positionRef.current = initialPosition;
 
     const handleDragMove = useCallback((delta) => {
-        if (!isEditing || !activePad || isFootMode || activeDirection === 'l_r') return;
+        if (!isEditing || !activePad || isFootMode) return;
 
-        const SENSITIVITY = 0.01;
+        // Map fader value (0-1) to our movement range (1-10 inches)
+        // We'll use a normalized value for now. 1 inch = 0.1, 10 inches = 1.0
+        const SENSITIVITY_MIN = 0.005; // Represents 1 inch of movement
+        const SENSITIVITY_MAX = 0.05;  // Represents 10 inches of movement
+        const faderSensitivity = SENSITIVITY_MIN + (movementFaderValue * (SENSITIVITY_MAX - SENSITIVITY_MIN));
+        
+        const dragAmount = delta * faderSensitivity;
         const newPos = [...positionRef.current];
-        const dragAmount = delta * SENSITIVITY;
 
-        if (activeDirection === 'up_down') {
-            newPos[1] = Math.max(-1, Math.min(1, newPos[1] - dragAmount));
+        if (activeDirection === 'l_r') {
+            newPos[0] = Math.max(-1, Math.min(1, newPos[0] + dragAmount)); // X-axis
+        } else if (activeDirection === 'up_down') {
+            newPos[1] = Math.max(-1, Math.min(1, newPos[1] - dragAmount)); // Y-axis
         } else if (activeDirection === 'fwd_bwd') {
-            newPos[2] = Math.max(-1, Math.min(1, newPos[2] + dragAmount));
+            newPos[2] = Math.max(-1, Math.min(1, newPos[2] + dragAmount)); // Z-axis
         }
+        
         updateJointData(activePad, activeJointId, { position: newPos });
-    }, [activePad, isEditing, isFootMode, activeJointId, activeDirection, updateJointData]);
+
+    }, [activePad, isEditing, isFootMode, activeJointId, activeDirection, movementFaderValue, updateJointData]);
 
     const handleDragEnd = useCallback((finalAngle) => {
-        if (!isEditing || !activePad || activeDirection !== 'l_r') {
-            if (activeDirection !== 'l_r' && isEditing) showNotification('Activate L/R to edit rotation.');
-            return;
-        }
+        // This is now ONLY for legacy foot rotation. Position is handled live in handleDragMove.
+        if (!isEditing || !activePad || !isFootMode) return;
         updateJointData(activePad, activeJointId, { rotation: finalAngle });
-    }, [activePad, isEditing, activeJointId, activeDirection, showNotification, updateJointData]);
+    }, [activePad, isEditing, isFootMode, activeJointId, updateJointData]);
     
-    const handlePositionChange = useCallback((newPosition) => {
-        if (!isEditing || !activePad || activeDirection === 'l_r') {
-            if (activeDirection === 'l_r' && isEditing) showNotification('Activate UP/DOWN or FWD/BWD to edit position.');
-            return;
-        }
-        updateJointData(activePad, activeJointId, { position: newPosition });
-    }, [activePad, isEditing, activeJointId, activeDirection, showNotification, updateJointData]);
-
     const { angle, handleMouseDown } = useTurntableDrag(initialAngle, handleDragEnd, handleDragMove);
     
     const handleHotspotClick = useCallback((shortNotation) => {

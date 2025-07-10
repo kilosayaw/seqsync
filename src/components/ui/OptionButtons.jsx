@@ -1,25 +1,30 @@
-// src/components/ui/OptionButtons.jsx
 import React from 'react';
 import { useUIState } from '../../context/UIStateContext';
 import classNames from 'classnames';
 import './OptionButtons.css';
 
 const OptionButtons = ({ side }) => {
+    // DEFINITIVE: Destructure all necessary state and functions from the context.
     const { 
         noteDivision, setNoteDivision, 
         padMode, setPadMode, 
         activePanel, setActivePanel, 
-        previewMode, cyclePreviewMode // Use new state and cycler
+        previewMode, cyclePreviewMode
     } = useUIState();
 
-    const handlePadModeToggle = () => setPadMode(p => p === 'TRIGGER' ? 'GATE' : 'TRIGGER');
-    const handlePanelToggle = (panel) => setActivePanel(p => p === panel ? 'none' : panel);
-    
-    // Get the label for the preview button
     const getPreviewLabel = () => {
         if (previewMode === '2d') return '2D';
         if (previewMode === '3d') return '3D';
         return 'PREVIEW';
+    };
+
+    // DEFINITIVE FIX: Define the missing event handlers.
+    const handlePadModeToggle = () => {
+        setPadMode(currentMode => (currentMode === 'TRIGGER' ? 'GATE' : 'TRIGGER'));
+    };
+
+    const handlePanelToggle = (panelName) => {
+        setActivePanel(currentPanel => (currentPanel === panelName ? 'none' : panelName));
     };
 
     if (side === 'left') {
