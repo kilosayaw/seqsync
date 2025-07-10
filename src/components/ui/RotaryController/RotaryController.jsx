@@ -8,6 +8,7 @@ import XYZGrid from '../XYZGrid';
 import './RotaryController.css';
 
 const RotaryController = ({ deckId }) => {
+    // ... (State and handler logic remains the same) ...
     const { activePad, selectedJoints, showNotification, activeDirection, movementFaderValue } = useUIState(); 
     const { songData, updateJointData } = useSequence();
     
@@ -20,21 +21,14 @@ const RotaryController = ({ deckId }) => {
     const sourceData = (activePad !== null && songData[activePad]?.joints?.[activeJointId]) 
         || (isFootMode ? { grounding: defaultGrounding, rotation: 0, position: [0, 0, 0] } : { rotation: 0, position: [0, 0, 0] });
     
-    const initialAngle = sourceData.rotation || 0;
-    const initialPosition = sourceData.position || [0, 0, 0];
-    const activePoints = getPointsFromNotation(sourceData.grounding);
-    
-    // DEFINITIVE REFACTOR: Manage visual rotation angle locally.
-    const [visualAngle, setVisualAngle] = useState(initialAngle);
+    const [visualAngle, setVisualAngle] = useState(sourceData.rotation || 0);
 
-    // Sync visual angle with data changes only when in foot mode
     useEffect(() => {
         if (isFootMode) {
-            setVisualAngle(initialAngle);
+            setVisualAngle(sourceData.rotation || 0);
         }
-    }, [initialAngle, isFootMode]);
+    }, [sourceData.rotation, isFootMode]);
 
-    // --- Handlers for XYZGrid (used when !isFootMode) ---
     const handlePositionChange = useCallback((newPosition) => {
         if (!isEditing || activePad === null || isFootMode) return;
         selectedJoints.forEach(jointId => {
@@ -55,34 +49,20 @@ const RotaryController = ({ deckId }) => {
         });
     }, [activePad, isEditing, songData, selectedJoints, updateJointData, isFootMode]);
 
-
-    // --- Handlers for Turntable Drag (useTurntableDrag hook) ---
     const handleDragMove = useCallback((delta) => {
         if (isFootMode) {
-            // Foot Mode: Update visual rotation for immediate feedback.
             setVisualAngle(prev => prev + delta);
         } else {
-            // Joint Edit Mode: Use drag delta to control displacement on the active axis.
             if (activePad === null) return;
-
-            const SENSITIVITY_BASE = 0.001;
-            // movementFaderValue ranges from 0 to 1. Scale it to control sensitivity.
-            const sensitivity = SENSITIVITY_BASE + (movementFaderValue * 0.009);
+            const sensitivity = 0.001 + (movementFaderValue * 0.009);
             const displacement = delta * sensitivity;
-
             selectedJoints.forEach(jointId => {
                 if (!jointId.endsWith('F')) {
                     const currentPos = songData[activePad]?.joints?.[jointId]?.position || [0,0,0];
                     const newPos = [...currentPos];
-
-                    if (activeDirection === 'l_r') {
-                        newPos[0] = Math.max(-1, Math.min(1, newPos[0] + displacement));
-                    } else if (activeDirection === 'up_down') {
-                        newPos[1] = Math.max(-1, Math.min(1, newPos[1] - displacement)); // Invert Y for natural feel
-                    } else if (activeDirection === 'fwd_bwd') {
-                        newPos[2] = Math.max(-1, Math.min(1, newPos[2] + displacement));
-                    }
-                    
+                    if (activeDirection === 'l_r') newPos[0] = Math.max(-1, Math.min(1, newPos[0] + displacement));
+                    else if (activeDirection === 'up_down') newPos[1] = Math.max(-1, Math.min(1, newPos[1] - displacement));
+                    else if (activeDirection === 'fwd_bwd') newPos[2] = Math.max(-1, Math.min(1, newPos[2] + displacement));
                     updateJointData(activePad, jointId, { position: newPos });
                 }
             });
@@ -90,11 +70,9 @@ const RotaryController = ({ deckId }) => {
     }, [isFootMode, activePad, activeDirection, movementFaderValue, selectedJoints, songData, updateJointData]);
 
     const handleDragEnd = useCallback(() => {
-        // Only commit the rotation data if in Foot Mode.
         if (activePad !== null && isFootMode) {
             selectedJoints.forEach(jointId => {
                 if(jointId.endsWith('F')) {
-                    // Use the final visual angle to update the stored data.
                     updateJointData(activePad, jointId, { rotation: visualAngle });
                 }
             });
@@ -104,59 +82,39 @@ const RotaryController = ({ deckId }) => {
     const { handleMouseDown } = useTurntableDrag(handleDragMove, handleDragEnd);
     
     const handleHotspotClick = useCallback((shortNotation) => {
-        if (!isFootMode || activePad === null) {
-            showNotification("Select a pad and a Foot (LF/RF) to edit contact points.");
-            return;
-        }
+        if (!isFootMode || activePad === null) return;
         selectedJoints.forEach(jointId => {
             if (jointId.endsWith('F')) {
                 const currentGrounding = songData[activePad]?.joints?.[jointId]?.grounding;
-                const currentPoints = getPointsFromNotation(currentGrounding);
-                const newActivePoints = new Set(currentPoints);
-                if (newActivePoints.has(shortNotation)) {
-                    newActivePoints.delete(shortNotation);
-                } else {
-                    newActivePoints.add(shortNotation);
-                }
+                const newActivePoints = new Set(getPointsFromNotation(currentGrounding));
+                if (newActivePoints.has(shortNotation)) newActivePoints.delete(shortNotation);
+                else newActivePoints.add(shortNotation);
                 const newGroundingNotation = resolveNotationFromPoints(newActivePoints, jointId.startsWith('L') ? 'left' : 'right');
                 updateJointData(activePad, jointId, { grounding: newGroundingNotation });
             }
         });
-    }, [isFootMode, activePad, showNotification, songData, selectedJoints, updateJointData]);
+    }, [isFootMode, activePad, songData, selectedJoints, updateJointData]);
 
-    const CenterControl = () => {
-        if (isFootMode) return null;
-        return (
-            <XYZGrid 
-                position={initialPosition} 
-                onPositionChange={handlePositionChange}
-                zValue={initialPosition[2]}
-                onZChange={handleZChange}
-            />
-        );
-    };
-
-    // The visual angle applied to the SVG depends on the mode.
     const displayAngle = isFootMode ? visualAngle : 0;
 
     return (
         <div className="rotary-controller-container">
             <RotarySVG
                 side={side}
-                angle={displayAngle} // Use displayAngle here
-                activePoints={activePoints}
+                angle={displayAngle}
                 onHotspotClick={handleHotspotClick}
                 isFootMode={isFootMode}
                 handleWheelMouseDown={handleMouseDown}
             />
-            <div className="editor-overlays">
-                <CenterControl />
-                {isFootMode && activePad === null && (
-                    <div className="placeholder-text-small">
-                        Select a pad to edit contact points.
-                    </div>
-                )}
-            </div>
+            {/* DEFINITIVE REFACTOR: The grid is now a direct sibling, allowing for z-index stacking. */}
+            {!isFootMode && (
+                <XYZGrid 
+                    position={sourceData.position || [0,0,0]} 
+                    onPositionChange={handlePositionChange}
+                    zValue={sourceData.position ? sourceData.position[2] : 0}
+                    onZChange={handleZChange}
+                />
+            )}
         </div>
     );
 };

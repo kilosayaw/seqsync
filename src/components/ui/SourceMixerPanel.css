@@ -4,7 +4,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.95);
-    width: 550px; /* Adjusted width */
+    width: 600px; /* Adjusted width for a 2x2 grid */
     background-color: var(--color-dark-surface-1);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
@@ -46,15 +46,16 @@
 .panel-content {
     padding: var(--spacing-lg);
     display: grid;
-    /* Create three columns */
-    grid-template-columns: repeat(3, 1fr);
+    /* Create a 2x2 grid for the mixer tracks */
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
     gap: var(--spacing-lg);
 }
 .mixer-track {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
     padding: var(--spacing-md);
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-sm);
@@ -81,8 +82,15 @@
     border-color: var(--color-accent-green);
     color: var(--color-dark-bg);
 }
-/* This empty CSS class will be used later for the volume fader */
-.volume-fader {
-    height: 20px;
+
+.motion-overlay-track .track-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
     width: 100%;
+}
+
+.motion-overlay-track input[type="range"] {
+    width: 80%;
 }

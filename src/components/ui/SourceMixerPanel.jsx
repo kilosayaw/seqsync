@@ -1,11 +1,11 @@
-// src/components/ui/SourceMixerPanel.jsx
 import React from 'react';
-import { useSequence } from '../../context/SequenceContext';
+import { useUIState } from '../../context/UIStateContext'; // Changed from SequenceContext
 import classNames from 'classnames';
 import './SourceMixerPanel.css';
 
 const SourceMixerPanel = () => {
-    const { activePanel, setActivePanel, mixerState, setMixerState } = useSequence();
+    // The state is managed in UIStateContext now
+    const { activePanel, setActivePanel, mixerState, setMixerState } = useUIState();
 
     const isVisible = activePanel === 'mixer';
 
@@ -40,7 +40,7 @@ const SourceMixerPanel = () => {
                     </button>
                 </div>
                 <div className="mixer-track">
-                    <span className="track-label">Uploaded Media (Cues)</span>
+                    <span className="track-label">Uploaded Media</span>
                     <button onClick={() => handleToggle('uploadedMedia')} className={classNames('mute-btn', { 'active': mixerState.uploadedMedia })}>
                         {mixerState.uploadedMedia ? 'ON' : 'MUTED'}
                     </button>
@@ -52,7 +52,7 @@ const SourceMixerPanel = () => {
                     </button>
                 </div>
                  <div className="mixer-track motion-overlay-track">
-                    <span className="track-label">Motion Overlay (Onion Skin)</span>
+                    <span className="track-label">Motion Overlay</span>
                     <div className="track-controls">
                         <input 
                             type="range" 

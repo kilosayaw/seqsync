@@ -1,16 +1,21 @@
 /* src/components/ui/XYZGrid.css */
 .xyz-grid-container {
-    width: 100%;
-    height: auto; /* Height will be determined by aspect-ratio */
-    /* DEFINITIVE FIX: Force the container to be a perfect square. */
-    aspect-ratio: 1 / 1;
+    /* DEFINITIVE REFACTOR: Reduced size to fit inside the black part of the wheel. */
+    width: 58%;
+    height: 58%;
+    
+    position: absolute;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
     gap: 2px;
     background-color: transparent; 
     padding: 2px;
-    border-radius: 50%;
+    z-index: 2;
+    pointer-events: none;
+}
+.xyz-grid-container .xyz-grid-cell {
+    pointer-events: all;
 }
 .xyz-grid-cell {
     background-color: var(--color-dark-surface-1);

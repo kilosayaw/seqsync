@@ -15,11 +15,32 @@ export const PlaybackProvider = ({ children }) => {
     const [bpm, setBpm] = useState(120);
     const [currentBar, setCurrentBar] = useState(1);
     const [currentBeat, setCurrentBeat] = useState(0);
+    // DEFINITIVE: New state for the audio level.
+    const [audioLevel, setAudioLevel] = useState(-Infinity);
 
     const { wavesurferInstance, duration, detectedBpm } = useMedia();
     const { barStartTimes, STEPS_PER_BAR } = useSequence();
     const metronome = useRef(null);
     const animationFrameId = useRef();
+    // DEFINITIVE: Ref to hold the Tone.Meter instance.
+    const meter = useRef(null);
+
+    useEffect(() => {
+        metronome.current = new Tone.MembraneSynth().toDestination();
+        // DEFINITIVE: Initialize the meter and connect it to the master output.
+        meter.current = new Tone.Meter();
+        Tone.getDestination().connect(meter.current);
+
+        const updateLoop = () => {
+            setAudioLevel(meter.current.getValue());
+            animationFrameId.current = requestAnimationFrame(updateLoop);
+        };
+        updateLoop();
+
+        return () => {
+            cancelAnimationFrame(animationFrameId.current);
+        };
+    }, []);
 
     useEffect(() => {
         metronome.current = new Tone.MembraneSynth().toDestination();
@@ -141,6 +162,7 @@ export const PlaybackProvider = ({ children }) => {
         togglePlay,
         seekToTime,
         handleRecord,
+        audioLevel,
     };
 
     return <PlaybackContext.Provider value={value}>{children}</PlaybackContext.Provider>;

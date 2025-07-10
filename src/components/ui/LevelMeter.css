@@ -1,0 +1,28 @@
+/* src/components/ui/LevelMeter.css */
+.level-meter-container {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-md) 0;
+}
+
+.level-meter-track {
+    width: 12px;
+    height: 100%;
+    background-color: #000;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Bar grows from the bottom */
+}
+
+.level-meter-bar {
+    width: 100%;
+    background: linear-gradient(to top, #00e676, #ffdd57, #ff3860);
+    transition: height 0.05s linear; /* Smooth, fast updates */
+    will-change: height;
+}

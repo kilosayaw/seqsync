@@ -1,23 +1,20 @@
-// src/components/media/P5SkeletalVisualizer.jsx
 import React from 'react';
 import { ReactP5Wrapper } from '@p5-wrapper/react';
 import PropTypes from 'prop-types';
 import { POSE_CONNECTIONS, JOINT_LIST } from '../../utils/constants';
 
 function sketch(p5) {
-    // --- State Variables ---
     let startPose = null;
     let endPose = null;
     let animationState = 'idle';
-    let highlightJoint = null;
+    // DEFINITIVE: Change from single joint to array of joints
+    let highlightJoints = [];
     let canvasSize = { width: 300, height: 300 };
     let animationProgress = 0;
-    const animationDuration = 0.5; // in seconds
+    const animationDuration = 0.5;
 
-    // --- Pre-calculated Colors ---
     let colors = {};
 
-    // --- Core P5 Functions ---
     p5.updateWithProps = props => {
         if (props.startPose) startPose = props.startPose;
         if (props.endPose) endPose = props.endPose;
@@ -27,7 +24,8 @@ function sketch(p5) {
             }
             animationState = props.animationState;
         }
-        if (props.highlightJoint !== undefined) highlightJoint = props.highlightJoint;
+        // DEFINITIVE: Update to handle the new array prop
+        if (props.highlightJoints !== undefined) highlightJoints = props.highlightJoints;
         if (props.width && props.height) {
             if (canvasSize.width !== props.width || canvasSize.height !== props.height) {
                 canvasSize = { width: props.width, height: props.height };
@@ -40,14 +38,13 @@ function sketch(p5) {
         p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
         p5.angleMode(p5.DEGREES);
         
-        // Define all colors once for performance.
         colors = {
-            highlight: p5.color('#FFDF00'), // Gold
+            highlight: p5.color('#FFDF00'),
             line: p5.color(255, 255, 255, 150),
-            mover: p5.color('#ff5252'),       // Red
-            stabilizer: p5.color('#00e676'),  // Green
-            frame: p5.color('#FFFFFF'),      // White
-            coiled: p5.color('#00b0ff'),      // Blue
+            mover: p5.color('#ff5252'),
+            stabilizer: p5.color('#00e676'),
+            frame: p5.color('#FFFFFF'),
+            coiled: p5.color('#00b0ff'),
         };
     };
 
@@ -75,8 +72,7 @@ function sketch(p5) {
 
                 if (startJ && endJ) {
                     interpolatedPose.jointInfo[id] = {
-                        ...startJ, // Carry over all properties like role
-                        ...endJ,   // Override with end properties
+                        ...startJ, ...endJ,
                         vector: {
                             x: p5.lerp(startJ.vector.x, endJ.vector.x, t),
                             y: p5.lerp(startJ.vector.y, endJ.vector.y, t),
@@ -136,7 +132,8 @@ function sketch(p5) {
             if (!joint?.score || joint.score < 0.5 || !joint.vector) continue;
 
             const pos = getCoords(joint.vector);
-            const isHighlighted = highlightJoint === key;
+            // DEFINITIVE: Check if the current joint's key is in the highlight array
+            const isHighlighted = highlightJoints.includes(key);
             
             let jointColor = colors.frame;
             if (isHighlighted) {
@@ -166,7 +163,8 @@ P5SkeletalVisualizer.propTypes = {
     startPose: PropTypes.object,
     endPose: PropTypes.object,
     animationState: PropTypes.string,
-    highlightJoint: PropTypes.string,
+    // DEFINITIVE: Update prop type to be an array of strings
+    highlightJoints: PropTypes.arrayOf(PropTypes.string),
     width: PropTypes.number.isRequired,
     height: PropTypes.number.isRequired,
 };

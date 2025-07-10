@@ -50,29 +50,30 @@
 .rotary-svg-wrapper {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 1; /* SVG is the base layer */
 }
 .rotary-svg { max-width: 100%; max-height: 100%; object-fit: contain; }
 .rotary-wheel-grab-area { fill: transparent; cursor: grab; }
 .rotary-wheel-grab-area:active { cursor: grabbing; }
 
-.editor-overlays {
-    position: absolute;
-    /* DEFINITIVE REFACTOR: Resized the grid to fit inside the turntable graphic */
-    width: 65%;
-    height: 65%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    pointer-events: none;
-}
-.editor-overlays > * {
-    pointer-events: all;
+.rotary-controller-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
 }
 
 .foot-editor-placeholder,
 .xyz-grid-container {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    width: 65%; /* Sized to fit inside the inner circle */
+    height: 65%;
+    z-index: 10; /* Placed on top of the SVG */
+    pointer-events: none; /* The container itself should not block clicks */
+}
+.xyz-grid-container .xyz-grid-cell {
+    pointer-events: all; /* Individual cells are clickable */
 }
 
 .foot-editor-placeholder {
@@ -97,6 +98,7 @@
     fill: transparent;
     cursor: pointer;
     transition: fill 0.15s ease-out;
+    z-index: 11; /* Must be on top of everything */
 }
 .hotspot-clickable-area:hover {
     fill: rgba(0, 255, 127, 0.3);

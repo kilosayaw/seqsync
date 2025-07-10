@@ -1,7 +1,14 @@
 import React, { createContext, useContext, useState, useRef } from 'react';
 
 const UIStateContext = createContext(null);
-const initialMixerState = { /* ... */ };
+
+const initialMixerState = {
+    kitSounds: true,
+    uploadedMedia: true,
+    cameraFeed: false,
+    motionOverlay: true,
+    motionOverlayOpacity: 0.7
+};
 
 export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
@@ -19,7 +26,8 @@ export const UIStateProvider = ({ children }) => {
     const [selectedJoints, setSelectedJoints] = useState([]);
     const [mixerState, setMixerState] = useState(initialMixerState);
     const [activeDirection, setActiveDirection] = useState('l_r');
-    // DEFINITIVE CHANGE: Added state for managing active preset pages.
+    const [activeVisualizer, setActiveVisualizer] = useState('full');
+    // DEFINITIVE FIX: Re-introducing the missing state declaration for activePresetPage.
     const [activePresetPage, setActivePresetPage] = useState({ left: 0, right: 0 });
 
     const cyclePreviewMode = () => {
@@ -51,7 +59,7 @@ export const UIStateProvider = ({ children }) => {
             showNotification("Select two pads to preview an animation.");
         }
     };
-
+    
     const value = {
         selectedBar, setSelectedBar,
         activePad, setActivePad,
@@ -67,7 +75,8 @@ export const UIStateProvider = ({ children }) => {
         activeDirection, setActiveDirection,
         notification, showNotification,
         movementFaderValue, setMovementFaderValue,
-        // DEFINITIVE CHANGE: Export the new state and its setter.
+        activeVisualizer, setActiveVisualizer,
+        // DEFINITIVE FIX: Exporting the state and its setter through the context.
         activePresetPage, setActivePresetPage
     };
 
