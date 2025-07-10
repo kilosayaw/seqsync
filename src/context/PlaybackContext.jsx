@@ -1,6 +1,6 @@
 // src/context/PlaybackContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { useMedia } from './MediaContext';
+import { useMedia } from './MediaContext'; // DEFINITIVE FIX: Re-added missing import
 import { useSequence } from './SequenceContext';
 import * as Tone from 'tone';
 
@@ -15,32 +15,12 @@ export const PlaybackProvider = ({ children }) => {
     const [bpm, setBpm] = useState(120);
     const [currentBar, setCurrentBar] = useState(1);
     const [currentBeat, setCurrentBeat] = useState(0);
-    // DEFINITIVE: New state for the audio level.
-    const [audioLevel, setAudioLevel] = useState(-Infinity);
 
-    const { wavesurferInstance, duration, detectedBpm } = useMedia();
+    // DEFINITIVE FIX: Re-added useMedia hook to get necessary values
+    const { wavesurferInstance, detectedBpm } = useMedia(); 
     const { barStartTimes, STEPS_PER_BAR } = useSequence();
     const metronome = useRef(null);
     const animationFrameId = useRef();
-    // DEFINITIVE: Ref to hold the Tone.Meter instance.
-    const meter = useRef(null);
-
-    useEffect(() => {
-        metronome.current = new Tone.MembraneSynth().toDestination();
-        // DEFINITIVE: Initialize the meter and connect it to the master output.
-        meter.current = new Tone.Meter();
-        Tone.getDestination().connect(meter.current);
-
-        const updateLoop = () => {
-            setAudioLevel(meter.current.getValue());
-            animationFrameId.current = requestAnimationFrame(updateLoop);
-        };
-        updateLoop();
-
-        return () => {
-            cancelAnimationFrame(animationFrameId.current);
-        };
-    }, []);
 
     useEffect(() => {
         metronome.current = new Tone.MembraneSynth().toDestination();
@@ -53,60 +33,56 @@ export const PlaybackProvider = ({ children }) => {
         }
     }, [detectedBpm]);
 
-    const handleAudioProcess = useCallback((time) => {
-        setCurrentTime(time);
-        if (!barStartTimes.length) return;
-
-        let bar = 1;
-        let beat = 0;
-
-        for (let i = barStartTimes.length - 1; i >= 0; i--) {
-            if (time >= barStartTimes[i]) {
-                bar = i + 1;
-                const timeIntoBar = time - barStartTimes[i];
-                const timePerBeat = (60 / bpm) / (STEPS_PER_BAR / 4);
-                beat = Math.floor(timeIntoBar / timePerBeat);
-                break;
-            }
-        }
-        
-        if (bar !== currentBar) setCurrentBar(bar);
-        if (beat !== currentBeat) setCurrentBeat(beat);
-
-    }, [barStartTimes, bpm, STEPS_PER_BAR, currentBar, currentBeat]);
-
     useEffect(() => {
-        if (wavesurferInstance) {
-            const onProcess = (time) => handleAudioProcess(time);
-            const onFinish = () => {
-                setIsPlaying(false);
-                setIsRecording(false);
-            };
+        const animate = () => {
+            if (wavesurferInstance && wavesurferInstance.isPlaying()) {
+                const time = wavesurferInstance.getCurrentTime();
+                setCurrentTime(time);
 
-            wavesurferInstance.on('audioprocess', onProcess);
-            wavesurferInstance.on('finish', onFinish);
+                if (barStartTimes.length > 0) {
+                    let bar = 1;
+                    let beat = 0;
+                    for (let i = barStartTimes.length - 1; i >= 0; i--) {
+                        if (time >= barStartTimes[i]) {
+                            bar = i + 1;
+                            const timeIntoBar = time - barStartTimes[i];
+                            // Time per step (eighth note)
+                            const timePerStep = (60 / bpm) / 2;
+                            beat = Math.floor(timeIntoBar / timePerStep);
+                            break;
+                        }
+                    }
+                    if (bar !== currentBar) setCurrentBar(bar);
+                    if (beat !== currentBeat) setCurrentBeat(beat);
+                }
+            }
+            animationFrameId.current = requestAnimationFrame(animate);
+        };
 
-            return () => {
-                wavesurferInstance.un('audioprocess', onProcess);
-                wavesurferInstance.un('finish', onFinish);
-            };
+        if (isPlaying) {
+            animationFrameId.current = requestAnimationFrame(animate);
+        } else {
+            cancelAnimationFrame(animationFrameId.current);
         }
-    }, [wavesurferInstance, handleAudioProcess]);
+
+        return () => cancelAnimationFrame(animationFrameId.current);
+    }, [isPlaying, wavesurferInstance, barStartTimes, bpm, STEPS_PER_BAR, currentBar, currentBeat]);
 
     const seekToTime = useCallback((time) => {
-        if (wavesurferInstance && duration > 0) {
-            wavesurferInstance.seekTo(time / duration);
-            handleAudioProcess(time);
+        if (wavesurferInstance) {
+            const duration = wavesurferInstance.getDuration();
+            if (duration > 0) {
+                wavesurferInstance.seekTo(time / duration);
+                setCurrentTime(time);
+            }
         }
-    }, [wavesurferInstance, duration, handleAudioProcess]);
+    }, [wavesurferInstance]);
 
     const togglePlay = useCallback(async () => {
         if (!wavesurferInstance) return;
-
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        
         wavesurferInstance.playPause();
         setIsPlaying(wavesurferInstance.isPlaying());
     }, [wavesurferInstance]);
@@ -118,17 +94,14 @@ export const PlaybackProvider = ({ children }) => {
         const timePerBeat = 60 / bpm;
         const countdownBeats = ['4', '3', '2', '1'];
         
-        // Schedule metronome clicks
         countdownBeats.forEach((_, index) => {
             metronome.current.triggerAttackRelease('C2', '8n', now + (index * timePerBeat));
         });
 
-        // Schedule visual countdown
         countdownBeats.forEach((val, i) => {
             setTimeout(() => setPreRollCount(parseInt(val)), i * timePerBeat * 1000);
         });
 
-        // Schedule the actual start of playback
         setTimeout(() => {
             setPreRollCount(0);
             setIsPlaying(true);
@@ -162,7 +135,6 @@ export const PlaybackProvider = ({ children }) => {
         togglePlay,
         seekToTime,
         handleRecord,
-        audioLevel,
     };
 
     return <PlaybackContext.Provider value={value}>{children}</PlaybackContext.Provider>;

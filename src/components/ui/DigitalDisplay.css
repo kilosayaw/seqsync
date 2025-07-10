@@ -32,11 +32,10 @@
     border-radius: 2px;
     padding: 2px 0;
     
-    /* DEFINITIVE JITTER FIX: This forces numbers to take up the same space. */
+    /* DEFINITIVE FIX: This forces all numbers to have the same width, eliminating jitter. */
     font-variant-numeric: tabular-nums;
 }
 
-/* Special smaller font size for the time display to prevent overflow */
 .digital-display-wrapper.time-display .digital-display-value {
     font-size: 1.4rem;
 }

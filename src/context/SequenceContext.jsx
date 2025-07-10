@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useMedia } from './MediaContext';
-import { useUIState } from './UIStateContext'; // DEFINITIVE CHANGE: Import UIState for activePad
+import { useUIState } from './UIStateContext';
 import { JOINT_LIST } from '../utils/constants';
 
 const SequenceContext = createContext(null);
@@ -30,7 +30,6 @@ const createDefaultSequence = () => {
     );
 };
 
-// DEFINITIVE CHANGE: Function to create the initial preset structure.
 const createDefaultPresets = () => ({
     left: Array(PRESET_PAGES).fill(null).map(() => Array(PRESETS_PER_PAGE).fill(null)),
     right: Array(PRESET_PAGES).fill(null).map(() => Array(PRESETS_PER_PAGE).fill(null)),
@@ -39,20 +38,22 @@ const createDefaultPresets = () => ({
 
 export const SequenceProvider = ({ children }) => {
     const [songData, setSongData] = useState(createDefaultSequence());
-    // DEFINITIVE CHANGE: Add presets state.
     const [presets, setPresets] = useState(createDefaultPresets());
     const [totalBars, setTotalBars] = useState(DEFAULT_BAR_COUNT);
     const [barStartTimes, setBarStartTimes] = useState([]);
     const { isMediaReady, duration, detectedBpm } = useMedia();
-    const { activePad } = useUIState(); // DEFINITIVE CHANGE: Get activePad for preset functions.
+    const { activePad } = useUIState(); 
 
     useEffect(() => {
         if (isMediaReady && duration > 0 && detectedBpm) {
-            console.log("SequenceContext: Re-initializing sequence for loaded media.");
+            console.log(`[SequenceContext] Media ready. Re-initializing sequence for ${duration.toFixed(2)}s song at ${detectedBpm} BPM.`);
             const beatsPerMinute = detectedBpm;
+            // A "beat" in music is a quarter note. Our steps are eighth notes.
             const timePerStep = (60 / beatsPerMinute) / 2;
             const totalSteps = Math.ceil(duration / timePerStep);
-            const calculatedTotalBars = Math.ceil(totalSteps / STEPS_PER_BAR);
+            const calculatedTotalBars = Math.max(1, Math.ceil(totalSteps / STEPS_PER_BAR));
+
+            console.log(`[SequenceContext] Calculated: ${totalSteps} total steps, ${calculatedTotalBars} total bars.`);
 
             setTotalBars(calculatedTotalBars);
             const newSongData = Array.from({ length: totalSteps }, (_, i) => 
@@ -65,6 +66,8 @@ export const SequenceProvider = ({ children }) => {
             setBarStartTimes(newBarStartTimes);
         }
     }, [isMediaReady, duration, detectedBpm]);
+
+    // ... (rest of provider is unchanged)
 
     const updateJointData = useCallback((globalBeatIndex, jointId, jointDataUpdate) => {
         if (globalBeatIndex === null || jointId === null) return;
@@ -91,47 +94,36 @@ export const SequenceProvider = ({ children }) => {
         });
     }, []);
     
-    // DEFINITIVE CHANGE: New function to save a pose to a preset slot.
     const savePoseToPreset = useCallback((side, pageIndex, presetIndex) => {
         if (activePad === null) return;
-        
         const sidePrefix = side === 'left' ? 'L' : 'R';
         const poseToSave = {};
         const sourceJoints = songData[activePad]?.joints || {};
-
         for (const jointId in sourceJoints) {
             if (jointId.startsWith(sidePrefix)) {
                 poseToSave[jointId] = sourceJoints[jointId];
             }
         }
-        
         setPresets(prev => {
-            const newPresets = JSON.parse(JSON.stringify(prev)); // Deep copy
+            const newPresets = JSON.parse(JSON.stringify(prev));
             newPresets[side][pageIndex][presetIndex] = poseToSave;
             return newPresets;
         });
     }, [activePad, songData]);
 
-    // DEFINITIVE CHANGE: New function to load a pose from a preset slot.
     const loadPoseFromPreset = useCallback((side, pageIndex, presetIndex) => {
         if (activePad === null) return;
-
         const presetPose = presets[side][pageIndex][presetIndex];
-        if (!presetPose) return; // Slot is empty
-
+        if (!presetPose) return;
         setSongData(prevData => {
             const newData = [...prevData];
             const beatToUpdate = { ...newData[activePad] };
-            
-            // Merge the preset pose over the existing joints
             beatToUpdate.joints = { ...beatToUpdate.joints, ...presetPose };
-            
             newData[activePad] = beatToUpdate;
             return newData;
         });
     }, [activePad, presets]);
     
-    // DEFINITIVE CHANGE: Export new state and functions.
     const value = { 
         songData, setSongData, 
         totalBars, barStartTimes, STEPS_PER_BAR, 

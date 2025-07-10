@@ -1,24 +1,39 @@
-import React from 'react';
+// src/components/ui/LevelMeter.jsx
+import React, { useState, useEffect } from 'react';
+import { useMedia } from '../../context/MediaContext';
 import './LevelMeter.css';
 
-// A utility to convert dB level to a percentage height for the bar
-const dbToPercent = (db) => {
-    if (db < -60) return 0;
-    if (db > 0) return 100;
-    return 100 * (1 + db / 60);
-};
+// DEFINITIVE FIX: Renamed the component to match the file and export name.
+const LevelMeter = () => {
+    const { wavesurferInstance } = useMedia();
+    const [level, setLevel] = useState(0);
 
-const LevelMeter = ({ level = -Infinity }) => {
-    const heightPercent = dbToPercent(level);
+    useEffect(() => {
+        if (!wavesurferInstance) return;
+
+        const handleAudioProcess = () => {
+            // This is a simplified way to get volume. A more robust solution might use an AnalyserNode.
+            const peak = wavesurferInstance.getPeaking(1.5);
+            setLevel(peak * 100); // Convert to a percentage for the meter
+        };
+
+        // Set up listeners
+        wavesurferInstance.on('audioprocess', handleAudioProcess);
+        wavesurferInstance.on('seek', handleAudioProcess);
+
+        // Clean up listeners when the component unmounts or wavesurferInstance changes
+        return () => {
+            wavesurferInstance.un('audioprocess', handleAudioProcess);
+            wavesurferInstance.un('seek', handleAudioProcess);
+        };
+    }, [wavesurferInstance]);
 
     return (
-        <div className="level-meter-container">
-            <div className="level-meter-track">
-                <div 
-                    className="level-meter-bar" 
-                    style={{ height: `${heightPercent}%` }}
-                />
+        <div className="audio-levels-container">
+            <div className="level-meter-wrapper">
+                <div className="level-meter-bar" style={{ height: `${level}%` }}></div>
             </div>
+            <span className="level-label">VOL</span>
         </div>
     );
 };

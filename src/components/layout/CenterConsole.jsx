@@ -1,10 +1,11 @@
+// src/components/layout/CenterConsole.jsx
 import React, { useRef, useState, useEffect } from 'react';
 import BarBeatDisplay from '../ui/BarBeatDisplay';
 import TransportControls from '../ui/TransportControls';
 import Crossfader from '../ui/Crossfader';
 import P5SkeletalVisualizer from '../media/P5SkeletalVisualizer';
 import CoreVisualizer from '../ui/CoreVisualizer';
-import VisualizerControlPanel from '../ui/VisualizerControlPanel'; // DEFINITIVE: Import new component
+import JointRoleSelector from '../ui/JointRoleSelector';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -13,13 +14,13 @@ import './CenterConsole.css';
 
 const CenterConsole = () => {
     const { preRollCount } = usePlayback();
-    // DEFINITIVE: Pass the full selectedJoints array
     const { notification, activePad, selectedJoints, animationState, animationRange, activeVisualizer } = useUIState();
     const { songData } = useSequence();
     
     const containerRef = useRef(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
+    const highlightJoints = selectedJoints; // Pass the whole array
     const activePose = activePad !== null ? { jointInfo: songData[activePad]?.joints, grounding: { LF: songData[activePad]?.joints?.LF?.grounding, RF: songData[activePad]?.joints?.RF?.grounding } } : DEFAULT_POSE;
     const startPose = animationRange.start !== null ? { jointInfo: songData[animationRange.start]?.joints, grounding: { LF: songData[animationRange.start]?.joints?.LF?.grounding, RF: songData[animationRange.start]?.joints?.RF?.grounding } } : activePose;
     const endPose = animationRange.end !== null ? { jointInfo: songData[animationRange.end]?.joints, grounding: { LF: songData[animationRange.end]?.joints?.LF?.grounding, RF: songData[animationRange.end]?.joints?.RF?.grounding } } : activePose;
@@ -59,8 +60,7 @@ const CenterConsole = () => {
                         startPose={startPose}
                         endPose={endPose}
                         animationState={animationState}
-                        // DEFINITIVE: Pass the array of selected joints
-                        highlightJoints={selectedJoints}
+                        highlightJoints={highlightJoints}
                         width={dimensions.width}
                         height={dimensions.height}
                     />
@@ -69,8 +69,7 @@ const CenterConsole = () => {
                 return (
                     <CoreVisualizer 
                         pose={activePose}
-                        // DEFINITIVE: Pass the array of selected joints
-                        highlightedJoints={selectedJoints}
+                        highlightedJoints={highlightJoints}
                         width={dimensions.width}
                         height={dimensions.height}
                     />
@@ -89,8 +88,7 @@ const CenterConsole = () => {
             <div className="center-controls-group">
                 <BarBeatDisplay />
                 <TransportControls />
-                {/* DEFINITIVE: Replace JointRoleSelector with the new control panel */}
-                <VisualizerControlPanel /> 
+                <JointRoleSelector /> 
             </div>
             <Crossfader />
         </div>

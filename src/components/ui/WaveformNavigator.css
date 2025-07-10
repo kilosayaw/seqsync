@@ -10,12 +10,17 @@
     height: var(--waveform-height);
     flex-shrink: 0;
     position: relative;
-    cursor: pointer; /* The container is always clickable */
+    cursor: pointer;
 }
 
 .waveform {
-  width: 100%;
-  height: 100%;
+    /* DEFINITIVE FIX: Use absolute positioning to force the waveform to fill the container, 
+       bypassing the main layout's complex grid calculations. */
+    position: absolute;
+    top: var(--spacing-sm);
+    left: var(--spacing-sm);
+    right: var(--spacing-sm);
+    bottom: var(--spacing-sm);
 }
 
 .upload-prompt {
@@ -32,14 +37,11 @@
     color: var(--color-text-secondary);
     font-size: 1rem;
     font-weight: bold;
-    /* Make it visible by default */
     opacity: 1;
     transition: opacity 0.3s ease;
-    /* Clicks should pass through to the parent container */
     pointer-events: none; 
 }
 
-/* DEFINITIVE FIX: Hide the prompt when the .hidden class is applied */
 .upload-prompt.hidden {
     opacity: 0;
 }

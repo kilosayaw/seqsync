@@ -6,11 +6,12 @@ const initialMixerState = {
     kitSounds: true,
     uploadedMedia: true,
     cameraFeed: false,
-    motionOverlay: true,
-    motionOverlayOpacity: 0.7
+    motionOverlay: false,
+    motionOverlayOpacity: 0.5,
 };
 
 export const UIStateProvider = ({ children }) => {
+    const [mixerState, setMixerState] = useState(initialMixerState);
     const [selectedBar, setSelectedBar] = useState(1);
     const [activePad, setActivePadState] = useState(0); 
     const [animationState, setAnimationState] = useState('idle');
@@ -24,7 +25,6 @@ export const UIStateProvider = ({ children }) => {
     const [notification, setNotification] = useState(null);
     const [movementFaderValue, setMovementFaderValue] = useState(0.1);
     const [selectedJoints, setSelectedJoints] = useState([]);
-    const [mixerState, setMixerState] = useState(initialMixerState);
     const [activeDirection, setActiveDirection] = useState('l_r');
     const [activeVisualizer, setActiveVisualizer] = useState('full');
     // DEFINITIVE FIX: Re-introducing the missing state declaration for activePresetPage.
@@ -76,7 +76,7 @@ export const UIStateProvider = ({ children }) => {
         notification, showNotification,
         movementFaderValue, setMovementFaderValue,
         activeVisualizer, setActiveVisualizer,
-        // DEFINITIVE FIX: Exporting the state and its setter through the context.
+        mixerState, setMixerState,
         activePresetPage, setActivePresetPage
     };
 

@@ -1,6 +1,7 @@
-import React, { useCallback, useState, useEffect } from 'react';
+// src/components/ui/RotaryController/RotaryController.jsx
+import React, { useCallback, useRef, useEffect } from 'react';
 import { useUIState } from '../../../context/UIStateContext';
-import { useSequence } from '../../../context/SequenceContext';
+import { useSequence } from '../../../context/SequenceContext'; // DEFINITIVE FIX: Re-added missing import
 import { getPointsFromNotation, resolveNotationFromPoints } from '../../../utils/notationUtils';
 import { useTurntableDrag } from '../../../hooks/useTurntableDrag';
 import RotarySVG from './RotarySVG';
@@ -8,113 +9,111 @@ import XYZGrid from '../XYZGrid';
 import './RotaryController.css';
 
 const RotaryController = ({ deckId }) => {
-    // ... (State and handler logic remains the same) ...
     const { activePad, selectedJoints, showNotification, activeDirection, movementFaderValue } = useUIState(); 
     const { songData, updateJointData } = useSequence();
     
     const side = deckId === 'deck1' ? 'left' : 'right';
     const isEditing = selectedJoints.length > 0;
     const activeJointId = isEditing ? selectedJoints[0] : (side === 'left' ? 'LF' : 'RF');
-    const isFootMode = !isEditing || selectedJoints.some(j => j.endsWith('F'));
-    
-    const defaultGrounding = `${side.charAt(0).toUpperCase()}F123T12345`;
+    const isFootMode = activeJointId.endsWith('F');
+
     const sourceData = (activePad !== null && songData[activePad]?.joints?.[activeJointId]) 
-        || (isFootMode ? { grounding: defaultGrounding, rotation: 0, position: [0, 0, 0] } : { rotation: 0, position: [0, 0, 0] });
+        || (isFootMode ? { grounding: `${side.charAt(0).toUpperCase()}F123T12345` } : {});
     
-    const [visualAngle, setVisualAngle] = useState(sourceData.rotation || 0);
+    const initialAngle = sourceData.rotation || 0;
+    const initialPosition = sourceData.position || [0, 0, 0];
+    const activePoints = getPointsFromNotation(sourceData.grounding);
+    
+    const positionRef = useRef(initialPosition);
+    positionRef.current = initialPosition;
+
+    const handleDragEnd = useCallback((finalAngle) => {
+        if (isFootMode && activePad !== null) {
+            updateJointData(activePad, activeJointId, { rotation: finalAngle });
+        }
+    }, [activePad, isFootMode, activeJointId, updateJointData]);
+
+    const { angle, delta, handleMouseDown } = useTurntableDrag(initialAngle, handleDragEnd);
 
     useEffect(() => {
-        if (isFootMode) {
-            setVisualAngle(sourceData.rotation || 0);
+        if (delta === 0 || !isEditing || !activePad || isFootMode) return;
+        
+        const SENSITIVITY_MIN = 0.005;
+        const SENSITIVITY_MAX = 0.05;
+        const faderSensitivity = SENSITIVITY_MIN + (movementFaderValue * (SENSITIVITY_MAX - SENSITIVITY_MIN));
+        const dragAmount = delta * faderSensitivity;
+        
+        const currentPos = songData[activePad].joints[activeJointId].position || [0,0,0];
+        const newPos = [...currentPos];
+
+        if (activeDirection === 'l_r') {
+            newPos[0] = Math.max(-1, Math.min(1, newPos[0] + dragAmount));
+        } else if (activeDirection === 'up_down') {
+            newPos[1] = Math.max(-1, Math.min(1, newPos[1] - dragAmount));
+        } else if (activeDirection === 'fwd_bwd') {
+            newPos[2] = Math.max(-1, Math.min(1, newPos[2] + dragAmount));
         }
-    }, [sourceData.rotation, isFootMode]);
+
+        updateJointData(activePad, activeJointId, { position: newPos });
+
+    }, [delta, activePad, isEditing, isFootMode, activeJointId, activeDirection, movementFaderValue, songData, updateJointData]);
 
     const handlePositionChange = useCallback((newPosition) => {
-        if (!isEditing || activePad === null || isFootMode) return;
-        selectedJoints.forEach(jointId => {
-            if (!jointId.endsWith('F')) {
-                 updateJointData(activePad, jointId, { position: newPosition });
-            }
-        });
-    }, [activePad, isEditing, selectedJoints, updateJointData, isFootMode]);
-
-    const handleZChange = useCallback((newZ) => {
-        if (!isEditing || activePad === null || isFootMode) return;
-        selectedJoints.forEach(jointId => {
-            if (!jointId.endsWith('F')) {
-                const currentPos = songData[activePad]?.joints?.[jointId]?.position || [0,0,0];
-                const newPosition = [currentPos[0], currentPos[1], newZ];
-                updateJointData(activePad, jointId, { position: newPosition });
-            }
-        });
-    }, [activePad, isEditing, songData, selectedJoints, updateJointData, isFootMode]);
-
-    const handleDragMove = useCallback((delta) => {
-        if (isFootMode) {
-            setVisualAngle(prev => prev + delta);
-        } else {
-            if (activePad === null) return;
-            const sensitivity = 0.001 + (movementFaderValue * 0.009);
-            const displacement = delta * sensitivity;
-            selectedJoints.forEach(jointId => {
-                if (!jointId.endsWith('F')) {
-                    const currentPos = songData[activePad]?.joints?.[jointId]?.position || [0,0,0];
-                    const newPos = [...currentPos];
-                    if (activeDirection === 'l_r') newPos[0] = Math.max(-1, Math.min(1, newPos[0] + displacement));
-                    else if (activeDirection === 'up_down') newPos[1] = Math.max(-1, Math.min(1, newPos[1] - displacement));
-                    else if (activeDirection === 'fwd_bwd') newPos[2] = Math.max(-1, Math.min(1, newPos[2] + displacement));
-                    updateJointData(activePad, jointId, { position: newPos });
-                }
-            });
+        if (!isEditing || !activePad || activeDirection === 'l_r') {
+            if (activeDirection === 'l_r' && isEditing) showNotification('Activate UP/DOWN or FWD/BWD to edit position.');
+            return;
         }
-    }, [isFootMode, activePad, activeDirection, movementFaderValue, selectedJoints, songData, updateJointData]);
+        updateJointData(activePad, activeJointId, { position: newPosition });
+    }, [activePad, isEditing, activeJointId, activeDirection, showNotification, updateJointData]);
 
-    const handleDragEnd = useCallback(() => {
-        if (activePad !== null && isFootMode) {
-            selectedJoints.forEach(jointId => {
-                if(jointId.endsWith('F')) {
-                    updateJointData(activePad, jointId, { rotation: visualAngle });
-                }
-            });
-        }
-    }, [activePad, isFootMode, selectedJoints, updateJointData, visualAngle]);
-    
-    const { handleMouseDown } = useTurntableDrag(handleDragMove, handleDragEnd);
-    
     const handleHotspotClick = useCallback((shortNotation) => {
-        if (!isFootMode || activePad === null) return;
-        selectedJoints.forEach(jointId => {
-            if (jointId.endsWith('F')) {
-                const currentGrounding = songData[activePad]?.joints?.[jointId]?.grounding;
-                const newActivePoints = new Set(getPointsFromNotation(currentGrounding));
-                if (newActivePoints.has(shortNotation)) newActivePoints.delete(shortNotation);
-                else newActivePoints.add(shortNotation);
-                const newGroundingNotation = resolveNotationFromPoints(newActivePoints, jointId.startsWith('L') ? 'left' : 'right');
-                updateJointData(activePad, jointId, { grounding: newGroundingNotation });
-            }
-        });
-    }, [isFootMode, activePad, songData, selectedJoints, updateJointData]);
+        if (!isFootMode || activePad === null) {
+            showNotification("Select a pad to edit contact points.");
+            return;
+        }
+        const currentGrounding = songData[activePad]?.joints?.[activeJointId]?.grounding;
+        const currentPoints = getPointsFromNotation(currentGrounding);
+        const newActivePoints = new Set(currentPoints);
 
-    const displayAngle = isFootMode ? visualAngle : 0;
+        if (newActivePoints.has(shortNotation)) {
+            newActivePoints.delete(shortNotation);
+        } else {
+            newActivePoints.add(shortNotation);
+        }
+        
+        const newGroundingNotation = resolveNotationFromPoints(newActivePoints, side);
+        updateJointData(activePad, activeJointId, { grounding: newGroundingNotation });
+    }, [isFootMode, activePad, showNotification, songData, activeJointId, side, updateJointData]);
+
+    const CenterControl = () => {
+        if (isFootMode || !isEditing) return null;
+        
+        return (
+            <XYZGrid 
+                position={initialPosition} 
+                onPositionChange={handlePositionChange}
+            />
+        );
+    };
 
     return (
         <div className="rotary-controller-container">
             <RotarySVG
                 side={side}
-                angle={displayAngle}
+                angle={angle}
+                activePoints={activePoints}
                 onHotspotClick={handleHotspotClick}
                 isFootMode={isFootMode}
                 handleWheelMouseDown={handleMouseDown}
             />
-            {/* DEFINITIVE REFACTOR: The grid is now a direct sibling, allowing for z-index stacking. */}
-            {!isFootMode && (
-                <XYZGrid 
-                    position={sourceData.position || [0,0,0]} 
-                    onPositionChange={handlePositionChange}
-                    zValue={sourceData.position ? sourceData.position[2] : 0}
-                    onZChange={handleZChange}
-                />
-            )}
+            <div className="editor-overlays">
+                <CenterControl />
+                {isFootMode && activePad === null && (
+                    <div className="placeholder-text-small">
+                        Select a pad to edit contact points.
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
