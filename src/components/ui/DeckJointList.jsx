@@ -1,4 +1,3 @@
-// src/components/ui/DeckJointList.jsx
 import React from 'react';
 import { useUIState } from '../../context/UIStateContext';
 import { JOINT_LIST } from '../../utils/constants';
@@ -11,7 +10,6 @@ const DeckJointList = ({ side }) => {
     const { selectedJoints, setSelectedJoints } = useUIState();
     
     const sideKey = side.charAt(0).toUpperCase();
-    // Filter out the foot controllers (LF/RF) which are now implicitly handled
     const jointsForSide = JOINT_LIST.filter(j => j.id.startsWith(sideKey) && !j.id.endsWith('F'));
 
     const handleShortClick = (jointId) => {
@@ -41,7 +39,9 @@ const DeckJointList = ({ side }) => {
                     );
                 })}
             </div>
-            {/* DEFINITIVE: Relocated BPM button to be under the RF joint button */}
+            {/* DEFINITIVE CHANGE: Adding two filler containers to fill the empty space. */}
+            <div className="filler-container"></div>
+            <div className="filler-container"></div>
             {side === 'right' && (
                 <div className="bpm-control-wrapper">
                     <CircularBpmControl />

@@ -19,9 +19,11 @@ const LeftDeck = ({ onPadEvent }) => {
     return (
         <div className="deck-container" data-side="left">
             <DeckJointList side="left" />
+            {/* DEFINITIVE REFACTOR: The side column now holds the controls in the specified order. */}
             <div className="side-controls-column">
                 <MovementFader />
                 <OptionButtons side="left" />
+                <PresetPageSelectors side="left" />
             </div>
             <DirectionalControls />
             <div className="turntable-group">
@@ -35,26 +37,22 @@ const LeftDeck = ({ onPadEvent }) => {
                 <div className="edit-tool-placeholder bottom-right"></div>
             </div>
 
-            {/* DEFINITIVE REFACTOR: Re-introducing the wrapper for the grid layout */ }
             <div className="pads-group">
-                <div className="performance-pads-wrapper">
-                    {Array.from({ length: 4 }).map((_, i) => {
-                        const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + i;
-                        return (
-                            <PerformancePad
-                                key={`left-${i}`}
-                                padIndex={globalPadIndex}
-                                beatNum={i + 1}
-                                isPulsing={isPlaying && selectedBar === currentBar && i === currentBeat}
-                                isSelected={activePad === globalPadIndex}
-                                onMouseDown={() => onPadEvent('down', globalPadIndex)}
-                                onMouseUp={() => onPadEvent('up', globalPadIndex)}
-                                onMouseLeave={() => onPadEvent('up', globalPadIndex)}
-                            />
-                        );
-                    })}
-                </div>
-                <PresetPageSelectors side="left" />
+                {Array.from({ length: 4 }).map((_, i) => {
+                    const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + i;
+                    return (
+                        <PerformancePad
+                            key={`left-${i}`}
+                            padIndex={globalPadIndex}
+                            beatNum={i + 1}
+                            isPulsing={isPlaying && selectedBar === currentBar && i === currentBeat}
+                            isSelected={activePad === globalPadIndex}
+                            onMouseDown={() => onPadEvent('down', globalPadIndex)}
+                            onMouseUp={() => onPadEvent('up', globalPadIndex)}
+                            onMouseLeave={() => onPadEvent('up', globalPadIndex)}
+                        />
+                    );
+                })}
             </div>
         </div>
     );

@@ -45,9 +45,10 @@
 .side-controls-column {
     display: flex;
     flex-direction: column;
+    /* DEFINITIVE FIX: Align items to the top and use a gap for spacing. */
     justify-content: flex-start;
     align-items: center;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-lg); /* Increased gap for better visual separation */
 }
 
 .directional-controls-container {
@@ -82,29 +83,10 @@
 .editor-overlays { pointer-events: none; }
 .editor-overlays > * { pointer-events: all; }
 
-/* DEFINITIVE REFACTOR: Restore the grid layout for precise column control. */
+/* DEFINITIVE FIX: Revert .pads-group to its original simple 4-column grid state. */
 .pads-group {
     width: 100%;
     margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr auto; /* Pads take flexible space, presets take auto width */
-    gap: var(--spacing-md);
-    align-items: stretch; /* Make children have the same height */
-}
-/* For the right deck, we reverse the column order for symmetry. */
-.deck-container[data-side="right"] .pads-group {
-    grid-template-columns: auto 1fr;
-}
-.deck-container[data-side="right"] .performance-pads-wrapper {
-    grid-column: 2 / 3;
-}
-.deck-container[data-side="right"] .preset-page-selectors {
-    grid-column: 1 / 2;
-}
-
-/* This wrapper contains the 4 performance pads and now grows correctly. */
-.performance-pads-wrapper {
-    flex-grow: 1; /* Ensure it takes up available space */
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-md);
