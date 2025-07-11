@@ -1,4 +1,3 @@
-// src/utils/notationUtils.js
 import { FOOT_HOTSPOT_COORDINATES } from './constants';
 
 export const resolveNotationFromPoints = (pointsSet, side) => {
@@ -21,13 +20,17 @@ export const resolveNotationFromPoints = (pointsSet, side) => {
 
 export const getPointsFromNotation = (notation) => {
     const points = new Set();
-    if (!notation || notation.endsWith('0')) return points;
-    
-    const side = notation.charAt(0).toUpperCase();
-    if (!FOOT_HOTSPOT_COORDINATES[side]) return points;
+    if (!notation || typeof notation !== 'string' || notation.length < 2) return points;
+
+    const side = notation.startsWith('LF') ? 'L' : (notation.startsWith('RF') ? 'R' : null);
+    if (!side) return points;
     
     if (notation.includes('123T12345')) {
         return new Set(FOOT_HOTSPOT_COORDINATES[side].map(p => p.notation));
+    }
+    
+    if (notation.endsWith('0')) {
+        return points;
     }
     
     const remainder = notation.substring(2);
@@ -48,22 +51,26 @@ export const formatTime = (seconds) => {
     return `${minutes}:${secs}:${centiseconds}`;
 };
 
+// DEFINITIVE FIX: Rewritten to correctly and safely format notation for all major joints.
 export const formatFullNotation = (beatData, currentTime, barOverride) => {
+    const timeStr = formatTime(currentTime || 0);
+    const barStr = String(barOverride || beatData?.bar || '01').padStart(2, '0');
+
     if (!beatData || !beatData.joints) {
-        return `poSĒQr™ | ${formatTime(currentTime || 0)} | 01 | LF123T12345@0° | RF123T12345@0°`;
+        return `poSĒQr™ | ${timeStr} | ${barStr} | LF0@0° | RF0@0° | P(0,0,0) | P(0,0,0)`;
     }
     
-    const { joints, bar } = beatData;
-    const timeStr = formatTime(currentTime || 0);
-    const barStr = String(barOverride || bar).padStart(2, '0');
+    const { joints } = beatData;
     
     const formatJoint = (jointId) => {
         const joint = joints[jointId];
-        if (!joint) return '--';
+        // Provide a safe default based on the joint type if it doesn't exist.
+        if (!joint) return jointId.endsWith('F') ? `${jointId}0@0°` : 'P(0.0,0.0,0.0)';
         
         if (jointId.endsWith('F')) {
-            if (joint.grounding?.endsWith('0')) return `${joint.grounding.slice(0, 2)}000°`;
-            return `${joint.grounding || '--'}@${Math.round(joint.rotation || 0)}°`;
+            const grounding = joint.grounding || `${jointId}0`;
+            const rotation = Math.round(joint.rotation || 0);
+            return `${grounding}@${rotation}°`;
         }
         
         if (joint.position) {
@@ -71,9 +78,10 @@ export const formatFullNotation = (beatData, currentTime, barOverride) => {
             return `P(${pos[0].toFixed(1)},${pos[1].toFixed(1)},${pos[2].toFixed(1)})`;
         }
         
-        return '--';
+        return 'P(0.0,0.0,0.0)';
     };
 
+    // Explicitly format each required joint, preventing any mix-up.
     const lfNotation = formatJoint('LF');
     const rfNotation = formatJoint('RF');
     const lsNotation = formatJoint('LS');
@@ -82,7 +90,6 @@ export const formatFullNotation = (beatData, currentTime, barOverride) => {
     return `poSĒQr™ | ${timeStr} | ${barStr} | ${lfNotation} | ${rfNotation} | ${lsNotation} | ${rsNotation}`;
 };
 
-// DEFINITIVE FIX: Added the missing 'export' keyword to the function.
 export const seekToPad = (params) => {
     const { wavesurfer, duration, bpm, padIndex, barStartTimes, noteDivision } = params;
 
@@ -90,13 +97,12 @@ export const seekToPad = (params) => {
         return;
     }
 
-    const STEPS_PER_BAR = 8; // Based on our current 8-pad layout
+    const STEPS_PER_BAR = 8;
     const bar = Math.floor(padIndex / STEPS_PER_BAR);
     const stepInBar = padIndex % STEPS_PER_BAR;
 
     const barStartTime = barStartTimes[bar] || 0;
     
-    // Time for a single step (eighth note in our 8-step bar)
     const timePerStep = (60 / bpm) / 2;
     const stepOffsetTime = stepInBar * timePerStep;
 

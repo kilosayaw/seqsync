@@ -1,13 +1,11 @@
-// src/hooks/useTurntableDrag.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const FRICTION = 0.95; 
-const MIN_VELOCITY = 0.05;
+const FRICTION = 0.95; // Controls how quickly the spin slows down (0.9 is fast, 0.99 is slow)
+const MIN_VELOCITY = 0.05; // How slow the spin can be before it stops completely
 
 export const useTurntableDrag = (initialAngle, onDragEnd) => {
     const [angle, setAngle] = useState(initialAngle);
     const [isDragging, setIsDragging] = useState(false);
-    const [delta, setDelta] = useState(0);
     
     const velocityRef = useRef(0);
     const animationFrameRef = useRef();
@@ -15,29 +13,32 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
     const lastMouseAngleRef = useRef(0);
     const hasMovedRef = useRef(false);
 
+    // When the initialAngle from props changes (e.g., selecting a new pad),
+    // update the component's angle, but only if the user isn't currently dragging.
     useEffect(() => {
         if (!isDragging) {
             setAngle(initialAngle);
         }
     }, [initialAngle, isDragging]);
 
+    // The animation loop for the inertial spin
     const animate = useCallback(() => {
-        setAngle(prevAngle => {
-            const newAngle = prevAngle + velocityRef.current;
-            velocityRef.current *= FRICTION;
-
-            if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
-                cancelAnimationFrame(animationFrameRef.current);
-                velocityRef.current = 0;
-                if (onDragEnd && hasMovedRef.current) {
-                    onDragEnd(newAngle);
-                }
-                return newAngle;
+        if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
+            cancelAnimationFrame(animationFrameRef.current);
+            velocityRef.current = 0;
+            if (onDragEnd && hasMovedRef.current) {
+                // Use a functional update to get the most recent angle
+                setAngle(currentAngle => {
+                    onDragEnd(currentAngle);
+                    return currentAngle;
+                });
             }
-            
-            animationFrameRef.current = requestAnimationFrame(animate);
-            return newAngle;
-        });
+            return;
+        }
+
+        setAngle(prevAngle => prevAngle + velocityRef.current);
+        velocityRef.current *= FRICTION;
+        animationFrameRef.current = requestAnimationFrame(animate);
     }, [onDragEnd]);
 
     const handleMouseMove = useCallback((e) => {
@@ -53,18 +54,18 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
         else if (angleDelta > 180) angleDelta -= 360;
 
         setAngle(prevAngle => prevAngle + angleDelta);
-        setDelta(angleDelta);
-        velocityRef.current = angleDelta;
+        velocityRef.current = angleDelta; // Set the velocity for the inertia effect
         lastMouseAngleRef.current = currentMouseAngle;
     }, [isDragging]);
 
     const handleMouseUp = useCallback(() => {
         if (isDragging) {
             setIsDragging(false);
-            setDelta(0);
+            // If there's enough velocity, start the animation.
             if (Math.abs(velocityRef.current) > MIN_VELOCITY) {
                 animationFrameRef.current = requestAnimationFrame(animate);
             } else {
+                // If there was no significant spin, fire the callback immediately.
                 if (onDragEnd && hasMovedRef.current) {
                     onDragEnd(angle);
                 }
@@ -101,5 +102,5 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
         };
     }, [isDragging, handleMouseMove, handleMouseUp]);
 
-    return { angle, delta, handleMouseDown };
+    return { angle, handleMouseDown };
 };

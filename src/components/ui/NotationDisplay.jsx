@@ -1,33 +1,25 @@
-// src/components/ui/NotationDisplay.jsx
-
 import React from 'react';
+import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
 import { usePlayback } from '../../context/PlaybackContext';
-import { useUIState } from '../../context/UIStateContext';
 import { formatFullNotation } from '../../utils/notationUtils';
 import './NotationDisplay.css';
 
 const NotationDisplay = () => {
-    const { songData, STEPS_PER_BAR } = useSequence();
-    const { isPlaying, currentTime, currentBar, currentBeat } = usePlayback();
-    const { selectedBar, activePad } = useUIState();
+    // Get all necessary data from contexts
+    const { activePad, selectedBar } = useUIState();
+    const { songData } = useSequence();
+    const { currentTime, isPlaying } = usePlayback();
 
-    // Determine which beat's data to display.
-    // If playing, use the live beat from the current bar.
-    // If paused, use the pad the user has actively selected.
-    // Default to beat 0 if no pad is selected.
-    const barToDisplay = isPlaying ? currentBar : selectedBar;
-    const beatToDisplay = isPlaying ? currentBeat : (activePad ?? 0);
-    const globalIndex = ((barToDisplay - 1) * STEPS_PER_BAR) + beatToDisplay;
-    const beatData = songData[globalIndex];
+    // Determine which beat's data to display. Default to the activePad.
+    const beatData = activePad !== null ? songData[activePad] : null;
 
-    const displayString = formatFullNotation(beatData, currentTime);
+    // Pass the correct data to the formatting utility
+    const notationText = formatFullNotation(beatData, currentTime, selectedBar);
 
     return (
         <div className="notation-display-container">
-            <div className="notation-text">
-                {displayString}
-            </div>
+            <span className="notation-text">{notationText}</span>
         </div>
     );
 };

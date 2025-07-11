@@ -13,6 +13,8 @@
     padding: var(--spacing-md);
     gap: var(--spacing-md);
     overflow: hidden;
+    /* Ensure the container itself can shrink if the viewport is very small */
+    min-width: 1000px; /* Set a reasonable minimum width for the whole app */
 }
 
 /* New container for the options bar */
@@ -22,9 +24,10 @@
 }
 
 .main-content-area {
-    /* DEFINITIVE REFACTOR: Changed to a 5-column grid to add the level meters. */
+    /* DEFINITIVE WIREFRAME FIX: Changed 'auto' to a fixed width (300px) for the center console. */
+    /* This prevents the center console from being squashed or overly wide. */
     display: grid;
-    grid-template-columns: 1fr 20px auto 20px 1fr;
+    grid-template-columns: 1fr 20px 300px 20px 1fr;
     gap: var(--spacing-md);
-    min-height: 0;
+    min-height: 0; /* Crucial for allowing the grid area to shrink vertically */
 }

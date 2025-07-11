@@ -3,8 +3,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
-    min-width: 0;
-    min-height: 0;
+    min-width: 0; /* FIX: Ensure the wrapper can shrink horizontally */
+    min-height: 0; /* FIX: Ensure the wrapper can shrink vertically */
     flex: 1; 
 }
 
@@ -21,7 +21,8 @@
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
     border-radius: var(--border-radius-md);
-    min-height: 0;
+    min-height: 0; /* FIX: Crucial for allowing the grid to shrink */
+    min-width: 0; /* FIX: Crucial for allowing the grid to shrink */
 }
 
 .deck-container[data-side="left"] {
@@ -59,10 +60,12 @@
 }
 
 .turntable-group {
-    min-width: 0;
-    min-height: 0;
+    min-width: 0; /* FIX: Allow shrinking */
+    min-height: 0; /* FIX: Allow shrinking */
     aspect-ratio: 1 / 1; 
     width: 100%;
+    /* FIX: Constrain the maximum size to ensure it doesn't exceed the available height if the width is large */
+    max-height: 100%; 
     margin: 0 auto;
     background-color: var(--color-dark-surface-2);
     border-radius: var(--border-radius-md);
