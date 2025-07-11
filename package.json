@@ -21,6 +21,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.12.0",
+    "react-new-window": "^1.0.1",
     "react-p5": "^1.4.1",
     "react-webcam": "^7.2.0",
     "tone": "^15.1.22",

@@ -11,19 +11,14 @@ const LIMB_CONNECTIONS = new Set([
 ]);
 
 function sketch(p5) {
-    // Component State
     let startPose, endPose, animationState = 'idle', highlightJoints = [];
     let canvasSize = { width: 300, height: 300 };
     let animationProgress = 0;
     const animationDuration = 0.5;
     let colors = {};
 
-    // Custom Camera Control State
-    let zoom = 1.0;
-    let pan = 0;
-    let tilt = -20;
-    let isDragging = false;
-    let lastMouseX, lastMouseY;
+    let zoom = 1.0, pan = 0, tilt = -20;
+    let isDragging = false, lastMouseX, lastMouseY;
 
     function rotateVectorAroundAxis(vec, axis, angle) {
         const a = p5.radians(angle);
@@ -57,22 +52,15 @@ function sketch(p5) {
     p5.setup = () => {
         p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
         p5.angleMode(p5.DEGREES);
-        
         colors = {
-            highlight: p5.color('#FFDF00'),
-            line: p5.color(255, 255, 255, 150),
-            mover: p5.color('#ff5252'),
-            stabilizer: p5.color('#00e676'),
-            frame: p5.color('#FFFFFF'),
-            coiled: p5.color('#00b0ff'),
-            ribbonEdge1: p5.color(0, 175, 255),
-            ribbonEdge2: p5.color(255, 0, 175),
+            highlight: p5.color('#FFDF00'), line: p5.color(255, 255, 255, 150),
+            mover: p5.color('#ff5252'), stabilizer: p5.color('#00e676'),
+            frame: p5.color('#FFFFFF'), coiled: p5.color('#00b0ff'),
+            ribbonEdge1: p5.color(0, 175, 255), ribbonEdge2: p5.color(255, 0, 175),
         };
     };
 
-    // DEFINITIVE FIX: p5.js event functions are defined directly on the p5 instance, not attached to the canvas element.
     p5.mousePressed = () => {
-        // Only start dragging if the mouse is within the canvas bounds
         if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
             if (p5.mouseButton === p5.LEFT) {
                 isDragging = true;
@@ -82,9 +70,7 @@ function sketch(p5) {
         }
     }
     
-    p5.mouseReleased = () => {
-        isDragging = false;
-    }
+    p5.mouseReleased = () => { isDragging = false; }
     
     p5.mouseDragged = () => {
         if (isDragging) {
@@ -99,30 +85,25 @@ function sketch(p5) {
     }
 
     p5.mouseWheel = (event) => {
-        // Check if the mouse is over the canvas to prevent global scroll hijacking
         if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
             zoom -= event.deltaY * 0.001;
             zoom = p5.constrain(zoom, 0.2, 5.0);
-            return false; // Prevent the browser default behavior (page scrolling)
+            return false;
         }
     }
 
     p5.draw = () => {
         p5.background(0, 0, 0, 0);
-
         p5.push();
         const camDist = 800 * zoom;
         const camX = camDist * p5.cos(pan);
         const camZ = camDist * p5.sin(pan);
         const camY = camDist * p5.sin(tilt);
         p5.camera(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
-
         p5.ambientLight(150);
         p5.pointLight(255, 255, 255, 0, -200, 200);
-        
         const poseToDraw = calculateCurrentPose();
         if (poseToDraw) drawSkeleton(poseToDraw);
-        
         p5.pop();
     };
 
@@ -133,6 +114,7 @@ function sketch(p5) {
         if (rotationType === 'IN') totalTwist = -90;
         if (rotationType === 'OUT') totalTwist = 90;
 
+        // DEFINITIVE FIX: Use p5.constructor.Vector.sub() to create a new vector instance.
         const limbVector = p5.constructor.Vector.sub(endVec, startVec).normalize();
         let perp = p5.createVector(0, 1, 0);
         if (Math.abs(limbVector.dot(perp)) > 0.99) {
@@ -145,6 +127,7 @@ function sketch(p5) {
 
         for (let i = 0; i <= segments; i++) {
             const t = i / segments;
+            // DEFINITIVE FIX: Use p5.constructor.Vector.lerp() to correctly interpolate.
             const centerPoint = p5.constructor.Vector.lerp(startVec, endVec, t);
             const twistAngle = p5.lerp(0, totalTwist, t);
             
@@ -167,7 +150,7 @@ function sketch(p5) {
 
         const getCoords = (vector) => p5.createVector(
             vector.x * (canvasSize.width / 4),
-            -vector.y * (canvasSize.height / 3),
+            -vector.y * (canvasSize.height / 2.5),
             (vector.z || 0) * (canvasSize.width / 4)
         );
 

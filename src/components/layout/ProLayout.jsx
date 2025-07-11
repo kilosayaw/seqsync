@@ -9,6 +9,7 @@ import LoadingOverlay from '../ui/LoadingOverlay';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import SoundBankPanel from '../ui/SoundBankPanel';
 import SourceMixerPanel from '../ui/SourceMixerPanel';
+import PopOutVisualizer from '../ui/PopOutVisualizer';
 import LevelMeter from '../ui/LevelMeter'; // DEFINITIVE: Import the new component.
 import { useKeyboardControls } from '../../hooks/useKeyboardControls';
 import { useMedia } from '../../context/MediaContext';
@@ -17,11 +18,12 @@ import { useSequence } from '../../context/SequenceContext';
 import { useSound } from '../../context/SoundContext';
 import { usePlayback } from '../../context/PlaybackContext'; // DEFINITIVE: Import for audio level.
 import { seekToPad } from '../../utils/notationUtils';
+
 import './ProLayout.css';
 
 const ProLayout = () => {
     const { isLoading, pendingFile, confirmLoad, cancelLoad, wavesurferInstance, duration } = useMedia();
-    const { activePad, setActivePad, padMode, selectedBar } = useUIState();
+    const { activePad, setActivePad, padMode, selectedBar, isVisualizerPoppedOut } = useUIState();
     const { songData, barStartTimes, STEPS_PER_BAR, detectedBpm } = useSequence();
     const { playSound, stopSound } = useSound();
     const { audioLevel } = usePlayback(); // DEFINITIVE: Get the live audio level.
@@ -74,12 +76,14 @@ const ProLayout = () => {
             
             <main className="main-content-area">
                 <LeftDeck onPadEvent={handlePadEvent} />
-                {/* DEFINITIVE: Add the level meters to the layout. */}
                 <LevelMeter level={audioLevel} />
                 <CenterConsole />
                 <LevelMeter level={audioLevel} />
                 <RightDeck onPadEvent={handlePadEvent} />
             </main>
+
+            {/* DEFINITIVE: Conditionally render the pop-out window component */}
+            {isVisualizerPoppedOut && <PopOutVisualizer />}
 
             {isLoading && <LoadingOverlay />}
             <ConfirmDialog

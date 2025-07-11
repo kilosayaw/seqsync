@@ -19,15 +19,17 @@ export const UIStateProvider = ({ children }) => {
     const [editMode, setEditMode] = useState('none');
     const [noteDivision, setNoteDivision] = useState(8);
     const [padMode, setPadMode] = useState('TRIGGER');
-    const [activePanel, setActivePanel] = useState('none');
     const [notification, setNotification] = useState(null);
     const [movementFaderValue, setMovementFaderValue] = useState(0.1);
-    const [selectedJoints, setSelectedJoints] = useState([]);
     const [activeDirection, setActiveDirection] = useState('l_r');
     const [activeVisualizer, setActiveVisualizer] = useState('none');
     const [isCameraActive, setIsCameraActive] = useState(false);
+    const [isVisualizerPoppedOut, setIsVisualizerPoppedOut] = useState(false);
     const [activePresetPage, setActivePresetPage] = useState({ left: 0, right: 0 });
     const previousActivePadRef = useRef(null);
+    const [activePanel, setActivePanel] = useState('none');
+    const [selectedJoints, setSelectedJoints] = useState([]);
+    const [activeCornerTool, setActiveCornerTool] = useState('none');
     
     // DEFINITIVE: Removed the activeCornerTool state as it is no longer used.
 
@@ -61,8 +63,6 @@ export const UIStateProvider = ({ children }) => {
         editMode, setEditMode,
         noteDivision, setNoteDivision,
         padMode, setPadMode,
-        activePanel, setActivePanel,
-        selectedJoints, setSelectedJoints,
         activeDirection, setActiveDirection,
         notification, showNotification,
         movementFaderValue, setMovementFaderValue,
@@ -70,6 +70,11 @@ export const UIStateProvider = ({ children }) => {
         mixerState, setMixerState,
         activePresetPage, setActivePresetPage,
         isCameraActive, setIsCameraActive,
+        activePanel, setActivePanel,
+        selectedJoints, setSelectedJoints,
+        activeCornerTool, setActiveCornerTool,
+        isCameraActive, setIsCameraActive,
+        isVisualizerPoppedOut, setIsVisualizerPoppedOut,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;

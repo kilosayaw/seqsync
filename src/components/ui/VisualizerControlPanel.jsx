@@ -2,16 +2,23 @@ import React from 'react';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
 import JointRoleSelector from './JointRoleSelector';
+import { FaExternalLinkAlt } from 'react-icons/fa'; // Icon for the pop-out button
 import './VisualizerControlPanel.css';
 
 const VisualizerControlPanel = () => {
-    // DEFINITIVE: Destructure selectedJoints to control UI visibility
-    const { activeVisualizer, setActiveVisualizer, activePad, selectedJoints } = useUIState();
+    // Get all necessary state from the UI context, including for the pop-out window
+    const { 
+        activeVisualizer, 
+        setActiveVisualizer, 
+        isVisualizerPoppedOut, 
+        setIsVisualizerPoppedOut, 
+        activePad, 
+        selectedJoints 
+    } = useUIState();
+    
     const { songData, updateBeatMetaData } = useSequence();
 
-    // The condition for being in "joint edit mode"
     const isEditing = selectedJoints.length > 0;
-
     const isFacingCamera = activePad !== null && songData[activePad]?.meta?.isFacingCamera === true;
 
     const handleFacingCameraToggle = () => {
@@ -34,9 +41,20 @@ const VisualizerControlPanel = () => {
                     <option value="full">Full Skeleton</option>
                     <option value="core">Core Body</option>
                 </select>
+                
+                {/* DEFINITIVE: The Pop Out button is now correctly integrated here. */}
+                <button 
+                    className="popout-btn" 
+                    title="Pop-out Visualizer"
+                    onClick={() => setIsVisualizerPoppedOut(true)}
+                    // Disable the button if a window is already open or if no visualizer is active
+                    disabled={isVisualizerPoppedOut || activeVisualizer === 'none'}
+                >
+                    <FaExternalLinkAlt />
+                </button>
             </div>
             
-            {/* DEFINITIVE FIX: The "Face Camera" toggle is now only rendered when a joint is selected. */}
+            {/* The conditional "Face Camera" toggle remains unchanged. */}
             {isEditing && (
                 <div className="control-row checkbox-row">
                     <label htmlFor="face-camera-toggle" className="control-label">Face Camera:</label>
@@ -50,7 +68,7 @@ const VisualizerControlPanel = () => {
                 </div>
             )}
 
-            {/* The JointRoleSelector already correctly depends on selectedJoints */}
+            {/* The JointRoleSelector remains unchanged. */}
             <JointRoleSelector />
         </div>
     );

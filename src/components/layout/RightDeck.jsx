@@ -1,4 +1,3 @@
-// src/components/layout/RightDeck.jsx
 import React from 'react';
 import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
@@ -7,6 +6,7 @@ import PerformancePad from '../ui/PerformancePad';
 import OptionButtons from '../ui/OptionButtons';
 import DirectionalControls from '../ui/DirectionalControls';
 import PresetPageSelectors from '../ui/PresetPageSelectors';
+import CornerToolPanel from '../ui/CornerToolPanel';
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -21,8 +21,10 @@ const RightDeck = ({ onPadEvent }) => {
     const isJointSelected = selectedJoints.length > 0;
     
     const handleCornerToolClick = (toolName) => {
-        // This is now a placeholder for when we build out NRG and INT panels.
-        if (toolName === 'BLANK') return;
+        if (toolName === 'BLANK') {
+            setActiveCornerTool('none');
+            return;
+        }
         setActiveCornerTool(prev => prev === toolName ? 'none' : toolName);
     };
 
@@ -69,7 +71,7 @@ const RightDeck = ({ onPadEvent }) => {
                     })}
                 </div>
             </div>
-            {/* The CornerToolPanel will render here when activated */}
+            <CornerToolPanel side="right" />
         </div>
     );
 };

@@ -6,6 +6,7 @@ import PerformancePad from '../ui/PerformancePad';
 import OptionButtons from '../ui/OptionButtons';
 import DirectionalControls from '../ui/DirectionalControls';
 import PresetPageSelectors from '../ui/PresetPageSelectors';
+import CornerToolPanel from '../ui/CornerToolPanel';
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -13,16 +14,18 @@ import classNames from 'classnames';
 import './Deck.css';
 
 const LeftDeck = ({ onPadEvent }) => {
-    // DEFINITIVE: Removed activeCornerTool logic. It is no longer needed.
-    const { selectedBar, activePad, selectedJoints } = useUIState();
+    const { selectedBar, activePad, selectedJoints, setActiveCornerTool } = useUIState();
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     const { STEPS_PER_BAR } = useSequence();
 
     const isJointSelected = selectedJoints.length > 0;
 
     const handleCornerToolClick = (toolName) => {
-        // This function is now a placeholder for future implementation.
-        console.log(`[Corner Tool Clicked] Left Deck, Tool: ${toolName}`);
+        if (toolName === 'BLANK') {
+            setActiveCornerTool('none');
+            return;
+        }
+        setActiveCornerTool(prev => prev === toolName ? 'none' : toolName);
     };
     
     return (
@@ -67,7 +70,7 @@ const LeftDeck = ({ onPadEvent }) => {
                     })}
                 </div>
             </div>
-            {/* DEFINITIVE: The CornerToolPanel component has been removed from the render output. */}
+            <CornerToolPanel side="left" />
         </div>
     );
 };
