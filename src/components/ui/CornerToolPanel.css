@@ -53,3 +53,10 @@
 .pocket-slider-container input[type="range"] {
     flex-grow: 1;
 }
+
+.pocket-slider-container span {
+    font-size: 0.8rem;
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+}

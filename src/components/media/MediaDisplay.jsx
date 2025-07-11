@@ -4,8 +4,10 @@ import CameraFeed from '../ui/CameraFeed';
 import PoseOverlay from '../ui/PoseOverlay';
 import P5SkeletalVisualizer from './P5SkeletalVisualizer';
 import CoreVisualizer from '../ui/CoreVisualizer';
+import CameraQuickControls from '../ui/CameraQuickControls'; // Import the new controls
+import PopOutVisualizer from '../ui/PopOutVisualizer'; // Import the portal component
 import { useSequence } from '../../context/SequenceContext';
-import { convertPoseToVisualizerFormat } from '../../utils/poseUtils'; // DEFINITIVE: Import the new utility
+import { convertPoseToVisualizerFormat } from '../../utils/poseUtils';
 import './MediaDisplay.css';
 
 const MediaDisplay = () => {
@@ -15,48 +17,67 @@ const MediaDisplay = () => {
         activePad, 
         selectedJoints, 
         animationState, 
-        animationRange 
+        animationRange,
+        isVisualizerPoppedOut,
+        cameraCommand,
+        setCameraCommand
     } = useUIState();
     
     const { songData } = useSequence();
     const containerRef = useRef(null);
 
-    // Get the raw pose data from the sequence
-    const activeSequencePose = activePad !== null ? songData[activePad] : null;
-    const startSequencePose = animationRange.start !== null ? songData[animationRange.start] : null;
-    const endSequencePose = animationRange.end !== null ? songData[animationRange.end] : null;
+    const activeSequencePose = songData[activePad] || null;
+    const startSequencePose = songData[animationRange.start] || null;
+    const endSequencePose = songData[animationRange.end] || null;
 
-    // DEFINITIVE FIX: Convert all poses into the visualizer-safe format before using them.
-    const activePose = convertPoseToVisualizerFormat(activeSequencePose);
     const startPose = convertPoseToVisualizerFormat(startSequencePose);
     const endPose = convertPoseToVisualizerFormat(endSequencePose);
+    const isFacingCamera = activeSequencePose?.meta?.isFacingCamera || false;
 
-    const VisualizerContent = () => {
-        if (!containerRef.current) return null;
-        const { width, height } = containerRef.current.getBoundingClientRect();
-
-        switch (activeVisualizer) {
-            case 'full':
-                return <P5SkeletalVisualizer startPose={startPose} endPose={endPose} animationState={animationState} highlightJoints={selectedJoints} width={width} height={height} />;
-            case 'core':
-                // Now passing the safely converted 'activePose' object
-                return <CoreVisualizer poseData={activePose} highlightedJoints={selectedJoints} viewMode={'3d'} width={width} height={height} />;
-            default:
-                return <div className="placeholder-text">Select a Visualizer</div>;
-        }
-    };
+    const VisualizerAndControls = () => (
+        <>
+            <P5SkeletalVisualizer 
+                startPose={startPose} 
+                endPose={endPose} 
+                animationState={animationState} 
+                highlightJoints={selectedJoints} 
+                isFacingCamera={isFacingCamera}
+                cameraCommand={cameraCommand}
+                onCommandComplete={() => setCameraCommand(null)}
+                width={isVisualizerPoppedOut ? 600 : containerRef.current?.clientWidth || 300} 
+                height={isVisualizerPoppedOut ? 600 : containerRef.current?.clientHeight || 300} 
+            />
+            <CameraQuickControls />
+        </>
+    );
 
     return (
-        <div ref={containerRef} className="media-display-container">
-            {isCameraActive ? (
-                <>
-                    <CameraFeed />
-                    <PoseOverlay />
-                </>
-            ) : (
-                <VisualizerContent />
+        <>
+            <div ref={containerRef} className="media-display-container">
+                {isCameraActive ? (
+                    <>
+                        <CameraFeed />
+                        <PoseOverlay />
+                    </>
+                ) : (
+                    // When not popped out, render directly here.
+                    !isVisualizerPoppedOut && activeVisualizer === 'full' && <VisualizerAndControls />
+                )}
+                 {activeVisualizer !== 'full' && activeVisualizer !== 'none' && !isCameraActive && (
+                    <div className="placeholder-text">Visualizer Coming Soon</div>
+                 )}
+                 {activeVisualizer === 'none' && !isCameraActive && (
+                    <div className="placeholder-text">Select a Visualizer</div>
+                 )}
+            </div>
+
+            {/* If popped out, render inside the portal */}
+            {isVisualizerPoppedOut && (
+                <PopOutVisualizer>
+                    <VisualizerAndControls />
+                </PopOutVisualizer>
             )}
-        </div>
+        </>
     );
 };
 

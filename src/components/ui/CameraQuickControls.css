@@ -1,0 +1,29 @@
+.camera-quick-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    background-color: rgba(40, 40, 40, 0.7);
+    padding: 8px;
+    border-radius: var(--border-radius-md);
+    z-index: 100;
+}
+
+.camera-quick-controls button {
+    background-color: var(--color-dark-surface-3);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.camera-quick-controls button:hover {
+    border-color: var(--color-text-primary);
+    color: var(--color-text-primary);
+}

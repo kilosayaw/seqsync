@@ -1,32 +1,30 @@
 import React from 'react';
+import { useMedia } from '../../context/MediaContext';
+import { useUIState } from '../../context/UIStateContext';
+import { useSequence } from '../../context/SequenceContext';
+import { usePlayback } from '../../context/PlaybackContext';
+import { useSound } from '../../context/SoundContext';
+import LeftDeck from './LeftDeck';
+import RightDeck from './RightDeck';
+import CenterConsole from './CenterConsole';
+import LevelMeter from '../ui/LevelMeter';
 import TopNavBar from '../ui/TopNavBar';
 import WaveformNavigator from '../ui/WaveformNavigator';
 import NotationDisplay from '../ui/NotationDisplay';
-import CenterConsole from './CenterConsole';
-import LeftDeck from './LeftDeck';
-import RightDeck from './RightDeck';
 import LoadingOverlay from '../ui/LoadingOverlay';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import SoundBankPanel from '../ui/SoundBankPanel';
 import SourceMixerPanel from '../ui/SourceMixerPanel';
-import PopOutVisualizer from '../ui/PopOutVisualizer';
-import LevelMeter from '../ui/LevelMeter'; // DEFINITIVE: Import the new component.
 import { useKeyboardControls } from '../../hooks/useKeyboardControls';
-import { useMedia } from '../../context/MediaContext';
-import { useUIState } from '../../context/UIStateContext';
-import { useSequence } from '../../context/SequenceContext';
-import { useSound } from '../../context/SoundContext';
-import { usePlayback } from '../../context/PlaybackContext'; // DEFINITIVE: Import for audio level.
 import { seekToPad } from '../../utils/notationUtils';
-
 import './ProLayout.css';
 
 const ProLayout = () => {
-    const { isLoading, pendingFile, confirmLoad, cancelLoad, wavesurferInstance, duration } = useMedia();
-    const { activePad, setActivePad, padMode, selectedBar, isVisualizerPoppedOut } = useUIState();
-    const { songData, barStartTimes, STEPS_PER_BAR, detectedBpm } = useSequence();
+    const { isLoading, pendingFile, confirmLoad, cancelLoad, wavesurferInstance, duration, detectedBpm } = useMedia();
+    const { activePad, setActivePad, padMode, selectedBar } = useUIState();
+    const { songData, barStartTimes, STEPS_PER_BAR } = useSequence();
     const { playSound, stopSound } = useSound();
-    const { audioLevel } = usePlayback(); // DEFINITIVE: Get the live audio level.
+    const { audioLevel } = usePlayback();
 
     const handlePadEvent = (type, padIndex) => {
         if (type === 'down') {
@@ -82,8 +80,7 @@ const ProLayout = () => {
                 <RightDeck onPadEvent={handlePadEvent} />
             </main>
 
-            {/* DEFINITIVE: Conditionally render the pop-out window component */}
-            {isVisualizerPoppedOut && <PopOutVisualizer />}
+            {/* DEFINITIVE: All pop-out logic has been removed. */}
 
             {isLoading && <LoadingOverlay />}
             <ConfirmDialog
@@ -96,4 +93,5 @@ const ProLayout = () => {
         </div>
     );
 };
+
 export default ProLayout;

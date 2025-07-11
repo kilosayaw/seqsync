@@ -11,14 +11,130 @@ const LIMB_CONNECTIONS = new Set([
 ]);
 
 function sketch(p5) {
-    let startPose, endPose, animationState = 'idle', highlightJoints = [];
+    let startPose, endPose, animationState = 'idle', highlightJoints = [], isFacingCamera = false;
     let canvasSize = { width: 300, height: 300 };
     let animationProgress = 0;
     const animationDuration = 0.5;
     let colors = {};
 
-    let zoom = 1.0, pan = 0, tilt = -20;
-    let isDragging = false, lastMouseX, lastMouseY;
+    p5.updateWithProps = props => {
+        if (props.startPose) startPose = props.startPose;
+        if (props.endPose) endPose = props.endPose;
+        if (props.animationState) {
+            if (props.animationState === 'playing' && animationState === 'idle') animationProgress = 0;
+            animationState = props.animationState;
+        }
+        if (props.highlightJoints !== undefined) highlightJoints = props.highlightJoints;
+        if (props.isFacingCamera !== undefined) isFacingCamera = props.isFacingCamera;
+        
+        if (props.width && props.height) {
+            if (canvasSize.width !== props.width || canvasSize.height !== props.height) {
+                canvasSize = { width: props.width, height: props.height };
+                p5.resizeCanvas(canvasSize.width, canvasSize.height);
+            }
+        }
+
+        // Handle one-time camera commands from React
+        if (props.cameraCommand) {
+            switch (props.cameraCommand) {
+                case 'front':
+                    p5.pan = 0; p5.tilt = -20; break;
+                case 'rear':
+                    p5.pan = 180; p5.tilt = -20; break;
+                case 'left':
+                    p5.pan = -90; p5.tilt = 0; break;
+                case 'right':
+                    p5.pan = 90; p5.tilt = 0; break;
+                case 'reset':
+                    p5.pan = 0; p5.tilt = -20; p5.zoom = 1.0; break;
+                default:
+                    break;
+            }
+            if (props.onCommandComplete) {
+                props.onCommandComplete();
+            }
+        }
+    };
+
+    p5.setup = () => {
+        p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
+        p5.angleMode(p5.DEGREES);
+
+        // DEFINITIVE FIX: Initialize camera state as properties of the p5 instance.
+        // This makes them persistent for the lifetime of the sketch.
+        p5.zoom = 1.0;
+        p5.pan = 0;
+        p5.tilt = -20;
+        p5.isDragging = false;
+        p5.lastMouseX = 0;
+        p5.lastMouseY = 0;
+
+        colors = {
+            highlight: p5.color('#FFDF00'), line: p5.color(255, 255, 255, 150),
+            mover: p5.color('#ff5252'), stabilizer: p5.color('#00e676'),
+            frame: p5.color('#FFFFFF'), coiled: p5.color('#00b0ff'),
+            ribbonEdge1: p5.color(0, 175, 255), ribbonEdge2: p5.color(255, 0, 175),
+        };
+    };
+
+    p5.mousePressed = () => {
+        if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
+            p5.isDragging = true;
+            p5.lastMouseX = p5.mouseX;
+            p5.lastMouseY = p5.mouseY;
+        }
+    }
+    
+    p5.mouseReleased = () => { p5.isDragging = false; }
+    
+    p5.mouseDragged = () => {
+        if (p5.isDragging) {
+            const dx = p5.mouseX - p5.lastMouseX;
+            const dy = p5.mouseY - p5.lastMouseY;
+            p5.pan -= dx * 0.5;
+            p5.tilt += dy * 0.5;
+            p5.tilt = p5.constrain(p5.tilt, -90, 90);
+            p5.lastMouseX = p5.mouseX;
+            p5.lastMouseY = p5.mouseY;
+        }
+    }
+
+    p5.mouseWheel = (event) => {
+        if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
+            p5.zoom -= event.deltaY * 0.001;
+            p5.zoom = p5.constrain(p5.zoom, 0.2, 5.0);
+            return false;
+        }
+    }
+
+    p5.draw = () => {
+        p5.background(0, 0, 0, 0);
+        p5.push();
+        // Use the persistent camera state from the p5 instance
+        const camDist = 800 * p5.zoom;
+        const camX = camDist * p5.cos(p5.pan);
+        const camZ = camDist * p5.sin(p5.pan);
+        const camY = camDist * p5.sin(p5.tilt);
+        p5.camera(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
+
+        p5.ambientLight(150);
+        p5.pointLight(255, 255, 255, 0, -200, 200);
+        
+        const poseToDraw = calculateCurrentPose();
+        if (poseToDraw) drawSkeleton(poseToDraw);
+        
+        p5.pop();
+
+        if (isFacingCamera) {
+            p5.push();
+            p5.fill(255, 255, 0, 200);
+            p5.textSize(16);
+            p5.textAlign(p5.LEFT, p5.TOP);
+            p5.translate(-p5.width / 2, -p5.height / 2, 0);
+            p5.text("FACING CAMERA", 10, 10);
+            p5.pop();
+        }
+    };
 
     function rotateVectorAroundAxis(vec, axis, angle) {
         const a = p5.radians(angle);
@@ -41,10 +157,33 @@ function sketch(p5) {
             animationState = props.animationState;
         }
         if (props.highlightJoints !== undefined) highlightJoints = props.highlightJoints;
+        if (props.isFacingCamera !== undefined) isFacingCamera = props.isFacingCamera;
+        
         if (props.width && props.height) {
             if (canvasSize.width !== props.width || canvasSize.height !== props.height) {
                 canvasSize = { width: props.width, height: props.height };
                 p5.resizeCanvas(canvasSize.width, canvasSize.height);
+            }
+        }
+
+        // DEFINITIVE: New logic to handle camera commands from React
+        if (props.cameraCommand) {
+            switch (props.cameraCommand) {
+                case 'front':
+                    p5.pan = 0; p5.tilt = -20; break;
+                case 'rear':
+                    p5.pan = 180; p5.tilt = -20; break;
+                case 'left':
+                    p5.pan = -90; p5.tilt = 0; break;
+                case 'right':
+                    p5.pan = 90; p5.tilt = 0; break;
+                case 'reset':
+                    p5.pan = 0; p5.tilt = -20; p5.zoom = 1.0; break;
+                default:
+                    break;
+            }
+            if (props.onCommandComplete) {
+                props.onCommandComplete();
             }
         }
     };
@@ -52,6 +191,15 @@ function sketch(p5) {
     p5.setup = () => {
         p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
         p5.angleMode(p5.DEGREES);
+
+        // DEFINITIVE FIX: Initialize camera state ON THE P5 INSTANCE to make it persistent.
+        p5.zoom = 1.0;
+        p5.pan = 0;
+        p5.tilt = -20;
+        p5.isDragging = false;
+        p5.lastMouseX = 0;
+        p5.lastMouseY = 0;
+
         colors = {
             highlight: p5.color('#FFDF00'), line: p5.color(255, 255, 255, 150),
             mover: p5.color('#ff5252'), stabilizer: p5.color('#00e676'),
@@ -62,32 +210,30 @@ function sketch(p5) {
 
     p5.mousePressed = () => {
         if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
-            if (p5.mouseButton === p5.LEFT) {
-                isDragging = true;
-                lastMouseX = p5.mouseX;
-                lastMouseY = p5.mouseY;
-            }
+            p5.isDragging = true;
+            p5.lastMouseX = p5.mouseX;
+            p5.lastMouseY = p5.mouseY;
         }
     }
     
-    p5.mouseReleased = () => { isDragging = false; }
+    p5.mouseReleased = () => { p5.isDragging = false; }
     
     p5.mouseDragged = () => {
-        if (isDragging) {
-            const dx = p5.mouseX - lastMouseX;
-            const dy = p5.mouseY - lastMouseY;
-            pan -= dx * 0.5;
-            tilt += dy * 0.5;
-            tilt = p5.constrain(tilt, -90, 90);
-            lastMouseX = p5.mouseX;
-            lastMouseY = p5.mouseY;
+        if (p5.isDragging) {
+            const dx = p5.mouseX - p5.lastMouseX;
+            const dy = p5.mouseY - p5.lastMouseY;
+            p5.pan -= dx * 0.5;
+            p5.tilt += dy * 0.5;
+            p5.tilt = p5.constrain(p5.tilt, -90, 90);
+            p5.lastMouseX = p5.mouseX;
+            p5.lastMouseY = p5.mouseY;
         }
     }
 
     p5.mouseWheel = (event) => {
         if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
-            zoom -= event.deltaY * 0.001;
-            zoom = p5.constrain(zoom, 0.2, 5.0);
+            p5.zoom -= event.deltaY * 0.001;
+            p5.zoom = p5.constrain(p5.zoom, 0.2, 5.0);
             return false;
         }
     }
@@ -95,18 +241,28 @@ function sketch(p5) {
     p5.draw = () => {
         p5.background(0, 0, 0, 0);
         p5.push();
-        const camDist = 800 * zoom;
-        const camX = camDist * p5.cos(pan);
-        const camZ = camDist * p5.sin(pan);
-        const camY = camDist * p5.sin(tilt);
+        const camDist = 800 * p5.zoom;
+        const camX = camDist * p5.cos(p5.pan);
+        const camZ = camDist * p5.sin(p5.pan);
+        const camY = camDist * p5.sin(p5.tilt);
         p5.camera(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
         p5.ambientLight(150);
         p5.pointLight(255, 255, 255, 0, -200, 200);
         const poseToDraw = calculateCurrentPose();
         if (poseToDraw) drawSkeleton(poseToDraw);
         p5.pop();
-    };
 
+        if (isFacingCamera) {
+            p5.push();
+            p5.fill(255, 255, 0, 200);
+            p5.textSize(16);
+            p5.textAlign(p5.LEFT, p5.TOP);
+            p5.translate(-p5.width / 2, -p5.height / 2, 0);
+            p5.text("FACING CAMERA", 10, 10);
+            p5.pop();
+        }
+    };
+    
     function drawRibbonLimb(startVec, endVec, rotationType = 'NEU') {
         const ribbonWidth = 15;
         const segments = 10;
@@ -114,7 +270,6 @@ function sketch(p5) {
         if (rotationType === 'IN') totalTwist = -90;
         if (rotationType === 'OUT') totalTwist = 90;
 
-        // DEFINITIVE FIX: Use p5.constructor.Vector.sub() to create a new vector instance.
         const limbVector = p5.constructor.Vector.sub(endVec, startVec).normalize();
         let perp = p5.createVector(0, 1, 0);
         if (Math.abs(limbVector.dot(perp)) > 0.99) {
@@ -127,7 +282,6 @@ function sketch(p5) {
 
         for (let i = 0; i <= segments; i++) {
             const t = i / segments;
-            // DEFINITIVE FIX: Use p5.constructor.Vector.lerp() to correctly interpolate.
             const centerPoint = p5.constructor.Vector.lerp(startVec, endVec, t);
             const twistAngle = p5.lerp(0, totalTwist, t);
             
@@ -192,7 +346,7 @@ function sketch(p5) {
         if (animationState === 'playing' && startPose?.jointInfo && endPose?.jointInfo) {
             animationProgress += p5.deltaTime / 1000;
             const t = p5.constrain(animationProgress / animationDuration, 0, 1);
-            const interpolatedPose = { jointInfo: {} };
+            const interpolatedPose = { jointInfo: {}, meta: endPose.meta, grounding: endPose.grounding };
             JOINT_LIST.forEach(({ id }) => {
                 const startJ = startPose.jointInfo[id] || endPose.jointInfo[id];
                 const endJ = endPose.jointInfo[id] || startPose.jointInfo[id];
@@ -228,6 +382,9 @@ P5SkeletalVisualizer.propTypes = {
     endPose: PropTypes.object,
     animationState: PropTypes.string,
     highlightJoints: PropTypes.arrayOf(PropTypes.string),
+    isFacingCamera: PropTypes.bool,
+    cameraCommand: PropTypes.string,
+    onCommandComplete: PropTypes.func,
     width: PropTypes.number.isRequired,
     height: PropTypes.number.isRequired,
 };

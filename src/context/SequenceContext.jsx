@@ -19,8 +19,8 @@ const createBeatData = (bar, beatInBar) => {
                 position: [0, 0, 0], 
                 rotation: 0, 
                 rotationType: 'NEU',
-                energyType: 'BASE',
                 intentType: 'PASS',
+                forceLevel: 0, // DEFINITIVE: Add forceLevel to the model, default 0.
                 role: 'frame' 
             };
         }

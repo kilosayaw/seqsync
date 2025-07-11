@@ -56,3 +56,28 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+.camera-controls {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-border);
+}
+
+.camera-controls button {
+    flex-grow: 1;
+    background-color: var(--color-dark-surface-3);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 4px;
+    border-radius: var(--border-radius-sm);
+}
+
+.camera-controls button:hover {
+    border-color: var(--color-text-primary);
+    color: var(--color-text-primary);
+}
