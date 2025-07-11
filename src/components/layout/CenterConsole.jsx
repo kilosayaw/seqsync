@@ -1,10 +1,9 @@
-// src/components/layout/CenterConsole.jsx
-import React, { useRef, useState, useEffect } from 'react';
+import React from 'react';
 import BarBeatDisplay from '../ui/BarBeatDisplay';
 import TransportControls from '../ui/TransportControls';
-import Crossfader from '../ui/Crossfader';
+import MasterFader from '../ui/MasterFader'; // PHOENIX PROTOCOL: Renamed for clarity.
 import MediaDisplay from '../media/MediaDisplay';
-import VisualizerControlPanel from '../ui/VisualizerControlPanel'; // DEFINITIVE: Import new component
+import VisualizerControlPanel from '../ui/VisualizerControlPanel';
 import './CenterConsole.css';
 
 const CenterConsole = () => {
@@ -17,10 +16,10 @@ const CenterConsole = () => {
             <div className="center-controls-group">
                 <BarBeatDisplay />
                 <TransportControls />
-                {/* DEFINITIVE: Replace JointRoleSelector with the new control panel */}
                 <VisualizerControlPanel />
             </div>
-            <Crossfader />
+            {/* PHOENIX PROTOCOL: Renamed for clarity. */}
+            <MasterFader /> 
         </div>
     );
 };

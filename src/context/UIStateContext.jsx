@@ -31,8 +31,9 @@ export const UIStateProvider = ({ children }) => {
     const [activePresetPage, setActivePresetPage] = useState({ left: 0, right: 0 });
     const previousActivePadRef = useRef(null);
     const [cameraCommand, setCameraCommand] = useState(null);
-    
-    // DEFINITIVE: isVisualizerPoppedOut state has been completely removed.
+    // PHOENIX PROTOCOL: Added weightDistribution state.
+    const [weightDistribution, setWeightDistribution] = useState(0);
+
 
     const setActivePad = (padIndex) => {
         previousActivePadRef.current = activePad; 
@@ -75,9 +76,9 @@ export const UIStateProvider = ({ children }) => {
         activeCornerTool, setActiveCornerTool,
         isCameraActive, setIsCameraActive,
         isVisualizerPoppedOut, setIsVisualizerPoppedOut,
-        
-        // DEFINITIVE: Expose the new state and its setter.
         cameraCommand, setCameraCommand,
+        // PHOENIX PROTOCOL: Expose weightDistribution state and its setter.
+        weightDistribution, setWeightDistribution,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;

@@ -4,8 +4,8 @@ import CameraFeed from '../ui/CameraFeed';
 import PoseOverlay from '../ui/PoseOverlay';
 import P5SkeletalVisualizer from './P5SkeletalVisualizer';
 import CoreVisualizer from '../ui/CoreVisualizer';
-import CameraQuickControls from '../ui/CameraQuickControls'; // Import the new controls
-import PopOutVisualizer from '../ui/PopOutVisualizer'; // Import the portal component
+import CameraQuickControls from '../ui/CameraQuickControls';
+import PopOutVisualizer from '../ui/PopOutVisualizer';
 import { useSequence } from '../../context/SequenceContext';
 import { convertPoseToVisualizerFormat } from '../../utils/poseUtils';
 import './MediaDisplay.css';
@@ -20,7 +20,9 @@ const MediaDisplay = () => {
         animationRange,
         isVisualizerPoppedOut,
         cameraCommand,
-        setCameraCommand
+        setCameraCommand,
+        // PHOENIX PROTOCOL: Get weightDistribution from state.
+        weightDistribution, 
     } = useUIState();
     
     const { songData } = useSequence();
@@ -34,7 +36,17 @@ const MediaDisplay = () => {
     const endPose = convertPoseToVisualizerFormat(endSequencePose);
     const isFacingCamera = activeSequencePose?.meta?.isFacingCamera || false;
 
-    const VisualizerAndControls = () => (
+    // PHOENIX PROTOCOL: Created a separate component for the core vis to pass props.
+    const CoreVisualizerComponent = () => (
+        <CoreVisualizer
+            poseData={endPose} // Core viz doesn't animate, shows current pad's pose
+            weightDistribution={weightDistribution}
+            width={isVisualizerPoppedOut ? 600 : containerRef.current?.clientWidth || 300} 
+            height={isVisualizerPoppedOut ? 600 : containerRef.current?.clientHeight || 300} 
+        />
+    );
+
+    const SkeletalVisualizerComponent = () => (
         <>
             <P5SkeletalVisualizer 
                 startPose={startPose} 
@@ -51,30 +63,41 @@ const MediaDisplay = () => {
         </>
     );
 
+    const renderVisualizer = () => {
+        if (isVisualizerPoppedOut) return null; // Rendered in portal if popped out
+
+        switch(activeVisualizer) {
+            case 'full':
+                return <SkeletalVisualizerComponent />;
+            case 'core':
+                return <CoreVisualizerComponent />;
+            case 'none':
+                return <div className="placeholder-text">Select a Visualizer</div>;
+            default:
+                return <div className="placeholder-text">Visualizer Coming Soon</div>;
+        }
+    };
+
+    const renderVisualizerForPopOut = () => {
+        switch(activeVisualizer) {
+            case 'full':
+                return <SkeletalVisualizerComponent />;
+            case 'core':
+                return <CoreVisualizerComponent />;
+            default:
+                return null;
+        }
+    };
+
     return (
         <>
             <div ref={containerRef} className="media-display-container">
-                {isCameraActive ? (
-                    <>
-                        <CameraFeed />
-                        <PoseOverlay />
-                    </>
-                ) : (
-                    // When not popped out, render directly here.
-                    !isVisualizerPoppedOut && activeVisualizer === 'full' && <VisualizerAndControls />
-                )}
-                 {activeVisualizer !== 'full' && activeVisualizer !== 'none' && !isCameraActive && (
-                    <div className="placeholder-text">Visualizer Coming Soon</div>
-                 )}
-                 {activeVisualizer === 'none' && !isCameraActive && (
-                    <div className="placeholder-text">Select a Visualizer</div>
-                 )}
+                {isCameraActive ? <><CameraFeed /><PoseOverlay /></> : renderVisualizer()}
             </div>
 
-            {/* If popped out, render inside the portal */}
             {isVisualizerPoppedOut && (
                 <PopOutVisualizer>
-                    <VisualizerAndControls />
+                    {renderVisualizerForPopOut()}
                 </PopOutVisualizer>
             )}
         </>

@@ -28,6 +28,11 @@ export const BASE_FOOT_PATHS = {
 };
 
 export const DEFAULT_POSE = {
+    // PHOENIX PROTOCOL: Added grounding property for data consistency.
+    grounding: {
+        L: [],
+        R: []
+    },
     jointInfo: {
         'H':  { vector: { x: 0, y: 0.8, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
         'LS': { vector: { x: -0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },

@@ -17,6 +17,38 @@ function sketch(p5) {
     const animationDuration = 0.5;
     let colors = {};
 
+    // PHOENIX PROTOCOL: This function contains the new Dynamic Pose Rigging logic.
+    function applyDynamicRigging(originalPose) {
+        if (!originalPose || !originalPose.jointInfo) {
+            return {};
+        }
+
+        // Create a deep copy to avoid mutating the original pose data from props
+        const riggedJointInfo = JSON.parse(JSON.stringify(originalPose.jointInfo));
+        const grounding = originalPose.grounding || { L: [], R: [] };
+
+        // --- LEFT SIDE RIGGING ---
+        if (grounding.L.includes('3')) { // If Left Heel is lifted
+            if (riggedJointInfo.LA) riggedJointInfo.LA.vector.y += 0.1; // Ankle lifts
+            if (riggedJointInfo.LK) {
+                riggedJointInfo.LK.vector.y += 0.05; // Knee lifts
+                riggedJointInfo.LK.vector.z -= 0.05; // Knee bends forward
+            }
+        }
+        
+        // --- RIGHT SIDE RIGGING ---
+        if (grounding.R.includes('3')) { // If Right Heel is lifted
+            if (riggedJointInfo.RA) riggedJointInfo.RA.vector.y += 0.1; // Ankle lifts
+            if (riggedJointInfo.RK) {
+                riggedJointInfo.RK.vector.y += 0.05; // Knee lifts
+                riggedJointInfo.RK.vector.z -= 0.05; // Knee bends forward
+            }
+        }
+
+        // Future rigging rules (e.g., for other foot parts) will be added here.
+        return riggedJointInfo;
+    }
+
     p5.updateWithProps = props => {
         if (props.startPose) startPose = props.startPose;
         if (props.endPose) endPose = props.endPose;
@@ -34,21 +66,16 @@ function sketch(p5) {
             }
         }
 
-        // Handle one-time camera commands from React
         if (props.cameraCommand) {
+            // PHOENIX PROTOCOL: Added logging for camera commands.
+            console.log(`P5SkeletalVisualizer: Received camera command -> ${props.cameraCommand}`);
             switch (props.cameraCommand) {
-                case 'front':
-                    p5.pan = 0; p5.tilt = -20; break;
-                case 'rear':
-                    p5.pan = 180; p5.tilt = -20; break;
-                case 'left':
-                    p5.pan = -90; p5.tilt = 0; break;
-                case 'right':
-                    p5.pan = 90; p5.tilt = 0; break;
-                case 'reset':
-                    p5.pan = 0; p5.tilt = -20; p5.zoom = 1.0; break;
-                default:
-                    break;
+                case 'front': p5.pan = 0; p5.tilt = -20; break;
+                case 'rear': p5.pan = 180; p5.tilt = -20; break;
+                case 'left': p5.pan = -90; p5.tilt = 0; break;
+                case 'right': p5.pan = 90; p5.tilt = 0; break;
+                case 'reset': p5.pan = 0; p5.tilt = -20; p5.zoom = 1.0; break;
+                default: break;
             }
             if (props.onCommandComplete) {
                 props.onCommandComplete();
@@ -60,8 +87,6 @@ function sketch(p5) {
         p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
         p5.angleMode(p5.DEGREES);
 
-        // DEFINITIVE FIX: Initialize camera state as properties of the p5 instance.
-        // This makes them persistent for the lifetime of the sketch.
         p5.zoom = 1.0;
         p5.pan = 0;
         p5.tilt = -20;
@@ -79,13 +104,19 @@ function sketch(p5) {
 
     p5.mousePressed = () => {
         if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
+            // PHOENIX PROTOCOL: Added logging for user interaction.
+            console.log('P5SkeletalVisualizer: Mouse pressed for drag.');
             p5.isDragging = true;
             p5.lastMouseX = p5.mouseX;
             p5.lastMouseY = p5.mouseY;
         }
     }
     
-    p5.mouseReleased = () => { p5.isDragging = false; }
+    p5.mouseReleased = () => { 
+        // PHOENIX PROTOCOL: Added logging for user interaction.
+        if(p5.isDragging) console.log('P5SkeletalVisualizer: Mouse released, ended drag.');
+        p5.isDragging = false; 
+    }
     
     p5.mouseDragged = () => {
         if (p5.isDragging) {
@@ -101,6 +132,8 @@ function sketch(p5) {
 
     p5.mouseWheel = (event) => {
         if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
+            // PHOENIX PROTOCOL: Added logging for user interaction.
+            console.log(`P5SkeletalVisualizer: Mouse wheel scrolled. Delta: ${event.deltaY}`);
             p5.zoom -= event.deltaY * 0.001;
             p5.zoom = p5.constrain(p5.zoom, 0.2, 5.0);
             return false;
@@ -110,7 +143,6 @@ function sketch(p5) {
     p5.draw = () => {
         p5.background(0, 0, 0, 0);
         p5.push();
-        // Use the persistent camera state from the p5 instance
         const camDist = 800 * p5.zoom;
         const camX = camDist * p5.cos(p5.pan);
         const camZ = camDist * p5.sin(p5.pan);
@@ -136,6 +168,7 @@ function sketch(p5) {
         }
     };
 
+    // PHOENIX PROTOCOL: Cleanup - This function is now defined only once at the sketch level.
     function rotateVectorAroundAxis(vec, axis, angle) {
         const a = p5.radians(angle);
         const cosA = Math.cos(a);
@@ -148,120 +181,6 @@ function sketch(p5) {
         const z_rot = w * dot * (1 - cosA) + z * cosA + (-v * x + u * y) * sinA;
         return p5.createVector(x_rot, y_rot, z_rot);
     }
-
-    p5.updateWithProps = props => {
-        if (props.startPose) startPose = props.startPose;
-        if (props.endPose) endPose = props.endPose;
-        if (props.animationState) {
-            if (props.animationState === 'playing' && animationState === 'idle') animationProgress = 0;
-            animationState = props.animationState;
-        }
-        if (props.highlightJoints !== undefined) highlightJoints = props.highlightJoints;
-        if (props.isFacingCamera !== undefined) isFacingCamera = props.isFacingCamera;
-        
-        if (props.width && props.height) {
-            if (canvasSize.width !== props.width || canvasSize.height !== props.height) {
-                canvasSize = { width: props.width, height: props.height };
-                p5.resizeCanvas(canvasSize.width, canvasSize.height);
-            }
-        }
-
-        // DEFINITIVE: New logic to handle camera commands from React
-        if (props.cameraCommand) {
-            switch (props.cameraCommand) {
-                case 'front':
-                    p5.pan = 0; p5.tilt = -20; break;
-                case 'rear':
-                    p5.pan = 180; p5.tilt = -20; break;
-                case 'left':
-                    p5.pan = -90; p5.tilt = 0; break;
-                case 'right':
-                    p5.pan = 90; p5.tilt = 0; break;
-                case 'reset':
-                    p5.pan = 0; p5.tilt = -20; p5.zoom = 1.0; break;
-                default:
-                    break;
-            }
-            if (props.onCommandComplete) {
-                props.onCommandComplete();
-            }
-        }
-    };
-
-    p5.setup = () => {
-        p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
-        p5.angleMode(p5.DEGREES);
-
-        // DEFINITIVE FIX: Initialize camera state ON THE P5 INSTANCE to make it persistent.
-        p5.zoom = 1.0;
-        p5.pan = 0;
-        p5.tilt = -20;
-        p5.isDragging = false;
-        p5.lastMouseX = 0;
-        p5.lastMouseY = 0;
-
-        colors = {
-            highlight: p5.color('#FFDF00'), line: p5.color(255, 255, 255, 150),
-            mover: p5.color('#ff5252'), stabilizer: p5.color('#00e676'),
-            frame: p5.color('#FFFFFF'), coiled: p5.color('#00b0ff'),
-            ribbonEdge1: p5.color(0, 175, 255), ribbonEdge2: p5.color(255, 0, 175),
-        };
-    };
-
-    p5.mousePressed = () => {
-        if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
-            p5.isDragging = true;
-            p5.lastMouseX = p5.mouseX;
-            p5.lastMouseY = p5.mouseY;
-        }
-    }
-    
-    p5.mouseReleased = () => { p5.isDragging = false; }
-    
-    p5.mouseDragged = () => {
-        if (p5.isDragging) {
-            const dx = p5.mouseX - p5.lastMouseX;
-            const dy = p5.mouseY - p5.lastMouseY;
-            p5.pan -= dx * 0.5;
-            p5.tilt += dy * 0.5;
-            p5.tilt = p5.constrain(p5.tilt, -90, 90);
-            p5.lastMouseX = p5.mouseX;
-            p5.lastMouseY = p5.mouseY;
-        }
-    }
-
-    p5.mouseWheel = (event) => {
-        if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
-            p5.zoom -= event.deltaY * 0.001;
-            p5.zoom = p5.constrain(p5.zoom, 0.2, 5.0);
-            return false;
-        }
-    }
-
-    p5.draw = () => {
-        p5.background(0, 0, 0, 0);
-        p5.push();
-        const camDist = 800 * p5.zoom;
-        const camX = camDist * p5.cos(p5.pan);
-        const camZ = camDist * p5.sin(p5.pan);
-        const camY = camDist * p5.sin(p5.tilt);
-        p5.camera(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
-        p5.ambientLight(150);
-        p5.pointLight(255, 255, 255, 0, -200, 200);
-        const poseToDraw = calculateCurrentPose();
-        if (poseToDraw) drawSkeleton(poseToDraw);
-        p5.pop();
-
-        if (isFacingCamera) {
-            p5.push();
-            p5.fill(255, 255, 0, 200);
-            p5.textSize(16);
-            p5.textAlign(p5.LEFT, p5.TOP);
-            p5.translate(-p5.width / 2, -p5.height / 2, 0);
-            p5.text("FACING CAMERA", 10, 10);
-            p5.pop();
-        }
-    };
     
     function drawRibbonLimb(startVec, endVec, rotationType = 'NEU') {
         const ribbonWidth = 15;
@@ -299,8 +218,9 @@ function sketch(p5) {
     }
 
     function drawSkeleton(pose) {
-        if (!pose?.jointInfo) return;
-        const joints = pose.jointInfo;
+        // PHOENIX PROTOCOL: Call the rigging function before drawing.
+        const riggedJointInfo = applyDynamicRigging(pose);
+        if (!riggedJointInfo) return;
 
         const getCoords = (vector) => p5.createVector(
             vector.x * (canvasSize.width / 4),
@@ -309,8 +229,9 @@ function sketch(p5) {
         );
 
         POSE_CONNECTIONS.forEach(([startKey, endKey]) => {
-            const startJ = joints[startKey];
-            const endJ = joints[endKey];
+            // PHOENIX PROTOCOL: Use the new rigged information.
+            const startJ = riggedJointInfo[startKey];
+            const endJ = riggedJointInfo[endKey];
             if (startJ?.score > 0.5 && endJ?.score > 0.5) {
                 const start = getCoords(startJ.vector);
                 const end = getCoords(endJ.vector);
@@ -327,8 +248,9 @@ function sketch(p5) {
         });
 
         p5.noStroke();
-        for (const key in joints) {
-            const joint = joints[key];
+        // PHOENIX PROTOCOL: Use the new rigged information.
+        for (const key in riggedJointInfo) {
+            const joint = riggedJointInfo[key];
             if (!joint?.score || joint.score < 0.5 || !joint.vector) continue;
             const pos = getCoords(joint.vector);
             const isHighlighted = highlightJoints.includes(key);
@@ -346,7 +268,12 @@ function sketch(p5) {
         if (animationState === 'playing' && startPose?.jointInfo && endPose?.jointInfo) {
             animationProgress += p5.deltaTime / 1000;
             const t = p5.constrain(animationProgress / animationDuration, 0, 1);
-            const interpolatedPose = { jointInfo: {}, meta: endPose.meta, grounding: endPose.grounding };
+            const interpolatedPose = { 
+                jointInfo: {}, 
+                meta: endPose.meta, 
+                // Grounding snaps to the end pose's state
+                grounding: endPose.grounding 
+            };
             JOINT_LIST.forEach(({ id }) => {
                 const startJ = startPose.jointInfo[id] || endPose.jointInfo[id];
                 const endJ = endPose.jointInfo[id] || startPose.jointInfo[id];
