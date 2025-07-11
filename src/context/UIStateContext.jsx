@@ -15,8 +15,6 @@ export const UIStateProvider = ({ children }) => {
     const [selectedBar, setSelectedBar] = useState(1);
     const [activePad, setActivePadState] = useState(0); 
     const [animationState, setAnimationState] = useState('idle');
-    const [previewMode, setPreviewMode] = useState('off');
-    const previousActivePadRef = useRef(null);
     const [animationRange, setAnimationRange] = useState({ start: null, end: null });
     const [editMode, setEditMode] = useState('none');
     const [noteDivision, setNoteDivision] = useState(8);
@@ -28,24 +26,10 @@ export const UIStateProvider = ({ children }) => {
     const [activeDirection, setActiveDirection] = useState('l_r');
     const [activeVisualizer, setActiveVisualizer] = useState('none');
     const [isCameraActive, setIsCameraActive] = useState(false);
-    // DEFINITIVE FIX: Re-introducing the missing state declaration for activePresetPage.
     const [activePresetPage, setActivePresetPage] = useState({ left: 0, right: 0 });
-
-    const cyclePreviewMode = () => {
-        setPreviewMode(current => {
-            if (current === 'off') return '2d';
-            if (current === '2d') return '3d';
-            return 'off';
-        });
-    };
-
-    const cycleVisualizerMode = () => {
-        setActiveVisualizer(current => {
-            if (current === 'none') return 'full';
-            if (current === 'full') return 'core';
-            return 'none';
-        });
-    };
+    const previousActivePadRef = useRef(null);
+    
+    // DEFINITIVE: Removed the activeCornerTool state as it is no longer used.
 
     const setActivePad = (padIndex) => {
         previousActivePadRef.current = activePad; 
@@ -74,20 +58,17 @@ export const UIStateProvider = ({ children }) => {
         activePad, setActivePad,
         animationState, triggerAnimation,
         animationRange,
-        previewMode, cyclePreviewMode,
         editMode, setEditMode,
         noteDivision, setNoteDivision,
         padMode, setPadMode,
         activePanel, setActivePanel,
         selectedJoints, setSelectedJoints,
-        mixerState, setMixerState,
         activeDirection, setActiveDirection,
         notification, showNotification,
         movementFaderValue, setMovementFaderValue,
         activeVisualizer, setActiveVisualizer,
         mixerState, setMixerState,
         activePresetPage, setActivePresetPage,
-        cycleVisualizerMode,
         isCameraActive, setIsCameraActive,
     };
 

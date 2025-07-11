@@ -4,9 +4,7 @@ import PropTypes from 'prop-types';
 import { POSE_CONNECTIONS, JOINT_LIST } from '../../utils/constants';
 
 function sketch(p5) {
-    // --- State Variables ---
     let startPose, endPose, animationState = 'idle';
-    // DEFINITIVE: Changed to highlightJoints (plural) to accept an array
     let highlightJoints = []; 
     let canvasSize = { width: 300, height: 300 };
     let animationProgress = 0;
@@ -22,7 +20,6 @@ function sketch(p5) {
             }
             animationState = props.animationState;
         }
-        // DEFINITIVE: Update with the array of joints to highlight
         if (props.highlightJoints !== undefined) {
             highlightJoints = props.highlightJoints;
         }
@@ -92,21 +89,8 @@ function sketch(p5) {
     function drawSkeleton(pose) {
         if (!pose?.jointInfo) return;
         
-        let processedJointInfo = JSON.parse(JSON.stringify(pose.jointInfo));
-        
-        const leftFootGrounded = pose.jointInfo.LF?.grounding?.includes('3');
-        const rightFootGrounded = pose.jointInfo.RF?.grounding?.includes('3');
-
-        if (!leftFootGrounded && processedJointInfo.LA && processedJointInfo.L3) {
-            processedJointInfo.L3.vector.y = processedJointInfo.LA.vector.y + 0.05;
-            processedJointInfo.LK.vector.y = processedJointInfo.LA.vector.y - 0.25;
-            processedJointInfo.LH.vector.y = processedJointInfo.LK.vector.y + 0.4;
-        }
-        if (!rightFootGrounded && processedJointInfo.RA && processedJointInfo.R3) {
-            processedJointInfo.R3.vector.y = processedJointInfo.RA.vector.y + 0.05;
-            processedJointInfo.RK.vector.y = processedJointInfo.RA.vector.y - 0.25;
-            processedJointInfo.RH.vector.y = processedJointInfo.RK.vector.y + 0.4;
-        }
+        // No longer need to manually process grounding, as the default pose is more robust.
+        const processedJointInfo = pose.jointInfo;
         
         const getCoords = (vector) => ({
             x: vector.x * (canvasSize.width / 4),
@@ -132,7 +116,6 @@ function sketch(p5) {
             if (!joint?.score || joint.score < 0.5 || !joint.vector) continue;
 
             const pos = getCoords(joint.vector);
-            // DEFINITIVE: Check if the current joint's key is in the highlight array
             const isHighlighted = highlightJoints.includes(key); 
             
             let jointColor = colors.frame;

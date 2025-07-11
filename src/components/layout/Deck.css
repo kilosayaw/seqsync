@@ -11,7 +11,7 @@
 .deck-container {
     flex-grow: 1;
     display: grid;
-    grid-template-columns: 60px 1fr 60px;
+    /* DEFINITIVE: Removed 'pivot-controls' row from the template. */
     grid-template-rows: auto 1fr auto; 
     grid-template-areas:
         "joints dir-controls side-controls"
@@ -21,9 +21,11 @@
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
     border-radius: var(--border-radius-md);
-    min-height: 0; /* FIX: Crucial for allowing the grid to shrink */
-    min-width: 0; /* FIX: Crucial for allowing the grid to shrink */
+    min-height: 0;
+    min-width: 0;
 }
+
+.deck-container > .pivot-control-container { grid-area: pivot-controls; }
 
 .deck-container[data-side="left"] {
     grid-template-areas:

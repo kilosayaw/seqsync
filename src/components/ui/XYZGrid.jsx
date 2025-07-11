@@ -1,62 +1,27 @@
 // src/components/ui/XYZGrid.jsx
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import './XYZGrid.css';
 
-const XYZGrid = ({ position = [0, 0, 0], onPositionChange, onZChange, zValue }) => {
-    // DEFINITIVE: This component now manages its own internal Z state during a drag for responsiveness
-    // but reports the final value up. It receives the canonical Z value as a prop.
-    const [localZ, setLocalZ] = useState(zValue);
-    const [zDragStart, setZDragStart] = useState(null);
-    
-    // Sync local Z with prop from parent
-    useEffect(() => {
-        setLocalZ(zValue);
-    }, [zValue]);
+const XYZGrid = ({ position = [0, 0, 0], onPositionChange }) => {
 
     const handleCellClick = (x, y) => {
-        // Report X and Y change immediately
-        if (onPositionChange) onPositionChange([x, y, localZ]);
-    };
+        const [currentX, currentY, currentZ] = position;
 
-    const handleZDragStart = (e, x, y) => {
-        if (x !== position[0] || y !== position[1]) {
-            handleCellClick(x, y);
+        // If clicking a NEW cell, set X/Y and reset Z to 0.
+        if (x !== currentX || y !== currentY) {
+            onPositionChange([x, y, 0]);
+        } else {
+            // If clicking the SAME cell, cycle Z-depth: 0 -> 1 -> -1 -> 0
+            let nextZ = 0;
+            if (currentZ === 0) nextZ = 1;
+            if (currentZ === 1) nextZ = -1;
+            if (currentZ === -1) nextZ = 0;
+            onPositionChange([x, y, nextZ]);
         }
-        setZDragStart({
-            screenY: e.screenY,
-            initialZ: localZ
-        });
-        e.stopPropagation();
     };
-
-    const handleZDragMove = (e) => {
-        if (!zDragStart) return;
-        const deltaY = zDragStart.screenY - e.screenY;
-        let newZ = zDragStart.initialZ + (deltaY / 100);
-        newZ = Math.max(-1, Math.min(1, newZ));
-        setLocalZ(newZ); // Update local state for smooth visual feedback
-    };
-
-    const handleZDragEnd = () => {
-        // On mouse up, report the final Z value to the parent
-        if (zDragStart && onZChange) {
-            onZChange(localZ);
-        }
-        setZDragStart(null);
-    };
-
-    useEffect(() => {
-        if (zDragStart) {
-            window.addEventListener('mousemove', handleZDragMove);
-            window.addEventListener('mouseup', handleZDragEnd);
-        }
-        return () => {
-            window.removeEventListener('mousemove', handleZDragMove);
-            window.removeEventListener('mouseup', handleZDragEnd);
-        };
-    }, [zDragStart]);
-
-    const zToScale = (z) => 0.5 + (z * 0.45);
+    
+    // Scale mapping: -1 (far) -> 0.4, 0 (middle) -> 0.7, 1 (near) -> 1.0
+    const zToScale = (z) => 0.7 + (z * 0.3);
 
     return (
         <div className="xyz-grid-container">
@@ -68,12 +33,11 @@ const XYZGrid = ({ position = [0, 0, 0], onPositionChange, onZChange, zValue }) 
                             key={`${x},${y}`} 
                             className="xyz-grid-cell"
                             onClick={() => handleCellClick(x, y)}
-                            onMouseDown={(e) => handleZDragStart(e, x, y)}
                         >
                             {isActive && (
                                 <div 
                                     className="xyz-indicator" 
-                                    style={{ transform: `scale(${zToScale(localZ)})` }}
+                                    style={{ transform: `scale(${zToScale(position[2])})` }}
                                 />
                             )}
                         </div>

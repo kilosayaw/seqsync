@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { useUIState } from '../../../context/UIStateContext';
 import { useSequence } from '../../../context/SequenceContext';
 import { getPointsFromNotation, resolveNotationFromPoints } from '../../../utils/notationUtils';
@@ -8,14 +8,12 @@ import XYZGrid from '../XYZGrid';
 import './RotaryController.css';
 
 const RotaryController = ({ deckId }) => {
-    const { activePad, selectedJoints, showNotification, activeDirection, movementFaderValue } = useUIState(); 
+    const { activePad, selectedJoints, showNotification } = useUIState(); 
     const { songData, updateJointData } = useSequence();
     
     const side = deckId === 'deck1' ? 'left' : 'right';
     const sidePrefix = side.charAt(0).toUpperCase();
 
-    // DEFINITIVE FIX: The controller now only considers selected joints that match its side.
-    // This prevents the right deck from ever editing a left-side joint.
     const relevantSelectedJoints = selectedJoints.filter(j => j.startsWith(sidePrefix));
     const isEditing = relevantSelectedJoints.length > 0;
     const activeJointId = isEditing ? relevantSelectedJoints[0] : null;
@@ -25,16 +23,15 @@ const RotaryController = ({ deckId }) => {
         || {};
     
     const initialAngle = sourceData.rotation || 0;
-    const initialPosition = sourceData.position || [0, 0, 0];
-    const activePoints = getPointsFromNotation(sourceData.grounding);
+    const pivotPoint = sourceData.pivotPoint;
 
-    const handleDragEnd = useCallback((finalAngle) => {
+    const handleRotationEnd = useCallback((finalAngle) => {
         if (isFootMode && activePad !== null && activeJointId) {
             updateJointData(activePad, activeJointId, { rotation: finalAngle });
         }
     }, [activePad, isFootMode, activeJointId, updateJointData]);
 
-    const { angle, handleMouseDown } = useTurntableDrag(initialAngle, handleDragEnd);
+    const { angle, handleMouseDown } = useTurntableDrag(initialAngle, handleRotationEnd);
 
     const handleHotspotClick = useCallback((shortNotation) => {
         if (!isFootMode || activePad === null) {
@@ -55,28 +52,19 @@ const RotaryController = ({ deckId }) => {
         updateJointData(activePad, activeJointId, { grounding: newGroundingNotation });
     }, [isFootMode, activePad, showNotification, songData, activeJointId, side, updateJointData]);
 
-    // ... (rest of the component is unchanged)
-
     return (
         <div className="rotary-controller-container">
             <RotarySVG
                 side={side}
                 angle={angle}
-                activePoints={activePoints}
+                activePoints={getPointsFromNotation(sourceData.grounding)}
+                pivotPoint={pivotPoint}
                 onHotspotClick={handleHotspotClick}
                 isFootMode={isFootMode}
                 handleWheelMouseDown={handleMouseDown}
             />
-            <div className="editor-overlays">
-                {(!isFootMode && isEditing) ? (
-                    <XYZGrid position={initialPosition} />
-                ) : (isFootMode && activePad === null) ? (
-                    <div className="placeholder-text-small">
-                        Select a pad to edit contact points.
-                    </div>
-                ) : null}
-            </div>
         </div>
     );
 };
+
 export default RotaryController;

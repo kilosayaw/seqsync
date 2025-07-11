@@ -1,21 +1,18 @@
-// src/components/ui/OptionButtons.jsx
 import React from 'react';
 import { useUIState } from '../../context/UIStateContext';
 import classNames from 'classnames';
 import './OptionButtons.css';
 
 const OptionButtons = ({ side }) => {
-    // Get all necessary state and functions from the UI context
+    // DEFINITIVE FIX: Removed cycleVisualizerMode from the context, as it's no longer needed.
     const { 
         noteDivision, setNoteDivision, 
         padMode, setPadMode, 
         activePanel, setActivePanel, 
-        activeVisualizer, cycleVisualizerMode 
     } = useUIState();
 
-    // Define handlers for button actions
     const handleNoteDivisionCycle = () => {
-        const divisions = [8, 4, 2]; // The available note divisions
+        const divisions = [8, 4, 2];
         const currentIndex = divisions.indexOf(noteDivision);
         const nextIndex = (currentIndex + 1) % divisions.length;
         setNoteDivision(divisions[nextIndex]);
@@ -29,13 +26,6 @@ const OptionButtons = ({ side }) => {
         setActivePanel(currentPanel => (currentPanel === panelName ? 'none' : panelName));
     };
     
-    // Determine the correct label for the multi-state preview button
-    const getPreviewLabel = () => {
-        if (activeVisualizer === 'full') return 'FULL';
-        if (activeVisualizer === 'core') return 'CORE';
-        return 'PREVIEW';
-    };
-
     // Render the left stack of buttons
     if (side === 'left') {
         return (
@@ -52,12 +42,7 @@ const OptionButtons = ({ side }) => {
     if (side === 'right') {
         return (
             <>
-                <button 
-                    className={classNames('option-btn', { active: activeVisualizer !== 'none' })} 
-                    onClick={cycleVisualizerMode}
-                >
-                    {getPreviewLabel()}
-                </button>
+                {/* DEFINITIVE FIX: The conflicting PREVIEW/FULL/CORE button has been removed. */}
                 <button className={classNames('option-btn', { active: activePanel === 'foot' })} onClick={() => handlePanelToggle('foot')}>FOOT</button>
                 <button className={classNames('option-btn', { active: activePanel === 'pose' })} onClick={() => handlePanelToggle('pose')}>POSE</button>
                 <button className={classNames('option-btn', { active: activePanel === 'abbr' })} onClick={() => handlePanelToggle('abbr')}>ABBR</button>
@@ -65,7 +50,7 @@ const OptionButtons = ({ side }) => {
         );
     }
 
-    return null; // Should not happen if 'side' prop is always provided
+    return null;
 };
 
 export default OptionButtons;

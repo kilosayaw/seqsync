@@ -8,6 +8,16 @@
     border-radius: var(--border-radius-sm);
 }
 
+.checkbox-row {
+    justify-content: space-between;
+}
+
+.checkbox-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
 .control-row {
     display: flex;
     align-items: center;

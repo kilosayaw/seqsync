@@ -15,11 +15,21 @@ const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
         if (!['LF', 'RF'].includes(joint.id)) {
-            joints[joint.id] = { position: [0, 0, 0], rotation: 0, orientation: 'NEU', role: 'frame' };
+            // DEFINITIVE: Added new properties to the joint data model.
+            joints[joint.id] = { 
+                position: [0, 0, 0], 
+                rotation: 0, 
+                rotationType: 'NEU', // 'IN', 'OUT', 'NEU', 'SUP', 'PRO', etc.
+                energyType: 'BASE',   // Placeholder for NRG options
+                intentType: 'PASS',   // 'PASS', 'BASE', 'FORCE'
+                role: 'frame' 
+            };
         }
     });
-    joints['LF'] = { grounding: 'LF123T12345' };
-    joints['RF'] = { grounding: 'RF123T12345' };
+    // DEFINITIVE: Foot data now includes pivotPoint.
+    joints['LF'] = { grounding: 'LF123T12345', rotation: 0, pivotPoint: 'L3' };
+    joints['RF'] = { grounding: 'RF123T12345', rotation: 0, pivotPoint: 'R3' };
+    
     return { bar, beat: beatInBar, joints, sounds: [], meta: { isFacingCamera: false } };
 };
 
@@ -44,6 +54,19 @@ export const SequenceProvider = ({ children }) => {
     const { isMediaReady, duration, detectedBpm } = useMedia();
     const { activePad } = useUIState(); 
 
+    const updateBeatMetaData = useCallback((globalBeatIndex, metaDataUpdate) => {
+        if (globalBeatIndex === null) return;
+        setSongData(prevData => {
+            const newData = [...prevData];
+            const beatToUpdate = newData[globalBeatIndex];
+            if (beatToUpdate) {
+                const newMeta = { ...(beatToUpdate.meta || {}), ...metaDataUpdate };
+                newData[globalBeatIndex] = { ...beatToUpdate, meta: newMeta };
+            }
+            return newData;
+        });
+    }, []);
+
     useEffect(() => {
         if (isMediaReady && duration > 0 && detectedBpm) {
             console.log(`[SequenceContext] Media ready. Re-initializing sequence for ${duration.toFixed(2)}s song at ${detectedBpm} BPM.`);
@@ -66,8 +89,6 @@ export const SequenceProvider = ({ children }) => {
             setBarStartTimes(newBarStartTimes);
         }
     }, [isMediaReady, duration, detectedBpm]);
-
-    // ... (rest of provider is unchanged)
 
     const updateJointData = useCallback((globalBeatIndex, jointId, jointDataUpdate) => {
         if (globalBeatIndex === null || jointId === null) return;
@@ -127,7 +148,9 @@ export const SequenceProvider = ({ children }) => {
     const value = { 
         songData, setSongData, 
         totalBars, barStartTimes, STEPS_PER_BAR, 
-        updateJointData, assignSoundToPad,
+        updateJointData,
+        updateBeatMetaData, 
+        assignSoundToPad,
         presets, savePoseToPreset, loadPoseFromPreset
     };
     

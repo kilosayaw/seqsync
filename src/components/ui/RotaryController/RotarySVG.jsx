@@ -1,17 +1,29 @@
 import React from 'react';
-import { FOOT_HOTSPOT_COORDINATES, BASE_FOOT_PATHS } from '../../../utils/constants'; // Import BASE_FOOT_PATHS
+import { FOOT_HOTSPOT_COORDINATES, BASE_FOOT_PATHS } from '../../../utils/constants';
 import './RotaryController.css';
 
-const RotarySVG = ({ side, angle, activePoints = new Set(), onHotspotClick, isFootMode, handleWheelMouseDown }) => {
+// Helper to get the coordinates for a given pivot point
+const getPivotCoords = (pivotId, hotspots) => {
+    if (!pivotId) return { x: 275, y: 275 }; // Default to center
+    
+    // Find the main contact point (e.g., '1' from 'L1')
+    const mainPointId = pivotId.charAt(1);
+    const pivotData = hotspots.find(spot => spot.notation === mainPointId);
+    
+    return pivotData ? { x: pivotData.cx, y: pivotData.cy } : { x: 275, y: 275 };
+};
+
+
+const RotarySVG = ({ side, angle, activePoints = new Set(), pivotPoint, onHotspotClick, isFootMode, handleWheelMouseDown }) => {
     const sideKey = side.charAt(0).toUpperCase();
     const hotspots = FOOT_HOTSPOT_COORDINATES[sideKey] || [];
-    
-    // Use the constant for the image path
     const footImagePath = BASE_FOOT_PATHS[sideKey];
 
-    // DEFINITIVE FIX: This transform perfectly centers the 350x350 graphic inside a 550x550 viewbox.
-    // (550 - 350) / 2 = 100.
     const footGroupTransform = "translate(100, 100)";
+    
+    // DEFINITIVE: Determine the rotation origin based on the selected pivot point.
+    const pivotCoords = getPivotCoords(pivotPoint, hotspots);
+    const rotationOrigin = `${pivotCoords.x} ${pivotCoords.y}`;
 
     return (
         <div className="rotary-svg-wrapper">
@@ -26,8 +38,12 @@ const RotarySVG = ({ side, angle, activePoints = new Set(), onHotspotClick, isFo
                     </filter>
                 </defs>
                 
-                <g transform={`rotate(${angle}, 275, 275)`} onMouseDown={handleWheelMouseDown} className="rotary-wheel-grab-area">
-                    <image href="/ground/foot-wheel.png" x="52" y="52" width="450" height="450" style={{ pointerEvents: 'none' }} />
+                <g 
+                    transform={`rotate(${angle}, ${rotationOrigin})`} 
+                    onMouseDown={handleWheelMouseDown} 
+                    className="rotary-wheel-grab-area"
+                >
+                    <image href="/ground/foot-wheel.png" x="0" y="0" width="550" height="550" style={{ pointerEvents: 'none' }} />
                     
                     {isFootMode && (
                         <g transform={footGroupTransform}>
