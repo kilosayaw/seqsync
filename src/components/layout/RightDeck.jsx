@@ -1,3 +1,4 @@
+// src/components/layout/RightDeck.jsx
 import React from 'react';
 import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
@@ -13,15 +14,16 @@ import classNames from 'classnames';
 import './Deck.css';
 
 const RightDeck = ({ onPadEvent }) => {
-    // DEFINITIVE: Removed activeCornerTool logic.
-    const { selectedBar, activePad, selectedJoints } = useUIState();
+    const { selectedBar, activePad, selectedJoints, setActiveCornerTool } = useUIState();
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     const { STEPS_PER_BAR } = useSequence();
 
     const isJointSelected = selectedJoints.length > 0;
     
     const handleCornerToolClick = (toolName) => {
-        console.log(`[Corner Tool Clicked] Right Deck, Tool: ${toolName}`);
+        // This is now a placeholder for when we build out NRG and INT panels.
+        if (toolName === 'BLANK') return;
+        setActiveCornerTool(prev => prev === toolName ? 'none' : toolName);
     };
 
     return (
@@ -67,7 +69,7 @@ const RightDeck = ({ onPadEvent }) => {
                     })}
                 </div>
             </div>
-            {/* DEFINITIVE: The CornerToolPanel component has been removed from the render output. */}
+            {/* The CornerToolPanel will render here when activated */}
         </div>
     );
 };

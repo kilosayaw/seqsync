@@ -3,26 +3,50 @@ import { ReactP5Wrapper } from '@p5-wrapper/react';
 import PropTypes from 'prop-types';
 import { POSE_CONNECTIONS, JOINT_LIST } from '../../utils/constants';
 
+const LIMB_CONNECTIONS = new Set([
+    'LS-LE', 'LE-LW',
+    'RS-RE', 'RE-RW',
+    'LH-LK', 'LK-LA',
+    'RH-RK', 'RK-RA',
+]);
+
 function sketch(p5) {
     let startPose, endPose, animationState = 'idle';
-    let highlightJoints = []; 
+    let highlightJoints = [];
     let canvasSize = { width: 300, height: 300 };
     let animationProgress = 0;
     const animationDuration = 0.5;
     let colors = {};
 
+    // DEFINITIVE FIX: New helper function to correctly rotate a vector around an axis.
+    // This replaces the non-existent p5.quaternion function.
+    function rotateVectorAroundAxis(vec, axis, angle) {
+        const a = p5.radians(angle);
+        const cosA = Math.cos(a);
+        const sinA = Math.sin(a);
+        const u = axis.x;
+        const v = axis.y;
+        const w = axis.z;
+        const x = vec.x;
+        const y = vec.y;
+        const z = vec.z;
+        const dot = u * x + v * y + w * z;
+
+        const x_rot = u * dot * (1 - cosA) + x * cosA + (-w * y + v * z) * sinA;
+        const y_rot = v * dot * (1 - cosA) + y * cosA + (w * x - u * z) * sinA;
+        const z_rot = w * dot * (1 - cosA) + z * cosA + (-v * x + u * y) * sinA;
+
+        return p5.createVector(x_rot, y_rot, z_rot);
+    }
+
     p5.updateWithProps = props => {
         if (props.startPose) startPose = props.startPose;
         if (props.endPose) endPose = props.endPose;
         if (props.animationState) {
-            if (props.animationState === 'playing' && animationState === 'idle') {
-                animationProgress = 0;
-            }
+            if (props.animationState === 'playing' && animationState === 'idle') animationProgress = 0;
             animationState = props.animationState;
         }
-        if (props.highlightJoints !== undefined) {
-            highlightJoints = props.highlightJoints;
-        }
+        if (props.highlightJoints !== undefined) highlightJoints = props.highlightJoints;
         if (props.width && props.height) {
             if (canvasSize.width !== props.width || canvasSize.height !== props.height) {
                 canvasSize = { width: props.width, height: props.height };
@@ -34,7 +58,6 @@ function sketch(p5) {
     p5.setup = () => {
         p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
         p5.angleMode(p5.DEGREES);
-        
         colors = {
             highlight: p5.color('#FFDF00'),
             line: p5.color(255, 255, 255, 150),
@@ -42,6 +65,8 @@ function sketch(p5) {
             stabilizer: p5.color('#00e676'),
             frame: p5.color('#FFFFFF'),
             coiled: p5.color('#00b0ff'),
+            ribbonEdge1: p5.color(0, 175, 255),
+            ribbonEdge2: p5.color(255, 0, 175),
         };
     };
 
@@ -50,23 +75,98 @@ function sketch(p5) {
         p5.orbitControl(1, 1, 0.1);
         p5.ambientLight(150);
         p5.pointLight(255, 255, 255, 0, -200, 200);
-        
         const poseToDraw = calculateCurrentPose();
-        if (!poseToDraw) return;
-
-        drawSkeleton(poseToDraw);
+        if (poseToDraw) drawSkeleton(poseToDraw);
     };
-    
+
+    function drawRibbonLimb(startVec, endVec, rotationType = 'NEU') {
+        const ribbonWidth = 15;
+        const segments = 10;
+        let totalTwist = 0;
+        if (rotationType === 'IN') totalTwist = -90;
+        if (rotationType === 'OUT') totalTwist = 90;
+
+        const limbVector = p5.constructor.Vector.sub(endVec, startVec).normalize();
+        let perp = p5.createVector(0, 1, 0);
+        if (Math.abs(limbVector.dot(perp)) > 0.99) {
+            perp = p5.createVector(1, 0, 0);
+        }
+        let edgeVector = limbVector.cross(perp).normalize().mult(ribbonWidth / 2);
+
+        p5.noStroke();
+        p5.beginShape(p5.TRIANGLE_STRIP);
+
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            const centerPoint = p5.constructor.Vector.lerp(startVec, endVec, t);
+            const twistAngle = p5.lerp(0, totalTwist, t);
+            
+            // DEFINITIVE FIX: Use the new, correct rotation function.
+            const rotatedEdge = rotateVectorAroundAxis(edgeVector, limbVector, twistAngle);
+
+            const v1 = p5.constructor.Vector.add(centerPoint, rotatedEdge);
+            const v2 = p5.constructor.Vector.sub(centerPoint, rotatedEdge);
+
+            p5.fill(colors.ribbonEdge1);
+            p5.vertex(v1.x, v1.y, v1.z);
+            p5.fill(colors.ribbonEdge2);
+            p5.vertex(v2.x, v2.y, v2.z);
+        }
+        p5.endShape();
+    }
+
+    function drawSkeleton(pose) {
+        if (!pose?.jointInfo) return;
+        const joints = pose.jointInfo;
+
+        const getCoords = (vector) => p5.createVector(
+            vector.x * (canvasSize.width / 4),
+            -vector.y * (canvasSize.height / 3),
+            (vector.z || 0) * (canvasSize.width / 4)
+        );
+
+        POSE_CONNECTIONS.forEach(([startKey, endKey]) => {
+            const startJ = joints[startKey];
+            const endJ = joints[endKey];
+            if (startJ?.score > 0.5 && endJ?.score > 0.5) {
+                const start = getCoords(startJ.vector);
+                const end = getCoords(endJ.vector);
+                const connectionId = `${startKey}-${endKey}`;
+
+                if (LIMB_CONNECTIONS.has(connectionId)) {
+                    drawRibbonLimb(start, end, endJ.rotationType);
+                } else {
+                    p5.stroke(colors.line);
+                    p5.strokeWeight(3);
+                    p5.line(start.x, start.y, start.z, end.x, end.y, end.z);
+                }
+            }
+        });
+
+        p5.noStroke();
+        for (const key in joints) {
+            const joint = joints[key];
+            if (!joint?.score || joint.score < 0.5 || !joint.vector) continue;
+            const pos = getCoords(joint.vector);
+            const isHighlighted = highlightJoints.includes(key);
+            let jointColor = isHighlighted ? colors.highlight : (joint.role && colors[joint.role] ? colors[joint.role] : colors.frame);
+            
+            p5.push();
+            p5.translate(pos.x, pos.y, pos.z);
+            p5.ambientMaterial(jointColor);
+            p5.sphere(isHighlighted ? 10 : 8);
+            p5.pop();
+        }
+    }
+
     function calculateCurrentPose() {
         if (animationState === 'playing' && startPose?.jointInfo && endPose?.jointInfo) {
             animationProgress += p5.deltaTime / 1000;
             const t = p5.constrain(animationProgress / animationDuration, 0, 1);
-            
             const interpolatedPose = { jointInfo: {} };
             JOINT_LIST.forEach(({ id }) => {
                 const startJ = startPose.jointInfo[id] || endPose.jointInfo[id];
                 const endJ = endPose.jointInfo[id] || startPose.jointInfo[id];
-
                 if (startJ && endJ) {
                     interpolatedPose.jointInfo[id] = {
                         ...startJ, ...endJ,
@@ -79,58 +179,10 @@ function sketch(p5) {
                     };
                 }
             });
-            
             if (t >= 1) animationState = 'idle';
             return interpolatedPose;
         }
         return endPose || startPose;
-    }
-
-    function drawSkeleton(pose) {
-        if (!pose?.jointInfo) return;
-        
-        // No longer need to manually process grounding, as the default pose is more robust.
-        const processedJointInfo = pose.jointInfo;
-        
-        const getCoords = (vector) => ({
-            x: vector.x * (canvasSize.width / 4),
-            y: -vector.y * (canvasSize.height / 3),
-            z: (vector.z || 0) * (canvasSize.width / 4)
-        });
-
-        p5.stroke(colors.line);
-        p5.strokeWeight(3);
-        POSE_CONNECTIONS.forEach(([startKey, endKey]) => {
-            const startJ = processedJointInfo[startKey];
-            const endJ = processedJointInfo[endKey];
-            if (startJ?.score > 0.5 && endJ?.score > 0.5) {
-                const start = getCoords(startJ.vector);
-                const end = getCoords(endJ.vector);
-                p5.line(start.x, start.y, start.z, end.x, end.y, end.z);
-            }
-        });
-
-        p5.noStroke();
-        for (const key in processedJointInfo) {
-            const joint = processedJointInfo[key];
-            if (!joint?.score || joint.score < 0.5 || !joint.vector) continue;
-
-            const pos = getCoords(joint.vector);
-            const isHighlighted = highlightJoints.includes(key); 
-            
-            let jointColor = colors.frame;
-            if (isHighlighted) {
-                jointColor = colors.highlight;
-            } else if (joint.role && colors[joint.role]) {
-                jointColor = colors[joint.role];
-            }
-            
-            p5.push();
-            p5.translate(pos.x, pos.y, pos.z);
-            p5.ambientMaterial(jointColor);
-            p5.sphere(isHighlighted ? 10 : 8);
-            p5.pop();
-        }
     }
 }
 
