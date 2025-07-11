@@ -1,5 +1,3 @@
-// src/context/MediaContext.jsx
-
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import Aubio from 'aubiojs';
 import WaveSurfer from 'wavesurfer.js';
@@ -15,18 +13,34 @@ export const MediaProvider = ({ children }) => {
     const [mediaFile, setMediaFile] = useState(null);
     const [firstBeatOffset, setFirstBeatOffset] = useState(0);
     const [pendingFile, setPendingFile] = useState(null);
+    const [audioLevel, setAudioLevel] = useState(0);
+
     const waveformContainerRef = useRef(null);
     const wavesurferInstanceRef = useRef(null);
+    const audioAnalyserRef = useRef(null);
 
     useEffect(() => {
         if (waveformContainerRef.current && !wavesurferInstanceRef.current) {
-            wavesurferInstanceRef.current = WaveSurfer.create({
+            const ws = WaveSurfer.create({
                 container: waveformContainerRef.current,
                 waveColor: '#637381',
                 progressColor: '#00ab55',
                 cursorColor: '#ffffff',
                 barWidth: 3, barRadius: 3, responsive: true,
                 height: 40, normalize: true, interact: true,
+            });
+            wavesurferInstanceRef.current = ws;
+
+            // DEFINITIVE FIX: The audio backend is only guaranteed to exist after a file is loaded.
+            // We set up the analyser inside the 'ready' event listener, which fires after a successful load.
+            ws.on('ready', () => {
+                if (ws.backend) {
+                    const analyser = ws.backend.ac.createAnalyser();
+                    analyser.fftSize = 256;
+                    ws.backend.setFilter(analyser); // Use the library's built-in method
+                    audioAnalyserRef.current = analyser;
+                    console.log("[MediaContext] AnalyserNode connected for volume metering.");
+                }
             });
         }
         return () => {
@@ -37,7 +51,33 @@ export const MediaProvider = ({ children }) => {
         };
     }, []);
 
-    // This function now returns the analysis results instead of setting state elsewhere.
+    // This animation loop for the level meter is now safe, as it will only get data
+    // when the analyserRef is correctly set after a song loads.
+    useEffect(() => {
+        let animationFrameId;
+        const animate = () => {
+            if (audioAnalyserRef.current && wavesurferInstanceRef.current?.isPlaying()) {
+                const bufferLength = audioAnalyserRef.current.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                audioAnalyserRef.current.getByteTimeDomainData(dataArray);
+
+                let sumSquares = 0.0;
+                for (const amplitude of dataArray) {
+                    const val = (amplitude / 128.0) - 1.0;
+                    sumSquares += val * val;
+                }
+                const rms = Math.sqrt(sumSquares / dataArray.length);
+                setAudioLevel(rms * 100);
+            } else {
+                // Apply a decay effect when not playing
+                setAudioLevel(level => Math.max(0, level - 2));
+            }
+            animationFrameId = requestAnimationFrame(animate);
+        };
+        animate();
+        return () => cancelAnimationFrame(animationFrameId);
+    }, []);
+
     const analyzeAudio = useCallback(async (audioBuffer) => {
         console.log("ANALYZING AUDIO...");
         try {
@@ -72,7 +112,6 @@ export const MediaProvider = ({ children }) => {
         setPendingFile(file);
     }, []);
     
-    // The confirm function now just manages the file loading process
     const confirmLoad = useCallback(async () => {
         const ws = wavesurferInstanceRef.current;
         if (!pendingFile || !ws) return null;
@@ -116,7 +155,8 @@ export const MediaProvider = ({ children }) => {
     const value = { 
         isLoading, isMediaReady, duration, detectedBpm, mediaFile,
         firstBeatOffset, wavesurferInstance: wavesurferInstanceRef.current,
-        waveformContainerRef, loadMedia, pendingFile, confirmLoad, cancelLoad
+        waveformContainerRef, loadMedia, pendingFile, confirmLoad, cancelLoad,
+        audioLevel
     };
     
     return <MediaContext.Provider value={value}>{children}</MediaContext.Provider>;

@@ -1,8 +1,8 @@
 /* src/components/ui/XYZGrid.css */
 .xyz-grid-container {
-    /* DEFINITIVE REFACTOR: Reduced size to fit inside the black part of the wheel. */
-    width: 58%;
-    height: 58%;
+    /* DEFINITIVE REFACTOR: Reduced size from 58% to 50% to fit inside the platter's inner circle. */
+    width: 50%;
+    height: 50%;
     
     position: absolute;
     display: grid;
