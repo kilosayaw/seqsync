@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react'; // PHOENIX PROTOCOL: Import useRef
 import { FOOT_HOTSPOT_COORDINATES, BASE_FOOT_PATHS } from '../../../utils/constants';
 import './RotaryController.css';
-
-// PHOENIX PROTOCOL: This component is now simplified and receives all positional data via props.
 
 const getPivotCoords = (pivotId, hotspots) => {
     if (!pivotId) return { x: 175, y: 175 }; 
@@ -15,15 +13,25 @@ const RotarySVG = ({ side, angle, activePoints = new Set(), pivotPoint, onHotspo
     const sideKey = side.charAt(0).toUpperCase();
     const hotspots = FOOT_HOTSPOT_COORDINATES[sideKey] || [];
     const footImagePath = BASE_FOOT_PATHS[sideKey];
+    // PHOENIX PROTOCOL: Create a ref to the main SVG element.
+    const svgRef = useRef(null);
 
     const footGroupTransform = "translate(100, 100)";
     
     const currentPivotCoords = getPivotCoords(pivotPoint, hotspots);
     const footRotationOrigin = `${currentPivotCoords.x} ${currentPivotCoords.y}`;
 
+    // PHOENIX PROTOCOL: This function now passes the event and the SVG's bounds to the hook.
+    const onWheelMouseDown = (e) => {
+        if (svgRef.current) {
+            handleWheelMouseDown(e, svgRef.current.getBoundingClientRect());
+        }
+    };
+
     return (
         <div className="rotary-svg-wrapper">
-            <svg viewBox="0 0 550 550" className="rotary-svg">
+            {/* PHOENIX PROTOCOL: Attach the ref here. */}
+            <svg ref={svgRef} viewBox="0 0 550 550" className="rotary-svg">
                 <defs>
                     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
                         <feGaussianBlur stdDeviation="8" result="coloredBlur" />
@@ -39,11 +47,19 @@ const RotarySVG = ({ side, angle, activePoints = new Set(), pivotPoint, onHotspo
                         <image href="/ground/foot-wheel.png" x="0" y="0" width="550" height="550" style={{ pointerEvents: 'none' }} />
                     </g>
                     <g transform={`rotate(${angle}, 275, 275)`}>
-                        <circle cx="275" cy="275" r="190" fill="transparent" stroke="transparent" strokeWidth="110" className="rotary-wheel-grab-area" onMouseDown={handleWheelMouseDown}/>
+                        <circle 
+                            cx="275" 
+                            cy="275" 
+                            r="190" 
+                            fill="none" /* PHOENIX PROTOCOL: Explicitly 'none' to remove artifact */
+                            stroke="transparent" 
+                            strokeWidth="110" 
+                            className="rotary-wheel-grab-area" 
+                            onMouseDown={onWheelMouseDown}
+                        />
                     </g>
                     
                     {isFootMode && (
-                        // PHOENIX PROTOCOL: Now applies the offset passed down from the parent controller.
                         <g transform={`translate(${footOffset.x}, ${footOffset.y}) ${footGroupTransform} rotate(${angle}, ${footRotationOrigin})`}>
                             <g style={{ pointerEvents: 'none' }}>
                                 <image href={footImagePath} x="35" y="40" width="280" height="280" className="base-foot-img"/>

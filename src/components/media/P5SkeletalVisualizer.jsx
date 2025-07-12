@@ -17,35 +17,37 @@ function sketch(p5) {
     const animationDuration = 0.5;
     let colors = {};
 
-    // PHOENIX PROTOCOL: This function contains the new Dynamic Pose Rigging logic.
     function applyDynamicRigging(originalPose) {
         if (!originalPose || !originalPose.jointInfo) {
             return {};
         }
 
-        // Create a deep copy to avoid mutating the original pose data from props
         const riggedJointInfo = JSON.parse(JSON.stringify(originalPose.jointInfo));
-        const grounding = originalPose.grounding || { L: [], R: [] };
+        
+        // PHOENIX PROTOCOL FIX: Defensively check for grounding object before accessing its properties.
+        const grounding = originalPose.grounding || {};
+        const leftGrounding = grounding.LF || '';
+        const rightGrounding = grounding.RF || '';
 
-        // --- LEFT SIDE RIGGING ---
-        if (grounding.L.includes('3')) { // If Left Heel is lifted
-            if (riggedJointInfo.LA) riggedJointInfo.LA.vector.y += 0.1; // Ankle lifts
+
+        // PHOENIX PROTOCOL FIX: Check for 'grounding.LF' not 'grounding.L'
+        if (!leftGrounding.includes('3')) { // If Left Heel is lifted
+            if (riggedJointInfo.LA) riggedJointInfo.LA.vector.y += 0.1;
             if (riggedJointInfo.LK) {
-                riggedJointInfo.LK.vector.y += 0.05; // Knee lifts
-                riggedJointInfo.LK.vector.z -= 0.05; // Knee bends forward
+                riggedJointInfo.LK.vector.y += 0.05;
+                riggedJointInfo.LK.vector.z -= 0.05;
             }
         }
         
-        // --- RIGHT SIDE RIGGING ---
-        if (grounding.R.includes('3')) { // If Right Heel is lifted
-            if (riggedJointInfo.RA) riggedJointInfo.RA.vector.y += 0.1; // Ankle lifts
+        // PHOENIX PROTOCOL FIX: Check for 'grounding.RF' not 'grounding.R'
+        if (!rightGrounding.includes('3')) { // If Right Heel is lifted
+            if (riggedJointInfo.RA) riggedJointInfo.RA.vector.y += 0.1;
             if (riggedJointInfo.RK) {
-                riggedJointInfo.RK.vector.y += 0.05; // Knee lifts
-                riggedJointInfo.RK.vector.z -= 0.05; // Knee bends forward
+                riggedJointInfo.RK.vector.y += 0.05;
+                riggedJointInfo.RK.vector.z -= 0.05;
             }
         }
 
-        // Future rigging rules (e.g., for other foot parts) will be added here.
         return riggedJointInfo;
     }
 
@@ -67,7 +69,6 @@ function sketch(p5) {
         }
 
         if (props.cameraCommand) {
-            // PHOENIX PROTOCOL: Added logging for camera commands.
             console.log(`P5SkeletalVisualizer: Received camera command -> ${props.cameraCommand}`);
             switch (props.cameraCommand) {
                 case 'front': p5.pan = 0; p5.tilt = -20; break;
@@ -104,7 +105,6 @@ function sketch(p5) {
 
     p5.mousePressed = () => {
         if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
-            // PHOENIX PROTOCOL: Added logging for user interaction.
             console.log('P5SkeletalVisualizer: Mouse pressed for drag.');
             p5.isDragging = true;
             p5.lastMouseX = p5.mouseX;
@@ -113,7 +113,6 @@ function sketch(p5) {
     }
     
     p5.mouseReleased = () => { 
-        // PHOENIX PROTOCOL: Added logging for user interaction.
         if(p5.isDragging) console.log('P5SkeletalVisualizer: Mouse released, ended drag.');
         p5.isDragging = false; 
     }
@@ -132,7 +131,6 @@ function sketch(p5) {
 
     p5.mouseWheel = (event) => {
         if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
-            // PHOENIX PROTOCOL: Added logging for user interaction.
             console.log(`P5SkeletalVisualizer: Mouse wheel scrolled. Delta: ${event.deltaY}`);
             p5.zoom -= event.deltaY * 0.001;
             p5.zoom = p5.constrain(p5.zoom, 0.2, 5.0);
@@ -168,7 +166,6 @@ function sketch(p5) {
         }
     };
 
-    // PHOENIX PROTOCOL: Cleanup - This function is now defined only once at the sketch level.
     function rotateVectorAroundAxis(vec, axis, angle) {
         const a = p5.radians(angle);
         const cosA = Math.cos(a);
@@ -218,7 +215,6 @@ function sketch(p5) {
     }
 
     function drawSkeleton(pose) {
-        // PHOENIX PROTOCOL: Call the rigging function before drawing.
         const riggedJointInfo = applyDynamicRigging(pose);
         if (!riggedJointInfo) return;
 
@@ -229,7 +225,6 @@ function sketch(p5) {
         );
 
         POSE_CONNECTIONS.forEach(([startKey, endKey]) => {
-            // PHOENIX PROTOCOL: Use the new rigged information.
             const startJ = riggedJointInfo[startKey];
             const endJ = riggedJointInfo[endKey];
             if (startJ?.score > 0.5 && endJ?.score > 0.5) {
@@ -248,7 +243,6 @@ function sketch(p5) {
         });
 
         p5.noStroke();
-        // PHOENIX PROTOCOL: Use the new rigged information.
         for (const key in riggedJointInfo) {
             const joint = riggedJointInfo[key];
             if (!joint?.score || joint.score < 0.5 || !joint.vector) continue;
@@ -271,7 +265,6 @@ function sketch(p5) {
             const interpolatedPose = { 
                 jointInfo: {}, 
                 meta: endPose.meta, 
-                // Grounding snaps to the end pose's state
                 grounding: endPose.grounding 
             };
             JOINT_LIST.forEach(({ id }) => {

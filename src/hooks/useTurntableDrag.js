@@ -1,19 +1,20 @@
-// src/hooks/useTurntableDrag.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 const FRICTION = 0.95; 
 const MIN_VELOCITY = 0.05;
+// PHOENIX PROTOCOL: The true graphical center of the 550x550 SVG viewBox.
+const FIXED_CENTER = { x: 275, y: 275 };
 
-export const useTurntableDrag = (initialAngle, onDragEnd) => {
+export const useTurntableDrag = (initialAngle, onDrag) => {
     const [angle, setAngle] = useState(initialAngle);
-    // DEFINITIVE: 'delta' is now managed inside the component that uses the hook.
     const [isDragging, setIsDragging] = useState(false);
     
     const velocityRef = useRef(0);
     const animationFrameRef = useRef();
-    const centerRef = useRef({ x: 0, y: 0 });
     const lastMouseAngleRef = useRef(0);
     const hasMovedRef = useRef(false);
+    // PHOENIX PROTOCOL: This ref will now store the SVG's bounding box.
+    const rectRef = useRef(null);
 
     useEffect(() => {
         if (!isDragging) {
@@ -25,9 +26,9 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
         if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
             cancelAnimationFrame(animationFrameRef.current);
             velocityRef.current = 0;
-            if (onDragEnd && hasMovedRef.current) {
+            if (onDrag && hasMovedRef.current) {
                 setAngle(currentAngle => {
-                    onDragEnd(currentAngle, 0); // Pass 0 for delta when animation ends
+                    onDrag(currentAngle, 0);
                     return currentAngle;
                 });
             }
@@ -36,18 +37,22 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
 
         const newAngle = angle + velocityRef.current;
         setAngle(newAngle);
-        if (onDragEnd) onDragEnd(newAngle, velocityRef.current); // Pass velocity as delta during spin
+        if (onDrag) onDrag(newAngle, velocityRef.current);
 
         velocityRef.current *= FRICTION;
         animationFrameRef.current = requestAnimationFrame(animate);
-    }, [onDragEnd, angle]);
+    }, [onDrag, angle]);
 
     const handleMouseMove = useCallback((e) => {
-        if (!isDragging) return;
+        if (!isDragging || !rectRef.current) return;
         hasMovedRef.current = true;
         
-        const dx = e.clientX - centerRef.current.x;
-        const dy = e.clientY - centerRef.current.y;
+        // PHOENIX PROTOCOL: Calculate mouse position relative to the SVG, not the window.
+        const mouseX = e.clientX - rectRef.current.left;
+        const mouseY = e.clientY - rectRef.current.top;
+
+        const dx = mouseX - FIXED_CENTER.x;
+        const dy = mouseY - FIXED_CENTER.y;
         const currentMouseAngle = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
 
         let angleDelta = currentMouseAngle - lastMouseAngleRef.current;
@@ -59,10 +64,9 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
         velocityRef.current = angleDelta;
         lastMouseAngleRef.current = currentMouseAngle;
         
-        // Fire the callback on every move while dragging
-        if (onDragEnd) onDragEnd(newAngle, angleDelta);
+        if (onDrag) onDrag(newAngle, angleDelta);
 
-    }, [isDragging, angle, onDragEnd]);
+    }, [isDragging, angle, onDrag]);
 
     const handleMouseUp = useCallback(() => {
         if (isDragging) {
@@ -70,28 +74,28 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
             if (Math.abs(velocityRef.current) > MIN_VELOCITY) {
                 animationFrameRef.current = requestAnimationFrame(animate);
             } else {
-                if (onDragEnd && hasMovedRef.current) {
-                    onDragEnd(angle, 0);
+                if (onDrag && hasMovedRef.current) {
+                    onDrag(angle, 0);
                 }
             }
         }
-    }, [isDragging, animate, onDragEnd, angle]);
+    }, [isDragging, animate, onDrag, angle]);
     
-    const handleMouseDown = useCallback((e) => {
+    // PHOENIX PROTOCOL: The handler now accepts the SVG's bounding box.
+    const handleMouseDown = useCallback((e, rect) => {
         e.stopPropagation();
         setIsDragging(true);
         hasMovedRef.current = false;
         cancelAnimationFrame(animationFrameRef.current);
         velocityRef.current = 0;
         
-        const rect = e.currentTarget.ownerSVGElement.getBoundingClientRect();
-        centerRef.current = { 
-            x: rect.left + rect.width / 2, 
-            y: rect.top + rect.height / 2,
-        };
+        rectRef.current = rect; // Store the SVG's dimensions
 
-        const dx = e.clientX - centerRef.current.x;
-        const dy = e.clientY - centerRef.current.y;
+        const mouseX = e.clientX - rectRef.current.left;
+        const mouseY = e.clientY - rectRef.current.top;
+
+        const dx = mouseX - FIXED_CENTER.x;
+        const dy = mouseY - FIXED_CENTER.y;
         lastMouseAngleRef.current = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
     }, []);
 
@@ -106,5 +110,5 @@ export const useTurntableDrag = (initialAngle, onDragEnd) => {
         };
     }, [isDragging, handleMouseMove, handleMouseUp]);
 
-    return { angle, handleMouseDown };
+    return { angle, handleMouseDown, setAngle };
 };

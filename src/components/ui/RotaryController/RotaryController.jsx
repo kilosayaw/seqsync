@@ -8,12 +8,9 @@ import XYZGrid from '../XYZGrid';
 import { FOOT_HOTSPOT_COORDINATES } from '../../../utils/constants';
 import './RotaryController.css';
 
-// --- PHOENIX PROTOCOL: Centralized boundary logic and helpers ---
-
 const BOUNDARY_CENTER = { x: 275, y: 275 };
 const BOUNDARY_RADIUS = 165;
-// PHOENIX PROTOCOL: Define the rotation limit for foot pivots.
-const PIVOT_ROTATION_LIMIT = 45; // Degrees (+/- from center)
+const PIVOT_ROTATION_LIMIT = 45;
 
 const getPivotCoords = (pivotId, hotspots) => {
     if (!pivotId) return { x: 175, y: 175 };
@@ -47,7 +44,6 @@ const isMoveLegal = (angle, pivotCoords, offset, boundaryCenter, boundaryRadius)
     }
     return true;
 };
-// --- End of boundary logic ---
 
 const RotaryController = ({ deckId }) => {
     const { activePad, selectedJoints, showNotification, activeDirection, movementFaderValue } = useUIState(); 
@@ -55,7 +51,6 @@ const RotaryController = ({ deckId }) => {
     
     const side = deckId === 'deck1' ? 'left' : 'right';
     const sidePrefix = side.charAt(0).toUpperCase();
-    // PHOENIX PROTOCOL FIX: Corrected variable name from sideKey to sidePrefix.
     const hotspots = FOOT_HOTSPOT_COORDINATES[sidePrefix] || [];
 
     const relevantSelectedJoints = selectedJoints.filter(j => j.startsWith(sidePrefix));
@@ -70,31 +65,9 @@ const RotaryController = ({ deckId }) => {
     const pivotPointId = sourceData.pivotPoint;
 
     const [footOffset, setFootOffset] = useState({ x: 0, y: 0 });
-    const prevAngleRef = useRef(initialAngle);
     const prevPivotRef = useRef(pivotPointId);
 
-    useEffect(() => {
-        if (isFootMode) {
-             if (prevPivotRef.current && prevPivotRef.current !== pivotPointId) {
-                const oldPivotCoords = getPivotCoords(prevPivotRef.current, hotspots);
-                const newPivotCoords = getPivotCoords(pivotPointId, hotspots);
-                const rotatedOldPivot = rotatePoint(oldPivotCoords, prevAngleRef.current, oldPivotCoords);
-                const rotatedNewPivot = rotatePoint(newPivotCoords, prevAngleRef.current, newPivotCoords);
-                const dx = rotatedOldPivot.x - rotatedNewPivot.x;
-                const dy = rotatedOldPivot.y - rotatedNewPivot.y;
-                setFootOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-            }
-        } else {
-            setFootOffset({x: 0, y: 0});
-        }
-        prevPivotRef.current = pivotPointId;
-        prevAngleRef.current = initialAngle;
-    }, [pivotPointId, isFootMode, hotspots, initialAngle]);
-
-    useEffect(() => {
-         setFootOffset({ x: 0, y: 0 });
-    }, [activePad]);
-
+    // PHOENIX PROTOCOL FIX: The handleDrag callback must be declared BEFORE it is used in the useTurntableDrag hook.
     const handleDrag = useCallback((finalAngle, delta) => {
         if (!isEditing || activePad === null || !activeJointId) return;
 
@@ -102,10 +75,9 @@ const RotaryController = ({ deckId }) => {
         const updatePayload = {};
 
         if (isFootMode) {
-            // PHOENIX PROTOCOL: Implement rotation limits for pivots.
             angleToApply = Math.max(-PIVOT_ROTATION_LIMIT, Math.min(PIVOT_ROTATION_LIMIT, finalAngle));
-            
             const currentPivotCoords = getPivotCoords(pivotPointId, hotspots);
+
             if (isMoveLegal(angleToApply, currentPivotCoords, footOffset, BOUNDARY_CENTER, BOUNDARY_RADIUS)) {
                 updatePayload.rotation = angleToApply;
             } else {
@@ -138,7 +110,32 @@ const RotaryController = ({ deckId }) => {
         
     }, [activePad, activeJointId, isEditing, isFootMode, activeDirection, movementFaderValue, songData, updateJointData, pivotPointId, hotspots, footOffset]);
 
-    const { angle, handleMouseDown } = useTurntableDrag(initialAngle, handleDrag);
+    const { angle, handleMouseDown, setAngle } = useTurntableDrag(initialAngle, handleDrag);
+
+    useEffect(() => {
+        if (isFootMode) {
+             if (prevPivotRef.current && prevPivotRef.current !== pivotPointId) {
+                const oldPivotCoords = getPivotCoords(prevPivotRef.current, hotspots);
+                const newPivotCoords = getPivotCoords(pivotPointId, hotspots);
+                const rotatedOldPivot = rotatePoint(oldPivotCoords, angle, oldPivotCoords);
+                const rotatedNewPivot = rotatePoint(newPivotCoords, angle, newPivotCoords);
+                const dx = rotatedOldPivot.x - rotatedNewPivot.x;
+                const dy = rotatedOldPivot.y - rotatedNewPivot.y;
+                setFootOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+            }
+        } else {
+            setFootOffset({x: 0, y: 0});
+        }
+        prevPivotRef.current = pivotPointId;
+    }, [pivotPointId, isFootMode, hotspots, angle]);
+
+    useEffect(() => {
+         setFootOffset({ x: 0, y: 0 });
+    }, [activePad]);
+    
+    useEffect(() => {
+        setAngle(initialAngle);
+    }, [initialAngle, setAngle]);
     
     const handlePositionChange = useCallback((newPosition) => {
         if (!isEditing || !activePad || !activeJointId) return;
