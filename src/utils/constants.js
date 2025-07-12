@@ -23,18 +23,15 @@ export const VISIBLE_JOINT_LIST = JOINT_LIST.filter(j =>
 );
 
 export const BASE_FOOT_PATHS = {
-    L: '/ground/foot-left.png',
-    R: '/ground/foot-right.png',
+    L: '/ground/foot-bottom-left.png',
+    R: '/ground/foot-bottom-right.png',
 };
 
+export const DEFAULT_POSE_VECTOR = { x: 0, y: 0, z: 0 };
+
 export const DEFAULT_POSE = {
-    // PHOENIX PROTOCOL: Added grounding property for data consistency.
-    grounding: {
-        L: [],
-        R: []
-    },
     jointInfo: {
-        'H':  { vector: { x: 0, y: 0.8, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'H':  { vector: { ...DEFAULT_POSE_VECTOR, y: 0.8 }, score: 1, orientation: 'NEU', role: 'frame' },
         'LS': { vector: { x: -0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
         'RS': { vector: { x: 0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
         'LE': { vector: { x: -0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
@@ -59,25 +56,26 @@ export const POSE_CONNECTIONS = [
     ['RH', 'RK'], ['RK', 'RA'],
 ];
 
+// PHOENIX PROTOCOL: Reverted constant name to original for stability.
 export const FOOT_HOTSPOT_COORDINATES = {
     L: [
-        { type: 'circle', notation: '3', cx: 176, cy: 281, r: 26 },
-        { type: 'circle', notation: '1', cx: 209, cy: 143, r: 26 },
-        { type: 'circle', notation: '2', cx: 139, cy: 178, r: 16 },
-        { type: 'ellipse', notation: 'T1', cx: 207, cy: 74, rx: 18, ry: 25, rotation: -17 },
-        { type: 'ellipse', notation: 'T2', cx: 167, cy: 77, rx: 10, ry: 12, rotation: -10 },
-        { type: 'ellipse', notation: 'T3', cx: 145, cy: 92, rx: 10, ry: 12, rotation: -35 },
-        { type: 'ellipse', notation: 'T4', cx: 126, cy: 114, rx: 10, ry: 12, rotation: -45 },
-        { type: 'ellipse', notation: 'T5', cx: 116, cy: 140, rx: 11, ry: 12, rotation: -25 },
+        { notation: '3', type: 'circle', cx: 176, cy: 450, r: 40 },
+        { notation: '1', type: 'circle', cx: 245, cy: 230, r: 40 },
+        { notation: '2', type: 'circle', cx: 105, cy: 280, r: 25 },
+        { notation: 'T1', type: 'ellipse', cx: 270, cy: 110, rx: 25, ry: 35, rotation: -17 },
+        { notation: 'T2', type: 'ellipse', cx: 205, cy: 95, rx: 18, ry: 22, rotation: -10 },
+        { notation: 'T3', type: 'ellipse', cx: 160, cy: 120, rx: 18, ry: 22, rotation: -35 },
+        { notation: 'T4', type: 'ellipse', cx: 125, cy: 160, rx: 18, ry: 22, rotation: -45 },
+        { notation: 'T5', type: 'ellipse', cx: 105, cy: 210, rx: 18, ry: 22, rotation: -25 },
     ],
     R: [
-        { type: 'circle', notation: '3', cx: 174, cy: 281, r: 26 },
-        { type: 'circle', notation: '1', cx: 141, cy: 143, r: 26 },
-        { type: 'circle', notation: '2', cx: 212, cy: 177, r: 16 },
-        { type: 'ellipse', notation: 'T1', cx: 143, cy: 74, rx: 18, ry: 25, rotation: 17 },
-        { type: 'ellipse', notation: 'T2', cx: 183, cy: 76, rx: 10, ry: 12, rotation: 11 },
-        { type: 'ellipse', notation: 'T3', cx: 205, cy: 92, rx: 10, ry: 12, rotation: 25 },
-        { type: 'ellipse', notation: 'T4', cx: 224, cy: 114, rx: 10, ry: 13, rotation: 35 },
-        { type: 'ellipse', notation: 'T5', cx: 235, cy: 141, rx: 11, ry: 12, rotation: 15 },
+        { notation: '3', type: 'circle', cx: 174, cy: 450, r: 40 },
+        { notation: '1', type: 'circle', cx: 105, cy: 230, r: 40 },
+        { notation: '2', type: 'circle', cx: 245, cy: 280, r: 25 },
+        { notation: 'T1', type: 'ellipse', cx: 80, cy: 110, rx: 25, ry: 35, rotation: 17 },
+        { notation: 'T2', type: 'ellipse', cx: 145, cy: 95, rx: 18, ry: 22, rotation: 11 },
+        { notation: 'T3', type: 'ellipse', cx: 190, cy: 120, rx: 18, ry: 22, rotation: 25 },
+        { notation: 'T4', type: 'ellipse', cx: 225, cy: 160, rx: 18, ry: 22, rotation: 35 },
+        { notation: 'T5', type: 'ellipse', cx: 245, cy: 210, rx: 18, ry: 22, rotation: 15 },
     ]
 };

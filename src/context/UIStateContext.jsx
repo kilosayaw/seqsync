@@ -31,8 +31,9 @@ export const UIStateProvider = ({ children }) => {
     const [activePresetPage, setActivePresetPage] = useState({ left: 0, right: 0 });
     const previousActivePadRef = useRef(null);
     const [cameraCommand, setCameraCommand] = useState(null);
-    // PHOENIX PROTOCOL: Added weightDistribution state.
     const [weightDistribution, setWeightDistribution] = useState(0);
+    // PHOENIX PROTOCOL: New state for dedicated edit mode.
+    const [jointEditMode, setJointEditMode] = useState('position');
 
 
     const setActivePad = (padIndex) => {
@@ -77,8 +78,9 @@ export const UIStateProvider = ({ children }) => {
         isCameraActive, setIsCameraActive,
         isVisualizerPoppedOut, setIsVisualizerPoppedOut,
         cameraCommand, setCameraCommand,
-        // PHOENIX PROTOCOL: Expose weightDistribution state and its setter.
         weightDistribution, setWeightDistribution,
+        // PHOENIX PROTOCOL: Expose new state and its setter.
+        jointEditMode, setJointEditMode,
     };
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
