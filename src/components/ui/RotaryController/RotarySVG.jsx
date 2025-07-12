@@ -2,28 +2,24 @@ import React from 'react';
 import { FOOT_HOTSPOT_COORDINATES, BASE_FOOT_PATHS } from '../../../utils/constants';
 import './RotaryController.css';
 
-// Helper to get the coordinates for a given pivot point
+// PHOENIX PROTOCOL: This component is now simplified and receives all positional data via props.
+
 const getPivotCoords = (pivotId, hotspots) => {
-    if (!pivotId) return { x: 275, y: 275 }; // Default to center
-    
-    // Find the main contact point (e.g., '1' from 'L1')
-    const mainPointId = pivotId.charAt(1);
+    if (!pivotId) return { x: 175, y: 175 }; 
+    const mainPointId = pivotId.charAt(1); 
     const pivotData = hotspots.find(spot => spot.notation === mainPointId);
-    
-    return pivotData ? { x: pivotData.cx, y: pivotData.cy } : { x: 275, y: 275 };
+    return pivotData ? { x: pivotData.cx, y: pivotData.cy } : { x: 175, y: 175 };
 };
 
-
-const RotarySVG = ({ side, angle, activePoints = new Set(), pivotPoint, onHotspotClick, isFootMode, handleWheelMouseDown }) => {
+const RotarySVG = ({ side, angle, activePoints = new Set(), pivotPoint, onHotspotClick, isFootMode, handleWheelMouseDown, footOffset }) => {
     const sideKey = side.charAt(0).toUpperCase();
     const hotspots = FOOT_HOTSPOT_COORDINATES[sideKey] || [];
     const footImagePath = BASE_FOOT_PATHS[sideKey];
 
     const footGroupTransform = "translate(100, 100)";
     
-    // DEFINITIVE: Determine the rotation origin based on the selected pivot point.
-    const pivotCoords = getPivotCoords(pivotPoint, hotspots);
-    const rotationOrigin = `${pivotCoords.x} ${pivotCoords.y}`;
+    const currentPivotCoords = getPivotCoords(pivotPoint, hotspots);
+    const footRotationOrigin = `${currentPivotCoords.x} ${currentPivotCoords.y}`;
 
     return (
         <div className="rotary-svg-wrapper">
@@ -38,45 +34,31 @@ const RotarySVG = ({ side, angle, activePoints = new Set(), pivotPoint, onHotspo
                     </filter>
                 </defs>
                 
-                <g 
-                    transform={`rotate(${angle}, ${rotationOrigin})`} 
-                    onMouseDown={handleWheelMouseDown} 
-                    className="rotary-wheel-grab-area"
-                >
-                    <image href="/ground/foot-wheel.png" x="0" y="0" width="550" height="550" style={{ pointerEvents: 'none' }} />
+                <g>
+                    <g transform={`rotate(${angle}, 275, 275)`}>
+                        <image href="/ground/foot-wheel.png" x="0" y="0" width="550" height="550" style={{ pointerEvents: 'none' }} />
+                    </g>
+                    <g transform={`rotate(${angle}, 275, 275)`}>
+                        <circle cx="275" cy="275" r="190" fill="transparent" stroke="transparent" strokeWidth="110" className="rotary-wheel-grab-area" onMouseDown={handleWheelMouseDown}/>
+                    </g>
                     
                     {isFootMode && (
-                        <g transform={footGroupTransform}>
-                            {/* Visuals (non-interactive) */}
+                        // PHOENIX PROTOCOL: Now applies the offset passed down from the parent controller.
+                        <g transform={`translate(${footOffset.x}, ${footOffset.y}) ${footGroupTransform} rotate(${angle}, ${footRotationOrigin})`}>
                             <g style={{ pointerEvents: 'none' }}>
-                                <image 
-                                    href={footImagePath} 
-                                    x="35" y="40" 
-                                    width="280" height="280" 
-                                    className="base-foot-img" 
-                                />
+                                <image href={footImagePath} x="35" y="40" width="280" height="280" className="base-foot-img"/>
                                 {hotspots.map(spot => {
                                     if (!activePoints.has(spot.notation)) return null;
-                                    if (spot.type === 'ellipse') {
-                                        return <ellipse key={spot.notation} className="hotspot-indicator active" cx={spot.cx} cy={spot.cy} rx={spot.rx} ry={spot.ry} transform={`rotate(${spot.rotation || 0}, ${spot.cx}, ${spot.cy})`} />;
-                                    } else {
-                                        return <circle key={spot.notation} className="hotspot-indicator active" cx={spot.cx} cy={spot.cy} r={spot.r} />;
-                                    }
+                                    const Tag = spot.type === 'ellipse' ? 'ellipse' : 'circle';
+                                    return <Tag key={spot.notation} className="hotspot-indicator active" cx={spot.cx} cy={spot.cy} r={spot.r} rx={spot.rx} ry={spot.ry} transform={spot.rotation ? `rotate(${spot.rotation}, ${spot.cx}, ${spot.cy})` : ''} />;
                                 })}
                             </g>
-                            
-                            {/* Clickable Areas */}
                             <g>
                                 {hotspots.map(spot => {
-                                    const handleClick = (e) => {
-                                        e.stopPropagation(); 
-                                        onHotspotClick(spot.notation);
-                                    };
-                                    if (spot.type === 'ellipse') {
-                                        return <ellipse key={`${spot.notation}-click`} className="hotspot-clickable-area" cx={spot.cx} cy={spot.cy} rx={spot.rx + 5} ry={spot.ry + 5} transform={`rotate(${spot.rotation || 0}, ${spot.cx}, ${spot.cy})`} onMouseDown={handleClick} />;
-                                    } else {
-                                        return <circle key={`${spot.notation}-click`} className="hotspot-clickable-area" cx={spot.cx} cy={spot.cy} r={spot.r + 5} onMouseDown={handleClick} />;
-                                    }
+                                    const ClickTag = spot.type === 'ellipse' ? 'ellipse' : 'circle';
+                                    const clickProps = { ...spot, r: spot.r ? spot.r + 5 : undefined, rx: spot.rx ? spot.rx + 5 : undefined, ry: spot.ry ? spot.ry + 5 : undefined, transform: spot.rotation ? `rotate(${spot.rotation}, ${spot.cx}, ${spot.cy})` : '' };
+                                    const handleClick = (e) => { e.stopPropagation(); onHotspotClick(spot.notation); };
+                                    return <ClickTag key={`${spot.notation}-click`} className="hotspot-clickable-area" {...clickProps} onMouseDown={handleClick} />;
                                 })}
                             </g>
                         </g>
@@ -87,4 +69,4 @@ const RotarySVG = ({ side, angle, activePoints = new Set(), pivotPoint, onHotspo
     );
 };
 
-export default RotarySVG;
+export default React.memo(RotarySVG);
