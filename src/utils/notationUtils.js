@@ -40,7 +40,7 @@ export const formatFullNotation = (beatData, currentTime, bar, beat) => {
     const timeStr = formatTime(currentTime || 0);
     const barBeatStr = `Bar: ${String(bar || 1).padStart(2, '0')} | Beat: ${String(beat || 1).padStart(2, '0')}`;
 
-    if (!beatData || !beatData.joints) return `${timeStr}; ${barBeatStr}; H(0,0,0) | C(0,0,0) ...`; // Simplified for brevity
+    if (!beatData || !beatData.joints) return `${timeStr}; ${barBeatStr}`;
     
     const { joints } = beatData;
     const displayOrder = ['H', 'C', 'LF','RF', 'LA', 'RA', 'LK', 'RK', 'LH', 'RH', 'LS', 'RS', 'LE', 'RE', 'LW', 'RW', 'LP', 'RP'];
@@ -58,9 +58,14 @@ export const formatFullNotation = (beatData, currentTime, bar, beat) => {
         if (joint.position) {
             let notation = `${jointId}(${Math.round(joint.position[0])},${Math.round(joint.position[1])},${Math.round(joint.position[2])}`;
             
-            // DEFINITIVE FIX #4: Append orientation and intent to the string.
-            if (joint.orientation && joint.orientation !== 'NEU') notation += ` ${joint.orientation}`;
-            if (joint.intentType && joint.intentType !== 'PASS') notation += ` ${joint.intentType}`;
+            // DEFINITIVE FIX: Display orientation, even if it's NEU.
+            if (joint.orientation) {
+                notation += ` ${joint.orientation}`;
+            }
+            // DEFINITIVE FIX: Use new BASE/FORCE terms. 'PASS' is the default and will not be shown.
+            if (joint.intentType && joint.intentType !== 'PASS') {
+                notation += ` ${joint.intentType}`;
+            }
             
             notation += ')';
             return notation;

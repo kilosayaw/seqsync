@@ -70,12 +70,14 @@ export const UIStateProvider = ({ children }) => {
         mixerState, setMixerState, activePresetPage, setActivePresetPage, isCameraActive, setIsCameraActive,
         isVisualizerPoppedOut, setIsVisualizerPoppedOut, cameraCommand, setCameraCommand,
         weightDistribution, setWeightDistribution, jointEditMode, setJointEditMode,
-        // Expose the new state object and its setter
         activeCornerTools, setActiveCornerTools,
     }), [
         selectedBar, activePad, animationState, animationRange, editMode, noteDivision, padMode,
         activePanel, selectedJoints, activeDirection, notification, movementFaderValue, activeVisualizer,
-        mixerState, activePresetPage, activeCornerTools, isCameraActive, isVisualizerPoppedOut,
+        mixerState, activePresetPage, 
+        // DEFINITIVE: Added activeCornerTools to the dependency array
+        activeCornerTools, 
+        isCameraActive, isVisualizerPoppedOut,
         cameraCommand, weightDistribution, jointEditMode, showNotification
     ]);
 

@@ -1,6 +1,6 @@
 /* src/components/layout/Deck.css */
 .deck-wrapper {
-    position: relative;
+    position: relative; /* This allows the modal to be positioned relative to the deck */
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
