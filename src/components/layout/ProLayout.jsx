@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react'; // RESTORED: Import useState
 import { useMedia } from '../../context/MediaContext';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -25,6 +25,9 @@ const ProLayout = () => {
     const { songData, barStartTimes, STEPS_PER_BAR } = useSequence();
     const { playSound, stopSound } = useSound();
     const { audioLevel } = usePlayback();
+
+    // RESTORED: State for the visualizer mode is now correctly managed here.
+    const [visualizerMode, setVisualizerMode] = useState('ribbon');
 
     const handlePadEvent = (type, padIndex) => {
         if (type === 'down') {
@@ -75,12 +78,14 @@ const ProLayout = () => {
             <main className="main-content-area">
                 <LeftDeck onPadEvent={handlePadEvent} />
                 <LevelMeter level={audioLevel} />
-                <CenterConsole />
+                {/* RESTORED: This now correctly passes down the state and the setter function. */}
+                <CenterConsole 
+                    visualizerMode={visualizerMode}
+                    setVisualizerMode={setVisualizerMode}
+                />
                 <LevelMeter level={audioLevel} />
                 <RightDeck onPadEvent={handlePadEvent} />
             </main>
-
-            {/* DEFINITIVE: All pop-out logic has been removed. */}
 
             {isLoading && <LoadingOverlay />}
             <ConfirmDialog

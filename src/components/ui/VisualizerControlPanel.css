@@ -81,3 +81,21 @@
     border-color: var(--color-text-primary);
     color: var(--color-text-primary);
 }
+
+.view-toggle-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    background-color: var(--dark-gray);
+    border: 1px solid var(--medium-gray);
+    color: var(--light-gray);
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+    border-color: var(--primary-yellow);
+    color: var(--primary-yellow);
+}
