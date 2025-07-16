@@ -1,4 +1,3 @@
-// src/components/ui/XYZGrid.jsx
 import React from 'react';
 import './XYZGrid.css';
 
@@ -13,19 +12,21 @@ const XYZGrid = ({ position = [0, 0, 0], onPositionChange }) => {
         } else {
             // If clicking the SAME cell, cycle Z-depth: 0 -> 1 -> -1 -> 0
             let nextZ = 0;
-            if (currentZ === 0) nextZ = 1;
-            if (currentZ === 1) nextZ = -1;
-            if (currentZ === -1) nextZ = 0;
+            if (currentZ === 0) nextZ = 1;  // Neutral -> Forward
+            if (currentZ === 1) nextZ = -1; // Forward -> Backward
+            if (currentZ === -1) nextZ = 0; // Backward -> Neutral
             onPositionChange([x, y, nextZ]);
         }
     };
     
-    // Scale mapping: -1 (far) -> 0.4, 0 (middle) -> 0.7, 1 (near) -> 1.0
+    // Scale mapping: 1 (fwd) -> 1.0 (large), 0 (mid) -> 0.7, -1 (back) -> 0.4 (small)
     const zToScale = (z) => 0.7 + (z * 0.3);
 
     return (
         <div className="xyz-grid-container">
-            {[-1, 0, 1].map(y => 
+            {/* Y-axis: Top row is y=1 (Up), Bottom row is y=-1 (Down). This is correct. */}
+            {[1, 0, -1].map(y => 
+                // X-axis: Left column is x=1 (Left), Right column is x=-1 (Right). This is now correct.
                 [1, 0, -1].map(x => { 
                     const isActive = position[0] === x && position[1] === y;
                     return (

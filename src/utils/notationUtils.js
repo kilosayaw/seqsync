@@ -38,22 +38,22 @@ export const formatTime = (seconds) => {
 
 export const formatFullNotation = (beatData, currentTime, bar, beat) => {
     const timeStr = formatTime(currentTime || 0);
-    const barBeatStr = `Bar:${String(bar || 1).padStart(2, '0')}:${beat || 0}`;
+    // DEFINITIVE FIX: Formatting changed to match your request.
+    const barBeatStr = `Bar: ${String(bar || 1).padStart(2, '0')} | Beat: ${String(beat || 0).padStart(2, '0')}`;
 
     if (!beatData || !beatData.joints) {
-        return `${timeStr}; ${barBeatStr};`;
+        return `${timeStr}; ${barBeatStr}`;
     }
     
     const { joints } = beatData;
     
     const displayOrder = [
-        'H', 'C', 'LF','RF', 'LA', 'RA', 'LK', 'RK', 'LH', 'RH', 'LS', 'RS', 'LE', 'RE', 'LW', 'RW', 'LP',   
-        'RP'
+        'H', 'C', 'LF', 'RF', 'LA', 'RA', 'LK', 'RK', 'LH', 'RH', 'LS', 'RS', 'LE', 'RE', 'LW', 'RW',  'LP', 'RP', 
     ];
 
     const formatJoint = (jointId) => {
         const joint = joints[jointId];
-        if (!joint) return `${jointId}(N/A)`;
+        if (!joint) return `${jointId}(0,0,0)`;
 
         if (jointId.endsWith('F')) {
             const grounding = joint.grounding || `${jointId}`;
@@ -63,11 +63,10 @@ export const formatFullNotation = (beatData, currentTime, bar, beat) => {
 
         if (joint.position) {
             const pos = joint.position;
-            // DEFINITIVE FIX: Use Math.round() to remove decimals.
             return `${jointId}(${Math.round(pos[0])},${Math.round(pos[1])},${Math.round(pos[2])})`;
         }
         
-        return jointId;
+        return `${jointId}(0,0,0)`;
     };
 
     const allNotations = displayOrder.map(formatJoint).join(' | ');
