@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
 import RotaryController from '../ui/RotaryController/RotaryController';
@@ -18,23 +19,28 @@ const RightDeck = ({ onPadEvent }) => {
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     const { STEPS_PER_BAR } = useSequence();
 
-    // DEFINITIVE: The Deck is the single source of truth for its editing state.
     const relevantSelectedJoints = selectedJoints.filter(j => j.startsWith('R'));
     const isEditing = relevantSelectedJoints.length > 0;
     const activeJointId = isEditing ? relevantSelectedJoints[0] : null;
     
     const handleCornerToolClick = (toolName) => {
-        if (toolName === 'BLANK') setActiveCornerTool('none');
-        else setActiveCornerTool(prev => prev === toolName ? 'none' : toolName);
+        if (toolName === 'BLANK') {
+            setActiveCornerTools(prev => ({ ...prev, right: 'none' }));
+            return;
+        }
+        setActiveCornerTools(prev => ({
+            ...prev,
+            right: prev.right === toolName ? 'none' : toolName
+        }));
     };
 
     return (
         <div className="deck-wrapper">
             <div className="deck-container" data-side="right">
                 <DeckJointList side="right" />
-
                 <div className="side-controls-column">
-                    <MovementFader />
+                    {/* The only change is adding the side prop here */}
+                    <MovementFader side="right" />
                     <OptionButtons side="right" />
                     <PresetPageSelectors side="right" />
                 </div>
@@ -43,7 +49,7 @@ const RightDeck = ({ onPadEvent }) => {
 
                 <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
                     <div className="rotary-controller-container">
-                        <RotaryController deckId="deck2" isEditing={isEditing} activeJointId={isEditing ? relevantSelectedJoints[0] : null} />
+                        <RotaryController deckId="deck2" isEditing={isEditing} activeJointId={activeJointId} />
                     </div>
                     <button className={classNames('corner-tool-button', 'top-left', { 'active': activeCornerTools.right === 'ROT' })} onClick={() => handleCornerToolClick('ROT')}>ROT</button>
                     <button className={classNames('corner-tool-button', 'top-right', { 'active': activeCornerTools.right === 'NRG' })} onClick={() => handleCornerToolClick('NRG')}>NRG</button>
@@ -74,6 +80,10 @@ const RightDeck = ({ onPadEvent }) => {
             <CornerToolPanel side="right" />
         </div>
     );
+};
+
+RightDeck.propTypes = {
+    onPadEvent: PropTypes.func.isRequired,
 };
 
 export default RightDeck;

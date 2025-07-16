@@ -60,7 +60,6 @@ const MovementFader = ({ side }) => {
     );
 };
 
-// Add PropTypes for validation and robustness.
 MovementFader.propTypes = {
     side: PropTypes.oneOf(['left', 'right']).isRequired,
 };
