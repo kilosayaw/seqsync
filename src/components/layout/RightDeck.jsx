@@ -14,7 +14,7 @@ import classNames from 'classnames';
 import './Deck.css';
 
 const RightDeck = ({ onPadEvent }) => {
-    const { selectedBar, activePad, selectedJoints, setActiveCornerTool } = useUIState();
+    const { selectedBar, activePad, selectedJoints, activeCornerTools, setActiveCornerTools } = useUIState();
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     const { STEPS_PER_BAR } = useSequence();
 
@@ -43,16 +43,11 @@ const RightDeck = ({ onPadEvent }) => {
 
                 <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
                     <div className="rotary-controller-container">
-                        {/* DEFINITIVE: State is passed down as props. RotaryController is now a 'dumb' component. */}
-                        <RotaryController 
-                            deckId="deck2"
-                            isEditing={isEditing}
-                            activeJointId={activeJointId}
-                        />
+                        <RotaryController deckId="deck2" isEditing={isEditing} activeJointId={isEditing ? relevantSelectedJoints[0] : null} />
                     </div>
-                    <button className="corner-tool-button top-left" onClick={() => handleCornerToolClick('ROT')}>ROT</button>
-                    <button className="corner-tool-button top-right" onClick={() => handleCornerToolClick('NRG')}>NRG</button>
-                    <button className="corner-tool-button bottom-left" onClick={() => handleCornerToolClick('INT')}>INT</button>
+                    <button className={classNames('corner-tool-button', 'top-left', { 'active': activeCornerTools.right === 'ROT' })} onClick={() => handleCornerToolClick('ROT')}>ROT</button>
+                    <button className={classNames('corner-tool-button', 'top-right', { 'active': activeCornerTools.right === 'NRG' })} onClick={() => handleCornerToolClick('NRG')}>NRG</button>
+                    <button className={classNames('corner-tool-button', 'bottom-left', { 'active': activeCornerTools.right === 'INT' })} onClick={() => handleCornerToolClick('INT')}>INT</button>
                     <button className="corner-tool-button bottom-right" onClick={() => handleCornerToolClick('BLANK')}></button>
                 </div>
                 

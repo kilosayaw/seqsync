@@ -1,13 +1,24 @@
 /* src/components/ui/CornerToolPanel.css */
-.corner-tool-panel {
+/* This is a complete replacement for your existing file. */
+.corner-tool-panel-modal {
+    position: absolute;
+    bottom: calc(var(--performance-pad-height) + var(--spacing-md) * 2);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 450px;
     background-color: var(--color-dark-surface-2);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
-    margin-top: var(--spacing-sm);
     padding: var(--spacing-sm);
+    z-index: 50;
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.4);
 }
 
-.panel-header {
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-size: 0.8rem;
     font-weight: bold;
     color: var(--color-text-secondary);
@@ -17,9 +28,28 @@
     padding-bottom: var(--spacing-xs);
 }
 
+.modal-header h4 {
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.modal-close-btn:hover {
+    color: var(--color-accent-red);
+}
+
 .panel-options {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
     gap: var(--spacing-xs);
 }
 
@@ -30,6 +60,8 @@
     border-radius: var(--border-radius-sm);
     font-size: 0.7rem;
     padding: var(--spacing-xs);
+    cursor: pointer;
+    text-transform: uppercase;
 }
 
 .option-item.active {
@@ -45,11 +77,13 @@
     padding-top: var(--spacing-sm);
     border-top: 1px solid var(--color-border);
 }
+
 .pocket-slider-container label {
     font-size: 0.7rem;
     font-weight: bold;
     color: var(--color-text-secondary);
 }
+
 .pocket-slider-container input[type="range"] {
     flex-grow: 1;
 }

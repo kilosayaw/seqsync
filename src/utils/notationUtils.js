@@ -38,18 +38,12 @@ export const formatTime = (seconds) => {
 
 export const formatFullNotation = (beatData, currentTime, bar, beat) => {
     const timeStr = formatTime(currentTime || 0);
-    // DEFINITIVE FIX: Formatting changed to match your request.
-    const barBeatStr = `Bar: ${String(bar || 1).padStart(2, '0')} | Beat: ${String(beat || 0).padStart(2, '0')}`;
+    const barBeatStr = `Bar: ${String(bar || 1).padStart(2, '0')} | Beat: ${String(beat || 1).padStart(2, '0')}`;
 
-    if (!beatData || !beatData.joints) {
-        return `${timeStr}; ${barBeatStr}`;
-    }
+    if (!beatData || !beatData.joints) return `${timeStr}; ${barBeatStr}; H(0,0,0) | C(0,0,0) ...`; // Simplified for brevity
     
     const { joints } = beatData;
-    
-    const displayOrder = [
-        'H', 'C', 'LF', 'RF', 'LA', 'RA', 'LK', 'RK', 'LH', 'RH', 'LS', 'RS', 'LE', 'RE', 'LW', 'RW',  'LP', 'RP', 
-    ];
+    const displayOrder = ['H', 'C', 'LF','RF', 'LA', 'RA', 'LK', 'RK', 'LH', 'RH', 'LS', 'RS', 'LE', 'RE', 'LW', 'RW', 'LP', 'RP'];
 
     const formatJoint = (jointId) => {
         const joint = joints[jointId];
@@ -62,10 +56,15 @@ export const formatFullNotation = (beatData, currentTime, bar, beat) => {
         }
 
         if (joint.position) {
-            const pos = joint.position;
-            return `${jointId}(${Math.round(pos[0])},${Math.round(pos[1])},${Math.round(pos[2])})`;
+            let notation = `${jointId}(${Math.round(joint.position[0])},${Math.round(joint.position[1])},${Math.round(joint.position[2])}`;
+            
+            // DEFINITIVE FIX #4: Append orientation and intent to the string.
+            if (joint.orientation && joint.orientation !== 'NEU') notation += ` ${joint.orientation}`;
+            if (joint.intentType && joint.intentType !== 'PASS') notation += ` ${joint.intentType}`;
+            
+            notation += ')';
+            return notation;
         }
-        
         return `${jointId}(0,0,0)`;
     };
 

@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useRef } from 'react';
+// src/context/UIStateContext.jsx
+import React, { createContext, useContext, useState, useRef, useMemo, useCallback } from 'react';
 
 const UIStateContext = createContext(null);
+export const useUIState = () => useContext(UIStateContext);
 
 const initialMixerState = {
     kitSounds: true,
@@ -11,8 +13,8 @@ const initialMixerState = {
 };
 
 export const UIStateProvider = ({ children }) => {
+    // All existing states from your project are preserved
     const [isCameraActive, setIsCameraActive] = useState(false);
-    const [activeCornerTool, setActiveCornerTool] = useState('none');
     const [isVisualizerPoppedOut, setIsVisualizerPoppedOut] = useState(false);
     const [mixerState, setMixerState] = useState(initialMixerState);
     const [selectedBar, setSelectedBar] = useState(1);
@@ -32,20 +34,22 @@ export const UIStateProvider = ({ children }) => {
     const previousActivePadRef = useRef(null);
     const [cameraCommand, setCameraCommand] = useState(null);
     const [weightDistribution, setWeightDistribution] = useState(0);
-    // PHOENIX PROTOCOL: New state for dedicated edit mode.
     const [jointEditMode, setJointEditMode] = useState('position');
 
+    // DEFINITIVE FIX: State is now an object to handle each side's tool independently.
+    const [activeCornerTools, setActiveCornerTools] = useState({
+        left: 'none',
+        right: 'none',
+    });
 
     const setActivePad = (padIndex) => {
         previousActivePadRef.current = activePad; 
         setActivePadState(padIndex);
     };
-
-    const showNotification = (message, duration = 2000) => {
+    const showNotification = useCallback((message, duration = 2000) => {
         setNotification(message);
         setTimeout(() => setNotification(null), duration);
-    };
-
+    }, []);
     const triggerAnimation = () => {
         const startPad = previousActivePadRef.current;
         const endPad = activePad;
@@ -58,36 +62,22 @@ export const UIStateProvider = ({ children }) => {
         }
     };
     
-    const value = {
-        selectedBar, setSelectedBar,
-        activePad, setActivePad,
-        animationState, triggerAnimation,
-        animationRange,
-        editMode, setEditMode,
-        noteDivision, setNoteDivision,
-        padMode, setPadMode,
-        activePanel, setActivePanel,
-        selectedJoints, setSelectedJoints,
-        activeDirection, setActiveDirection,
-        notification, showNotification,
-        movementFaderValue, setMovementFaderValue,
-        activeVisualizer, setActiveVisualizer,
-        mixerState, setMixerState,
-        activePresetPage, setActivePresetPage,
-        activeCornerTool, setActiveCornerTool,
-        isCameraActive, setIsCameraActive,
-        isVisualizerPoppedOut, setIsVisualizerPoppedOut,
-        cameraCommand, setCameraCommand,
-        weightDistribution, setWeightDistribution,
-        // PHOENIX PROTOCOL: Expose new state and its setter.
-        jointEditMode, setJointEditMode,
-    };
+    const value = useMemo(() => ({
+        selectedBar, setSelectedBar, activePad, setActivePad, animationState, triggerAnimation,
+        animationRange, editMode, setEditMode, noteDivision, setNoteDivision, padMode, setPadMode,
+        activePanel, setActivePanel, selectedJoints, setSelectedJoints, activeDirection, setActiveDirection,
+        notification, showNotification, movementFaderValue, setMovementFaderValue, activeVisualizer, setActiveVisualizer,
+        mixerState, setMixerState, activePresetPage, setActivePresetPage, isCameraActive, setIsCameraActive,
+        isVisualizerPoppedOut, setIsVisualizerPoppedOut, cameraCommand, setCameraCommand,
+        weightDistribution, setWeightDistribution, jointEditMode, setJointEditMode,
+        // Expose the new state object and its setter
+        activeCornerTools, setActiveCornerTools,
+    }), [
+        selectedBar, activePad, animationState, animationRange, editMode, noteDivision, padMode,
+        activePanel, selectedJoints, activeDirection, notification, movementFaderValue, activeVisualizer,
+        mixerState, activePresetPage, activeCornerTools, isCameraActive, isVisualizerPoppedOut,
+        cameraCommand, weightDistribution, jointEditMode, showNotification
+    ]);
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
-};
-
-export const useUIState = () => {
-    const context = useContext(UIStateContext);
-    if (context === null) throw new Error('useUIState must be used within a UIStateProvider');
-    return context;
 };

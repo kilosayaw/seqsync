@@ -1,11 +1,18 @@
 /* src/components/layout/Deck.css */
 .deck-wrapper {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
-    min-width: 0; 
+    min-width: 0;
     min-height: 0;
     flex: 1; 
+}
+
+.corner-tool-button.active {
+    border-color: var(--color-accent-green);
+    color: var(--color-accent-green);
+    background-color: var(--color-dark-surface-1);
 }
 
 .deck-container {

@@ -14,64 +14,46 @@ import classNames from 'classnames';
 import './Deck.css';
 
 const LeftDeck = ({ onPadEvent }) => {
-    const { selectedBar, activePad, selectedJoints, setActiveCornerTool } = useUIState();
+    // Get the new state object and its setter
+    const { selectedBar, activePad, selectedJoints, activeCornerTools, setActiveCornerTools } = useUIState();
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     const { STEPS_PER_BAR } = useSequence();
 
-    // DEFINITIVE: The Deck is the single source of truth for its editing state.
     const relevantSelectedJoints = selectedJoints.filter(j => j.startsWith('L'));
     const isEditing = relevantSelectedJoints.length > 0;
-    const activeJointId = isEditing ? relevantSelectedJoints[0] : null;
-
+    
     const handleCornerToolClick = (toolName) => {
-        if (toolName === 'BLANK') setActiveCornerTool('none');
-        else setActiveCornerTool(prev => prev === toolName ? 'none' : toolName);
+        if (toolName === 'BLANK') {
+            setActiveCornerTools(prev => ({ ...prev, left: 'none' }));
+            return;
+        }
+        setActiveCornerTools(prev => ({ ...prev, left: prev.left === toolName ? 'none' : toolName }));
     };
     
     return (
         <div className="deck-wrapper">
             <div className="deck-container" data-side="left">
                 <DeckJointList side="left" />
-                
                 <div className="side-controls-column">
                     <MovementFader />
                     <OptionButtons side="left" />
                     <PresetPageSelectors side="left" />
                 </div>
-                
                 <DirectionalControls />
-                
                 <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
                     <div className="rotary-controller-container">
-                        {/* DEFINITIVE: State is passed down as props. RotaryController is now a 'dumb' component. */}
-                        <RotaryController 
-                            deckId="deck1"
-                            isEditing={isEditing}
-                            activeJointId={activeJointId}
-                        />
+                        <RotaryController deckId="deck1" isEditing={isEditing} activeJointId={isEditing ? relevantSelectedJoints[0] : null} />
                     </div>
-                    <button className="corner-tool-button top-left" onClick={() => handleCornerToolClick('ROT')}>ROT</button>
-                    <button className="corner-tool-button top-right" onClick={() => handleCornerToolClick('NRG')}>NRG</button>
-                    <button className="corner-tool-button bottom-left" onClick={() => handleCornerToolClick('INT')}>INT</button>
+                    {/* DEFINITIVE FIX #1: Buttons now get an 'active' class when their tool is open */}
+                    <button className={classNames('corner-tool-button', 'top-left', { 'active': activeCornerTools.left === 'ROT' })} onClick={() => handleCornerToolClick('ROT')}>ROT</button>
+                    <button className={classNames('corner-tool-button', 'top-right', { 'active': activeCornerTools.left === 'NRG' })} onClick={() => handleCornerToolClick('NRG')}>NRG</button>
+                    <button className={classNames('corner-tool-button', 'bottom-left', { 'active': activeCornerTools.left === 'INT' })} onClick={() => handleCornerToolClick('INT')}>INT</button>
                     <button className="corner-tool-button bottom-right" onClick={() => handleCornerToolClick('BLANK')}></button>
                 </div>
-
                 <div className="pads-group">
                     {Array.from({ length: 4 }).map((_, i) => {
                         const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + i;
-                        return (
-                            <PerformancePad
-                                key={`left-${i}`}
-                                padIndex={globalPadIndex}
-                                beatNum={i + 1}
-                                isPulsing={isPlaying && selectedBar === currentBar && i === currentBeat}
-                                isSelected={activePad === globalPadIndex}
-                                onMouseDown={() => onPadEvent('down', globalPadIndex)}
-                                onMouseUp={() => onPadEvent('up', globalPadIndex)}
-                                onMouseLeave={() => onPadEvent('up', globalPadIndex)}
-                                side="left"
-                            />
-                        );
+                        return (<PerformancePad key={`left-${i}`} padIndex={globalPadIndex} beatNum={i + 1} isPulsing={isPlaying && selectedBar === currentBar && i === currentBeat} isSelected={activePad === globalPadIndex} onMouseDown={() => onPadEvent('down', globalPadIndex)} onMouseUp={() => onPadEvent('up', globalPadIndex)} onMouseLeave={() => onPadEvent('up', globalPadIndex)} side="left"/>);
                     })}
                 </div>
             </div>
@@ -79,5 +61,4 @@ const LeftDeck = ({ onPadEvent }) => {
         </div>
     );
 };
-
 export default LeftDeck;
