@@ -1,4 +1,6 @@
+// src/context/SequenceContext.jsx
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { produce } from 'immer';
 import { useMedia } from './MediaContext';
 import { useUIState } from './UIStateContext';
 import { JOINT_LIST } from '../utils/constants';
@@ -15,12 +17,13 @@ const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
         if (!['LF', 'RF'].includes(joint.id)) {
+            // Use the vector object format for consistency
             joints[joint.id] = { 
-                position: [0, 0, 0], 
+                vector: { x: 0, y: 0, z: 0 }, 
                 rotation: 0, 
                 rotationType: 'NEU',
                 intentType: 'PASS',
-                forceLevel: 0, // DEFINITIVE: Add forceLevel to the model, default 0.
+                forceLevel: 0,
                 role: 'frame' 
             };
         }
@@ -43,15 +46,12 @@ const createDefaultPresets = () => ({
     right: Array(PRESET_PAGES).fill(null).map(() => Array(PRESETS_PER_PAGE).fill(null)),
 });
 
-
 export const SequenceProvider = ({ children }) => {
     const [songData, setSongData] = useState(createDefaultSequence());
     const [presets, setPresets] = useState(createDefaultPresets());
     const [totalBars, setTotalBars] = useState(DEFAULT_BAR_COUNT);
     const [barStartTimes, setBarStartTimes] = useState([]);
     const { isMediaReady, duration, detectedBpm } = useMedia();
-    
-    // DEFINITIVE FIX: Correctly destructure both 'activePad' and 'setActivePad' from the context.
     const { activePad, setActivePad } = useUIState(); 
 
     useEffect(() => {
@@ -59,65 +59,62 @@ export const SequenceProvider = ({ children }) => {
             const timePerStep = (60 / detectedBpm) / 2;
             const totalSteps = Math.ceil(duration / timePerStep);
             const calculatedTotalBars = Math.max(1, Math.ceil(totalSteps / STEPS_PER_BAR));
-
             setTotalBars(calculatedTotalBars);
             const newSongData = Array.from({ length: totalSteps }, (_, i) => 
                 createBeatData(Math.floor(i / STEPS_PER_BAR) + 1, i % STEPS_PER_BAR)
             );
             setSongData(newSongData);
-
             const timePerBar = timePerStep * STEPS_PER_BAR;
             const newBarStartTimes = Array.from({ length: calculatedTotalBars }, (_, i) => i * timePerBar);
             setBarStartTimes(newBarStartTimes);
-
             setActivePad(0);
         }
     }, [isMediaReady, duration, detectedBpm, setActivePad]);
 
+    // RESTORED: This function now uses Immer for safer updates
     const updateJointData = useCallback((globalBeatIndex, jointId, jointDataUpdate) => {
         if (globalBeatIndex === null || jointId === null) return;
-        setSongData(prevData => {
-            const newData = [...prevData];
-            const beatToUpdate = newData[globalBeatIndex];
-            if (beatToUpdate?.joints) {
-                const jointToUpdate = beatToUpdate.joints[jointId];
-                 if (jointToUpdate) {
-                    newData[globalBeatIndex].joints[jointId] = { ...jointToUpdate, ...jointDataUpdate };
-                }
+        setSongData(produce(draft => {
+            const beat = draft[globalBeatIndex];
+            if (beat?.joints?.[jointId]) {
+                Object.assign(beat.joints[jointId], jointDataUpdate);
             }
-            return newData;
-        });
+        }));
     }, []);
+
+    // RESTORED: The core function for real-time editing
+    const updateJointVectorForActivePad = useCallback((jointId, newVector) => {
+        if (activePad === null || !jointId) return;
+        setSongData(produce(draft => {
+            const beat = draft[activePad];
+            if (beat?.joints?.[jointId]) {
+                beat.joints[jointId].vector = { ...beat.joints[jointId].vector, ...newVector };
+            }
+        }));
+    }, [activePad]);
 
     const updateBeatMetaData = useCallback((globalBeatIndex, metaDataUpdate) => {
-        if (globalBeatIndex === null) return;
-        setSongData(prevData => {
-            const newData = [...prevData];
-            const beatToUpdate = newData[globalBeatIndex];
-            if (beatToUpdate) {
-                const newMeta = { ...(beatToUpdate.meta || {}), ...metaDataUpdate };
-                newData[globalBeatIndex] = { ...beatToUpdate, meta: newMeta };
+        setSongData(produce(draft => {
+            const beat = draft[globalBeatIndex];
+            if (beat) {
+                beat.meta = { ...(beat.meta || {}), ...metaDataUpdate };
             }
-            return newData;
-        });
+        }));
     }, []);
 
-    const assignSoundToPad = useCallback((globalPadIndex, soundNote) => {
-        setSongData(prevData => {
-            const newData = [...prevData];
-            const beat = newData[globalPadIndex];
+    const assignSoundToPad = useCallback((globalBeatIndex, soundNote) => {
+        setSongData(produce(draft => {
+            const beat = draft[globalBeatIndex];
             if (beat) {
                 if (!beat.sounds) beat.sounds = [];
                 if (beat.sounds.length < 4 && !beat.sounds.includes(soundNote)) {
                     beat.sounds.push(soundNote);
                 }
             }
-            return newData;
-        });
+        }));
     }, []);
     
     const savePoseToPreset = useCallback((side, pageIndex, presetIndex) => {
-        // Now correctly uses 'activePad' which is in scope.
         if (activePad === null) return;
         const sidePrefix = side === 'left' ? 'L' : 'R';
         const poseToSave = {};
@@ -127,31 +124,28 @@ export const SequenceProvider = ({ children }) => {
                 poseToSave[jointId] = sourceJoints[jointId];
             }
         }
-        setPresets(prev => {
-            const newPresets = JSON.parse(JSON.stringify(prev));
-            newPresets[side][pageIndex][presetIndex] = poseToSave;
-            return newPresets;
-        });
-    }, [activePad, songData]); // Added dependencies
+        setPresets(produce(draft => {
+            draft[side][pageIndex][presetIndex] = poseToSave;
+        }));
+    }, [activePad, songData]);
 
     const loadPoseFromPreset = useCallback((side, pageIndex, presetIndex) => {
-        // Now correctly uses 'activePad' which is in scope.
         if (activePad === null) return;
         const presetPose = presets[side][pageIndex][presetIndex];
         if (!presetPose) return;
-        setSongData(prevData => {
-            const newData = [...prevData];
-            const beatToUpdate = { ...newData[activePad] };
-            beatToUpdate.joints = { ...beatToUpdate.joints, ...presetPose };
-            newData[activePad] = beatToUpdate;
-            return newData;
-        });
-    }, [activePad, presets]); // Added dependencies
+        setSongData(produce(draft => {
+            const beat = draft[activePad];
+            if (beat) {
+                beat.joints = { ...beat.joints, ...presetPose };
+            }
+        }));
+    }, [activePad, presets]);
     
     const value = { 
         songData, setSongData, 
         totalBars, barStartTimes, STEPS_PER_BAR, 
         updateJointData, assignSoundToPad, updateBeatMetaData,
+        updateJointVectorForActivePad, // RESTORED: Export the function
         presets, savePoseToPreset, loadPoseFromPreset
     };
     

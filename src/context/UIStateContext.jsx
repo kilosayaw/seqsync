@@ -1,5 +1,6 @@
 // src/context/UIStateContext.jsx
 import React, { createContext, useContext, useState, useRef, useMemo, useCallback } from 'react';
+import { produce } from 'immer'; // Using immer for safe and clean state updates
 
 const UIStateContext = createContext(null);
 export const useUIState = () => useContext(UIStateContext);
@@ -13,7 +14,6 @@ const initialMixerState = {
 };
 
 export const UIStateProvider = ({ children }) => {
-    // All existing states from your project are preserved
     const [isCameraActive, setIsCameraActive] = useState(false);
     const [isVisualizerPoppedOut, setIsVisualizerPoppedOut] = useState(false);
     const [mixerState, setMixerState] = useState(initialMixerState);
@@ -26,7 +26,6 @@ export const UIStateProvider = ({ children }) => {
     const [padMode, setPadMode] = useState('TRIGGER');
     const [activePanel, setActivePanel] = useState('none');
     const [notification, setNotification] = useState(null);
-    const [movementFaderValue, setMovementFaderValue] = useState(0.1);
     const [selectedJoints, setSelectedJoints] = useState([]);
     const [activeDirection, setActiveDirection] = useState('l_r');
     const [activeVisualizer, setActiveVisualizer] = useState('none');
@@ -35,12 +34,22 @@ export const UIStateProvider = ({ children }) => {
     const [cameraCommand, setCameraCommand] = useState(null);
     const [weightDistribution, setWeightDistribution] = useState(0);
     const [jointEditMode, setJointEditMode] = useState('position');
+    const [activeCornerTools, setActiveCornerTools] = useState({ left: 'none', right: 'none' });
 
-    // DEFINITIVE FIX: State is now an object to handle each side's tool independently.
-    const [activeCornerTools, setActiveCornerTools] = useState({
-        left: 'none',
-        right: 'none',
+    // --- FADER INDEPENDENCE FIX ---
+    // The state is now an object to hold values for both faders.
+    const [movementFaderValues, setMovementFaderValues] = useState({
+        left: 0.1,
+        right: 0.1,
     });
+
+    // The setter function now accepts which 'side' to update.
+    const setMovementFaderValue = useCallback((side, value) => {
+        setMovementFaderValues(produce(draft => {
+            draft[side] = value;
+        }));
+    }, []);
+    // --- END OF FIX ---
 
     const setActivePad = (padIndex) => {
         previousActivePadRef.current = activePad; 
@@ -66,19 +75,24 @@ export const UIStateProvider = ({ children }) => {
         selectedBar, setSelectedBar, activePad, setActivePad, animationState, triggerAnimation,
         animationRange, editMode, setEditMode, noteDivision, setNoteDivision, padMode, setPadMode,
         activePanel, setActivePanel, selectedJoints, setSelectedJoints, activeDirection, setActiveDirection,
-        notification, showNotification, movementFaderValue, setMovementFaderValue, activeVisualizer, setActiveVisualizer,
+        notification, showNotification, activeVisualizer, setActiveVisualizer,
         mixerState, setMixerState, activePresetPage, setActivePresetPage, isCameraActive, setIsCameraActive,
         isVisualizerPoppedOut, setIsVisualizerPoppedOut, cameraCommand, setCameraCommand,
         weightDistribution, setWeightDistribution, jointEditMode, setJointEditMode,
         activeCornerTools, setActiveCornerTools,
+        // --- FADER INDEPENDENCE FIX ---
+        // The old state value is replaced with the new object and setter function.
+        movementFaderValues, setMovementFaderValue,
+        // --- END OF FIX ---
     }), [
         selectedBar, activePad, animationState, animationRange, editMode, noteDivision, padMode,
-        activePanel, selectedJoints, activeDirection, notification, movementFaderValue, activeVisualizer,
-        mixerState, activePresetPage, 
-        // DEFINITIVE: Added activeCornerTools to the dependency array
-        activeCornerTools, 
-        isCameraActive, isVisualizerPoppedOut,
-        cameraCommand, weightDistribution, jointEditMode, showNotification
+        activePanel, selectedJoints, activeDirection, notification, activeVisualizer,
+        mixerState, activePresetPage, activeCornerTools, isCameraActive, isVisualizerPoppedOut,
+        cameraCommand, weightDistribution, jointEditMode, showNotification,
+        // --- FADER INDEPENDENCE FIX ---
+        // Add new state to the dependency array.
+        movementFaderValues, setMovementFaderValue,
+        // --- END OF FIX ---
     ]);
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;
