@@ -1,23 +1,53 @@
 // src/components/ui/DirectionalControls.jsx
 import React from 'react';
-import classNames from 'classnames';
-import { useUIState } from '../../context/UIStateContext';
+import PropTypes from 'prop-types';
 import './DirectionalControls.css';
 
-const DirectionalControls = () => {
-    const { activeDirection, setActiveDirection } = useUIState();
+const gridLayout = [
+    { vector: { x: -1, y: 1 } }, { vector: { x: 0, y: 1 } }, { vector: { x: 1, y: 1 } },
+    { vector: { x: -1, y: 0 } }, { vector: { x: 0, y: 0 } }, { vector: { x: 1, y: 0 } },
+    { vector: { x: -1, y: -1 } }, { vector: { x: 0, y: -1 } }, { vector: { x: 1, y: -1 } }
+];
 
-    const handleClick = (direction) => {
-        console.log(`[Direction] Set to: ${direction}`);
-        setActiveDirection(direction);
+const DirectionalControls = ({ onDirectionalClick, activeVector }) => {
+    
+    const handleGridClick = (gridVector) => {
+        if (!onDirectionalClick) return;
+        // This component only deals with X and Y. The parent will handle the Z value.
+        onDirectionalClick({ x: gridVector.x, y: gridVector.y });
     };
 
     return (
         <div className="directional-controls-container">
-            <button className={classNames('dir-btn', {active: activeDirection === 'up_down'})} onClick={() => handleClick('up_down')}>UP/DOWN</button>
-            <button className={classNames('dir-btn', {active: activeDirection === 'l_r'})} onClick={() => handleClick('l_r')}>LEFT/RIGHT</button>
-            <button className={classNames('dir-btn', {active: activeDirection === 'fwd_bwd'})} onClick={() => handleClick('fwd_bwd')}>FWD/BACK</button>
+            <div className="directional-grid">
+                {gridLayout.map((cell, index) => {
+                    // The active green dot is shown if the vector matches the current joint's vector on the XY plane.
+                    const isActive = activeVector && 
+                                     activeVector.x === cell.vector.x && 
+                                     activeVector.y === cell.vector.y;
+                    
+                    return (
+                        <button 
+                            key={index} 
+                            className="dir-grid-btn"
+                            onClick={() => handleGridClick(cell.vector)}
+                        >
+                            {isActive && <div className="active-indicator"></div>}
+                        </button>
+                    );
+                })}
+            </div>
         </div>
     );
 };
+
+DirectionalControls.propTypes = {
+    onDirectionalClick: PropTypes.func.isRequired,
+    activeVector: PropTypes.shape({
+        x: PropTypes.number,
+        y: PropTypes.number,
+        z: PropTypes.number,
+    }),
+};
+
 export default DirectionalControls;

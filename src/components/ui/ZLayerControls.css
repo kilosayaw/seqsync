@@ -1,0 +1,40 @@
+/* src/components/ui/ZLayerControls.css */
+.z-layer-controls-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    height: 40px;
+    padding: 5px;
+    background-color: rgba(20, 20, 20, 0.8);
+    border-radius: 8px;
+    border: 1px solid var(--medium-gray);
+    pointer-events: all;
+}
+
+.z-layer-btn {
+    width: 70px;
+    background-color: var(--dark-gray);
+    color: var(--light-gray);
+    border: 1px solid var(--medium-gray);
+    padding: 5px 0;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    font-weight: bold;
+}
+
+.z-layer-btn:hover {
+    background-color: var(--medium-gray);
+    border-color: var(--light-gray);
+}
+
+.z-layer-btn.active {
+    background-color: var(--primary-yellow);
+    color: var(--background-dark-gray);
+}

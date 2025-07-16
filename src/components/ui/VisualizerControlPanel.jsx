@@ -1,11 +1,12 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
 import JointRoleSelector from './JointRoleSelector';
 import { FaExternalLinkAlt } from 'react-icons/fa';
 import './VisualizerControlPanel.css';
 
-const VisualizerControlPanel = () => {
+const VisualizerControlPanel = ({ visualizerMode, setVisualizerMode }) => {
     const { 
         activeVisualizer, setActiveVisualizer, 
         isVisualizerPoppedOut, setIsVisualizerPoppedOut, 
@@ -49,19 +50,28 @@ const VisualizerControlPanel = () => {
             {isEditing && (
                 <div className="control-row checkbox-row">
                     <label htmlFor="face-camera-toggle" className="control-label">Face Camera:</label>
-                    <input
-                        type="checkbox"
-                        id="face-camera-toggle"
-                        checked={isFacingCamera}
-                        onChange={handleFacingCameraToggle}
-                        disabled={activePad === null}
-                    />
+                    <input type="checkbox" id="face-camera-toggle" checked={isFacingCamera} onChange={handleFacingCameraToggle} disabled={activePad === null} />
                 </div>
             )}
 
             <JointRoleSelector />
+
+            {/* RESTORED: The view mode toggle button is now here, as per your design. */}
+            <div className="control-row">
+                 <button 
+                    onClick={() => setVisualizerMode(prev => prev === 'skeleton' ? 'ribbon' : 'skeleton')}
+                    className="view-toggle-btn"
+                >
+                    View: {visualizerMode.charAt(0).toUpperCase() + visualizerMode.slice(1)}
+                </button>
+            </div>
         </div>
     );
+};
+
+VisualizerControlPanel.propTypes = {
+    visualizerMode: PropTypes.string.isRequired,
+    setVisualizerMode: PropTypes.func.isRequired,
 };
 
 export default VisualizerControlPanel;

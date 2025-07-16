@@ -1,10 +1,11 @@
+// src/components/layout/RightDeck.jsx
 import React from 'react';
+import PropTypes from 'prop-types';
 import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
 import RotaryController from '../ui/RotaryController/RotaryController';
 import PerformancePad from '../ui/PerformancePad';
 import OptionButtons from '../ui/OptionButtons';
-import DirectionalControls from '../ui/DirectionalControls';
 import PresetPageSelectors from '../ui/PresetPageSelectors';
 import CornerToolPanel from '../ui/CornerToolPanel';
 import { useUIState } from '../../context/UIStateContext';
@@ -18,62 +19,51 @@ const RightDeck = ({ onPadEvent }) => {
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     const { STEPS_PER_BAR } = useSequence();
 
-    // DEFINITIVE: The Deck is the single source of truth for its editing state.
     const relevantSelectedJoints = selectedJoints.filter(j => j.startsWith('R'));
     const isEditing = relevantSelectedJoints.length > 0;
     const activeJointId = isEditing ? relevantSelectedJoints[0] : null;
     
     const handleCornerToolClick = (toolName) => {
-        if (toolName === 'BLANK') setActiveCornerTool('none');
-        else setActiveCornerTool(prev => prev === toolName ? 'none' : toolName);
+        setActiveCornerTools(prev => ({ ...prev, right: prev.right === toolName ? 'none' : toolName }));
     };
 
     return (
         <div className="deck-wrapper">
             <div className="deck-container" data-side="right">
-                <DeckJointList side="right" />
+                <div className="side-controls-column">
+                    <PresetPageSelectors side="right" />
+                </div>
+
+                <div className="turntable-and-pads-area">
+                    <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
+                        <div className="rotary-controller-container">
+                            <RotaryController deckId="deck2" isEditing={isEditing} activeJointId={activeJointId} />
+                        </div>
+                        <button className={classNames('corner-tool-button', 'top-left', { 'active': activeCornerTools.right === 'ROT' })} onClick={() => handleCornerToolClick('ROT')}>ROT</button>
+                        <button className={classNames('corner-tool-button', 'top-right', { 'active': activeCornerTools.right === 'NRG' })} onClick={() => handleCornerToolClick('NRG')}>NRG</button>
+                        <button className={classNames('corner-tool-button', 'bottom-left', { 'active': activeCornerTools.right === 'INT' })} onClick={() => handleCornerToolClick('INT')}>INT</button>
+                        <button className="corner-tool-button bottom-right" onClick={() => handleCornerToolClick('BLANK')}></button>
+                    </div>
+                    <div className="pads-group">
+                        {Array.from({ length: 4 }).map((_, i) => {
+                            const stepInBar = i + 4;
+                            const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + stepInBar;
+                            return (<PerformancePad key={`right-${i}`} padIndex={globalPadIndex} beatNum={i + 5} isPulsing={isPlaying && selectedBar === currentBar && stepInBar === currentBeat} isSelected={activePad === globalPadIndex} onMouseDown={() => onPadEvent('down', globalPadIndex)} onMouseUp={() => onPadEvent('up', globalPadIndex)} onMouseLeave={() => onPadEvent('up', globalPadIndex)} side="right"/>);
+                        })}
+                    </div>
+                     {/* The panel is now correctly positioned relative to this parent div */}
+                    <CornerToolPanel side="right" />
+                </div>
 
                 <div className="side-controls-column">
                     <MovementFader />
                     <OptionButtons side="right" />
-                    <PresetPageSelectors side="right" />
                 </div>
                 
-                <DirectionalControls />
-
-                <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
-                    <div className="rotary-controller-container">
-                        <RotaryController deckId="deck2" isEditing={isEditing} activeJointId={isEditing ? relevantSelectedJoints[0] : null} />
-                    </div>
-                    <button className={classNames('corner-tool-button', 'top-left', { 'active': activeCornerTools.right === 'ROT' })} onClick={() => handleCornerToolClick('ROT')}>ROT</button>
-                    <button className={classNames('corner-tool-button', 'top-right', { 'active': activeCornerTools.right === 'NRG' })} onClick={() => handleCornerToolClick('NRG')}>NRG</button>
-                    <button className={classNames('corner-tool-button', 'bottom-left', { 'active': activeCornerTools.right === 'INT' })} onClick={() => handleCornerToolClick('INT')}>INT</button>
-                    <button className="corner-tool-button bottom-right" onClick={() => handleCornerToolClick('BLANK')}></button>
-                </div>
-                
-                <div className="pads-group">
-                    {Array.from({ length: 4 }).map((_, i) => {
-                        const stepInBar = i + 4;
-                        const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + stepInBar;
-                        return (
-                            <PerformancePad
-                                key={`right-${i}`}
-                                padIndex={globalPadIndex}
-                                beatNum={i + 5}
-                                isPulsing={isPlaying && selectedBar === currentBar && stepInBar === currentBeat}
-                                isSelected={activePad === globalPadIndex}
-                                onMouseDown={() => onPadEvent('down', globalPadIndex)}
-                                onMouseUp={() => onPadEvent('up', globalPadIndex)}
-                                onMouseLeave={() => onPadEvent('up', globalPadIndex)}
-                                side="right"
-                            />
-                        );
-                    })}
-                </div>
+                <DeckJointList side="right" />
             </div>
-            <CornerToolPanel side="right" />
         </div>
     );
 };
-
+RightDeck.propTypes = { onPadEvent: PropTypes.func.isRequired };
 export default RightDeck;

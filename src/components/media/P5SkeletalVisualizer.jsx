@@ -2,6 +2,7 @@ import React from 'react';
 import { ReactP5Wrapper } from '@p5-wrapper/react';
 import PropTypes from 'prop-types';
 import { POSE_CONNECTIONS, JOINT_LIST } from '../../utils/constants';
+import { debounce } from '../../utils/debounce';
 
 const LIMB_CONNECTIONS = new Set([
     'LS-LE', 'LE-LW',
@@ -16,38 +17,29 @@ function sketch(p5) {
     let animationProgress = 0;
     const animationDuration = 0.5;
     let colors = {};
+    let internalZoom = 1.0;
+    let currentVisualizerMode = 'skeleton';
+
+    const applyZoom = (delta) => {
+        internalZoom -= delta * 0.001;
+        internalZoom = p5.constrain(internalZoom, 0.2, 5.0);
+    };
+    const debouncedZoomHandler = debounce(applyZoom, 15);
 
     function applyDynamicRigging(originalPose) {
-        if (!originalPose || !originalPose.jointInfo) {
-            return {};
-        }
-
+        if (!originalPose || !originalPose.jointInfo) return {};
         const riggedJointInfo = JSON.parse(JSON.stringify(originalPose.jointInfo));
-        
-        // PHOENIX PROTOCOL FIX: Defensively check for grounding object before accessing its properties.
         const grounding = originalPose.grounding || {};
         const leftGrounding = grounding.LF || '';
         const rightGrounding = grounding.RF || '';
-
-
-        // PHOENIX PROTOCOL FIX: Check for 'grounding.LF' not 'grounding.L'
-        if (!leftGrounding.includes('3')) { // If Left Heel is lifted
+        if (!leftGrounding.includes('3')) {
             if (riggedJointInfo.LA) riggedJointInfo.LA.vector.y += 0.1;
-            if (riggedJointInfo.LK) {
-                riggedJointInfo.LK.vector.y += 0.05;
-                riggedJointInfo.LK.vector.z -= 0.05;
-            }
+            if (riggedJointInfo.LK) { riggedJointInfo.LK.vector.y += 0.05; riggedJointInfo.LK.vector.z -= 0.05; }
         }
-        
-        // PHOENIX PROTOCOL FIX: Check for 'grounding.RF' not 'grounding.R'
-        if (!rightGrounding.includes('3')) { // If Right Heel is lifted
+        if (!rightGrounding.includes('3')) {
             if (riggedJointInfo.RA) riggedJointInfo.RA.vector.y += 0.1;
-            if (riggedJointInfo.RK) {
-                riggedJointInfo.RK.vector.y += 0.05;
-                riggedJointInfo.RK.vector.z -= 0.05;
-            }
+            if (riggedJointInfo.RK) { riggedJointInfo.RK.vector.y += 0.05; riggedJointInfo.RK.vector.z -= 0.05; }
         }
-
         return riggedJointInfo;
     }
 
@@ -60,41 +52,33 @@ function sketch(p5) {
         }
         if (props.highlightJoints !== undefined) highlightJoints = props.highlightJoints;
         if (props.isFacingCamera !== undefined) isFacingCamera = props.isFacingCamera;
-        
+        if (props.visualizerMode) {
+            currentVisualizerMode = props.visualizerMode;
+        }
         if (props.width && props.height) {
             if (canvasSize.width !== props.width || canvasSize.height !== props.height) {
                 canvasSize = { width: props.width, height: props.height };
                 p5.resizeCanvas(canvasSize.width, canvasSize.height);
             }
         }
-
         if (props.cameraCommand) {
-            console.log(`P5SkeletalVisualizer: Received camera command -> ${props.cameraCommand}`);
             switch (props.cameraCommand) {
                 case 'front': p5.pan = 0; p5.tilt = -20; break;
                 case 'rear': p5.pan = 180; p5.tilt = -20; break;
                 case 'left': p5.pan = -90; p5.tilt = 0; break;
                 case 'right': p5.pan = 90; p5.tilt = 0; break;
-                case 'reset': p5.pan = 0; p5.tilt = -20; p5.zoom = 1.0; break;
+                case 'reset': p5.pan = 0; p5.tilt = -20; internalZoom = 1.0; break;
                 default: break;
             }
-            if (props.onCommandComplete) {
-                props.onCommandComplete();
-            }
+            if (props.onCommandComplete) props.onCommandComplete();
         }
     };
 
     p5.setup = () => {
         p5.createCanvas(canvasSize.width, canvasSize.height, p5.WEBGL);
         p5.angleMode(p5.DEGREES);
-
-        p5.zoom = 1.0;
-        p5.pan = 0;
-        p5.tilt = -20;
-        p5.isDragging = false;
-        p5.lastMouseX = 0;
-        p5.lastMouseY = 0;
-
+        p5.pan = 0; p5.tilt = -20; p5.isDragging = false;
+        p5.lastMouseX = 0; p5.lastMouseY = 0;
         colors = {
             highlight: p5.color('#FFDF00'), line: p5.color(255, 255, 255, 150),
             mover: p5.color('#ff5252'), stabilizer: p5.color('#00e676'),
@@ -103,113 +87,45 @@ function sketch(p5) {
         };
     };
 
-    p5.mousePressed = () => {
-        if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
-            console.log('P5SkeletalVisualizer: Mouse pressed for drag.');
-            p5.isDragging = true;
-            p5.lastMouseX = p5.mouseX;
-            p5.lastMouseY = p5.mouseY;
-        }
-    }
-    
-    p5.mouseReleased = () => { 
-        if(p5.isDragging) console.log('P5SkeletalVisualizer: Mouse released, ended drag.');
-        p5.isDragging = false; 
-    }
-    
-    p5.mouseDragged = () => {
-        if (p5.isDragging) {
-            const dx = p5.mouseX - p5.lastMouseX;
-            const dy = p5.mouseY - p5.lastMouseY;
-            p5.pan -= dx * 0.5;
-            p5.tilt += dy * 0.5;
-            p5.tilt = p5.constrain(p5.tilt, -90, 90);
-            p5.lastMouseX = p5.mouseX;
-            p5.lastMouseY = p5.mouseY;
-        }
-    }
-
-    p5.mouseWheel = (event) => {
-        if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) {
-            console.log(`P5SkeletalVisualizer: Mouse wheel scrolled. Delta: ${event.deltaY}`);
-            p5.zoom -= event.deltaY * 0.001;
-            p5.zoom = p5.constrain(p5.zoom, 0.2, 5.0);
-            return false;
-        }
-    }
+    p5.mousePressed = () => { if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) { p5.isDragging = true; p5.lastMouseX = p5.mouseX; p5.lastMouseY = p5.mouseY; } }
+    p5.mouseReleased = () => { p5.isDragging = false; }
+    p5.mouseDragged = () => { if (p5.isDragging) { const dx = p5.mouseX - p5.lastMouseX; const dy = p5.mouseY - p5.lastMouseY; p5.pan -= dx * 0.5; p5.tilt += dy * 0.5; p5.tilt = p5.constrain(p5.tilt, -90, 90); p5.lastMouseX = p5.mouseX; p5.lastMouseY = p5.mouseY; } }
+    p5.mouseWheel = (event) => { if (p5.mouseX > 0 && p5.mouseX < p5.width && p5.mouseY > 0 && p5.mouseY < p5.height) { debouncedZoomHandler(event.deltaY); return false; } }
 
     p5.draw = () => {
         p5.background(0, 0, 0, 0);
         p5.push();
-        const camDist = 800 * p5.zoom;
-        const camX = camDist * p5.cos(p5.pan);
-        const camZ = camDist * p5.sin(p5.pan);
+        const camDist = 800 * internalZoom;
+        const camX = camDist * p5.cos(p5.pan); const camZ = camDist * p5.sin(p5.pan);
         const camY = camDist * p5.sin(p5.tilt);
         p5.camera(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
-
         p5.ambientLight(150);
         p5.pointLight(255, 255, 255, 0, -200, 200);
-        
         const poseToDraw = calculateCurrentPose();
         if (poseToDraw) drawSkeleton(poseToDraw);
-        
         p5.pop();
-
-        if (isFacingCamera) {
-            p5.push();
-            p5.fill(255, 255, 0, 200);
-            p5.textSize(16);
-            p5.textAlign(p5.LEFT, p5.TOP);
-            p5.translate(-p5.width / 2, -p5.height / 2, 0);
-            p5.text("FACING CAMERA", 10, 10);
-            p5.pop();
-        }
+        if (isFacingCamera) { p5.push(); p5.fill(255, 255, 0, 200); p5.textSize(16); p5.textAlign(p5.LEFT, p5.TOP); p5.translate(-p5.width / 2, -p5.height / 2, 0); p5.text("FACING CAMERA", 10, 10); p5.pop(); }
     };
 
-    function rotateVectorAroundAxis(vec, axis, angle) {
-        const a = p5.radians(angle);
-        const cosA = Math.cos(a);
-        const sinA = Math.sin(a);
-        const u = axis.x; const v = axis.y; const w = axis.z;
-        const x = vec.x; const y = vec.y; const z = vec.z;
-        const dot = u * x + v * y + w * z;
-        const x_rot = u * dot * (1 - cosA) + x * cosA + (-w * y + v * z) * sinA;
-        const y_rot = v * dot * (1 - cosA) + y * cosA + (w * x - u * z) * sinA;
-        const z_rot = w * dot * (1 - cosA) + z * cosA + (-v * x + u * y) * sinA;
-        return p5.createVector(x_rot, y_rot, z_rot);
-    }
+    function rotateVectorAroundAxis(vec, axis, angle) { const a = p5.radians(angle); const cosA = Math.cos(a); const sinA = Math.sin(a); const u = axis.x; const v = axis.y; const w = axis.z; const x = vec.x; const y = vec.y; const z = vec.z; const dot = u * x + v * y + w * z; const x_rot = u * dot * (1 - cosA) + x * cosA + (-w * y + v * z) * sinA; const y_rot = v * dot * (1 - cosA) + y * cosA + (w * x - u * z) * sinA; const z_rot = w * dot * (1 - cosA) + z * cosA + (-v * x + u * y) * sinA; return p5.createVector(x_rot, y_rot, z_rot); }
     
     function drawRibbonLimb(startVec, endVec, rotationType = 'NEU') {
-        const ribbonWidth = 15;
-        const segments = 10;
-        let totalTwist = 0;
-        if (rotationType === 'IN') totalTwist = -90;
-        if (rotationType === 'OUT') totalTwist = 90;
-
+        const ribbonWidth = 15; const segments = 10; let totalTwist = 0;
+        if (rotationType === 'IN') totalTwist = -90; if (rotationType === 'OUT') totalTwist = 90;
         const limbVector = p5.constructor.Vector.sub(endVec, startVec).normalize();
         let perp = p5.createVector(0, 1, 0);
-        if (Math.abs(limbVector.dot(perp)) > 0.99) {
-            perp = p5.createVector(1, 0, 0);
-        }
+        if (Math.abs(limbVector.dot(perp)) > 0.99) { perp = p5.createVector(1, 0, 0); }
         let edgeVector = limbVector.cross(perp).normalize().mult(ribbonWidth / 2);
-
-        p5.noStroke();
-        p5.beginShape(p5.TRIANGLE_STRIP);
-
+        p5.noStroke(); p5.beginShape(p5.TRIANGLE_STRIP);
         for (let i = 0; i <= segments; i++) {
             const t = i / segments;
             const centerPoint = p5.constructor.Vector.lerp(startVec, endVec, t);
             const twistAngle = p5.lerp(0, totalTwist, t);
-            
             const rotatedEdge = rotateVectorAroundAxis(edgeVector, limbVector, twistAngle);
-
             const v1 = p5.constructor.Vector.add(centerPoint, rotatedEdge);
             const v2 = p5.constructor.Vector.sub(centerPoint, rotatedEdge);
-
-            p5.fill(colors.ribbonEdge1);
-            p5.vertex(v1.x, v1.y, v1.z);
-            p5.fill(colors.ribbonEdge2);
-            p5.vertex(v2.x, v2.y, v2.z);
+            p5.fill(colors.ribbonEdge1); p5.vertex(v1.x, v1.y, v1.z);
+            p5.fill(colors.ribbonEdge2); p5.vertex(v2.x, v2.y, v2.z);
         }
         p5.endShape();
     }
@@ -217,31 +133,20 @@ function sketch(p5) {
     function drawSkeleton(pose) {
         const riggedJointInfo = applyDynamicRigging(pose);
         if (!riggedJointInfo) return;
-
-        const getCoords = (vector) => p5.createVector(
-            vector.x * (canvasSize.width / 4),
-            -vector.y * (canvasSize.height / 2.5),
-            (vector.z || 0) * (canvasSize.width / 4)
-        );
-
+        const getCoords = (vector) => p5.createVector(vector.x * (canvasSize.width / 4), -vector.y * (canvasSize.height / 2.5), (vector.z || 0) * (canvasSize.width / 4));
         POSE_CONNECTIONS.forEach(([startKey, endKey]) => {
-            const startJ = riggedJointInfo[startKey];
-            const endJ = riggedJointInfo[endKey];
+            const startJ = riggedJointInfo[startKey]; const endJ = riggedJointInfo[endKey];
             if (startJ?.score > 0.5 && endJ?.score > 0.5) {
-                const start = getCoords(startJ.vector);
-                const end = getCoords(endJ.vector);
+                const start = getCoords(startJ.vector); const end = getCoords(endJ.vector);
                 const connectionId = `${startKey}-${endKey}`;
-
-                if (LIMB_CONNECTIONS.has(connectionId)) {
+                if (currentVisualizerMode === 'ribbon' && LIMB_CONNECTIONS.has(connectionId)) {
                     drawRibbonLimb(start, end, endJ.rotationType);
                 } else {
-                    p5.stroke(colors.line);
-                    p5.strokeWeight(3);
+                    p5.stroke(colors.line); p5.strokeWeight(3);
                     p5.line(start.x, start.y, start.z, end.x, end.y, end.z);
                 }
             }
         });
-
         p5.noStroke();
         for (const key in riggedJointInfo) {
             const joint = riggedJointInfo[key];
@@ -249,11 +154,8 @@ function sketch(p5) {
             const pos = getCoords(joint.vector);
             const isHighlighted = highlightJoints.includes(key);
             let jointColor = isHighlighted ? colors.highlight : (joint.role && colors[joint.role] ? colors[joint.role] : colors.frame);
-            
-            p5.push();
-            p5.translate(pos.x, pos.y, pos.z);
-            p5.ambientMaterial(jointColor);
-            p5.sphere(isHighlighted ? 10 : 8);
+            p5.push(); p5.translate(pos.x, pos.y, pos.z);
+            p5.ambientMaterial(jointColor); p5.sphere(isHighlighted ? 10 : 8);
             p5.pop();
         }
     }
@@ -262,22 +164,13 @@ function sketch(p5) {
         if (animationState === 'playing' && startPose?.jointInfo && endPose?.jointInfo) {
             animationProgress += p5.deltaTime / 1000;
             const t = p5.constrain(animationProgress / animationDuration, 0, 1);
-            const interpolatedPose = { 
-                jointInfo: {}, 
-                meta: endPose.meta, 
-                grounding: endPose.grounding 
-            };
+            const interpolatedPose = { jointInfo: {}, meta: endPose.meta, grounding: endPose.grounding };
             JOINT_LIST.forEach(({ id }) => {
-                const startJ = startPose.jointInfo[id] || endPose.jointInfo[id];
-                const endJ = endPose.jointInfo[id] || startPose.jointInfo[id];
+                const startJ = startPose.jointInfo[id] || endPose.jointInfo[id]; const endJ = endPose.jointInfo[id] || startPose.jointInfo[id];
                 if (startJ && endJ) {
                     interpolatedPose.jointInfo[id] = {
                         ...startJ, ...endJ,
-                        vector: {
-                            x: p5.lerp(startJ.vector.x, endJ.vector.x, t),
-                            y: p5.lerp(startJ.vector.y, endJ.vector.y, t),
-                            z: p5.lerp(startJ.vector.z || 0, endJ.vector.z || 0, t),
-                        },
+                        vector: { x: p5.lerp(startJ.vector.x, endJ.vector.x, t), y: p5.lerp(startJ.vector.y, endJ.vector.y, t), z: p5.lerp(startJ.vector.z || 0, endJ.vector.z || 0, t) },
                         score: p5.lerp(startJ.score, endJ.score, t),
                     };
                 }
@@ -307,6 +200,7 @@ P5SkeletalVisualizer.propTypes = {
     onCommandComplete: PropTypes.func,
     width: PropTypes.number.isRequired,
     height: PropTypes.number.isRequired,
+    visualizerMode: PropTypes.oneOf(['skeleton', 'ribbon']),
 };
 
 export default React.memo(P5SkeletalVisualizer);

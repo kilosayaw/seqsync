@@ -1,33 +1,49 @@
 /* src/components/ui/DirectionalControls.css */
 .directional-controls-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-sm);
-    width: 100%;
-    height: 100%; /* Make container fill the grid cell height */
-    flex-shrink: 0;
-}
-.dir-btn {
-    /* DEFINITIVE REFACTOR: Styling for taller buttons with bottom-aligned text */
-    height: 100%; /* Make buttons fill the container height */
-    padding: var(--spacing-sm); /* Add padding for text */
-    font-size: 0.9rem; /* Larger font size */
-    font-weight: bold;
-    color: var(--color-text-secondary);
-    background-color: var(--color-dark-surface-3);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-sm);
-    transition: all 0.2s ease;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
     display: flex;
     justify-content: center;
-    align-items: flex-end; /* Align text to the bottom */
-}
-.dir-btn:hover {
-    border-color: var(--color-text-primary);
+    align-items: center;
+    pointer-events: all;
+    padding: 10px; /* Add some padding to give it a background */
+    background-color: rgba(20, 20, 20, 0.8); /* Semi-transparent background */
+    border-radius: 8px;
+    border: 1px solid var(--medium-gray);
 }
 
-.dir-btn.active {
-    background-color: var(--color-accent-blue);
-    color: var(--color-dark-bg);
-    border-color: var(--color-accent-blue);
+.directional-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 5px;
+    width: 140px;
+    height: 140px;
+}
+
+.dir-grid-btn {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dir-grid-btn:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--primary-yellow);
+}
+
+.active-indicator {
+    width: 25px;
+    height: 25px;
+    background-color: var(--primary-green);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--primary-green), 0 0 12px var(--primary-green);
 }

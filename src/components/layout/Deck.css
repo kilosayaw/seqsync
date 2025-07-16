@@ -1,140 +1,78 @@
 /* src/components/layout/Deck.css */
 .deck-wrapper {
-    position: relative; /* This allows the modal to be positioned relative to the deck */
+    position: relative; /* This is CRITICAL for the modal to position itself correctly */
+    height: 100%;
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    min-width: 0;
-    min-height: 0;
-    flex: 1; 
-}
-
-.corner-tool-button.active {
-    border-color: var(--color-accent-green);
-    color: var(--color-accent-green);
-    background-color: var(--color-dark-surface-1);
 }
 
 .deck-container {
+    display: flex;
+    flex-direction: row; /* Restore the correct row-based layout */
+    padding: 15px;
+    gap: 15px;
+    background-color: var(--background-dark-gray);
+    border-radius: 10px;
+    border: 1px solid var(--dark-gray);
     flex-grow: 1;
-    display: grid;
-    grid-template-rows: auto 1fr auto; 
-    grid-template-areas:
-        "joints dir-controls side-controls"
-        "joints turntable-area side-controls"
-        "joints pads-area side-controls";
-    gap: var(--spacing-md);
-    background-color: var(--color-dark-surface-1);
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius-md);
-    min-height: 0;
-    min-width: 0;
 }
 
-.deck-container[data-side="right"] {
-    grid-template-areas:
-        "side-controls dir-controls joints"
-        "side-controls turntable-area joints"
-        "side-controls pads-area joints";
-}
-
-.deck-container > .deck-joint-list-container { grid-area: joints; }
-.deck-container > .directional-controls-container { grid-area: dir-controls; }
-.deck-container > .turntable-group { grid-area: turntable-area; }
-.deck-container > .side-controls-column { grid-area: side-controls; }
-.deck-container > .pads-group { grid-area: pads-area; }
-
-.side-controls-column {
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    justify-items: center;
-    gap: var(--spacing-lg);
-}
-
-.directional-controls-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-sm);
-    width: 100%;
-    margin: 0 auto;
+/* This is the MAIN central area for the turntable and pads */
+.turntable-and-pads-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex-grow: 1; /* This takes up the central space */
+    position: relative; /* This is also critical for the child modal's positioning */
 }
 
 .turntable-group {
-    min-width: 0;
-    min-height: 0;
-    aspect-ratio: 1 / 1; 
-    width: 100%;
-    max-height: 100%; 
-    margin: 0 auto;
-    background-color: var(--color-dark-surface-2);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-sm);
-    border: 1px solid var(--color-border);
-    position: relative; /* This is the main positioning context */
-    display: grid;
-    place-items: center;
+    position: relative;
+    width: 250px; /* Restore the original, large size */
+    height: 250px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* DEFINITIVE FIX: The controller container is now a simple grid area, not absolutely positioned. */
 .rotary-controller-container {
-    grid-area: 1 / 1; /* Occupy the single grid cell of the parent */
-    position: relative; /* It can be a positioning context for its children */
+    position: absolute;
     width: 100%;
     height: 100%;
-    display: grid;
-    place-items: center;
 }
-
-.editor-overlays {
-    grid-area: 1 / 1; /* The overlays occupy the SAME grid cell, stacking on top. */
-    width: 100%;
-    height: 100%;
-    display: grid;
-    place-items: center;
-    pointer-events: none;
-    z-index: 10; /* Ensure overlays are on top of the SVG */
-}
-
-.editor-overlays > * { pointer-events: all; }
 
 .pads-group {
-    width: 100%;
-    margin: 0 auto;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-md);
-    background-color: var(--color-dark-surface-2);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-md);
-    border: 1px solid var(--color-border);
+    gap: 8px;
+    width: 100%;
+    margin-top: 10px; /* Restore spacing */
+}
+
+/* This column holds the fader and option buttons */
+.side-controls-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    width: 80px; /* Give it a fixed width to maintain balance */
 }
 
 .corner-tool-button {
     position: absolute;
-    width: 45px;
-    height: 28px;
-    background-color: var(--color-dark-surface-3);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-sm);
-    color: var(--color-text-secondary);
-    font-weight: bold;
-    font-size: 0.8rem;
-    font-family: var(--font-primary);
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease-in-out;
-    z-index: 20; /* Must be on top of everything */
-}
-.turntable-group.is-editing .corner-tool-button {
-    opacity: 1;
-    pointer-events: all;
+    width: 40px; height: 25px;
+    background-color: var(--dark-gray);
+    border: 1px solid var(--medium-gray);
+    color: var(--light-gray-muted);
+    font-size: 10px; font-weight: bold;
     cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
 }
-.corner-tool-button.top-left { top: var(--spacing-sm); left: var(--spacing-sm); }
-.corner-tool-button.top-right { top: var(--spacing-sm); right: var(--spacing-sm); }
-.corner-tool-button.bottom-left { bottom: var(--spacing-sm); left: var(--spacing-sm); }
-.corner-tool-button.bottom-right { bottom: var(--spacing-sm); right: var(--spacing-sm); }
+.corner-tool-button:hover { border-color: var(--primary-yellow); color: var(--primary-yellow); }
+.corner-tool-button.active { background-color: var(--primary-yellow); color: var(--background-dark-gray); }
+.corner-tool-button.top-left { top: 5px; left: 5px; border-radius: 5px 0 0 0; }
+.corner-tool-button.top-right { top: 5px; right: 5px; border-radius: 0 5px 0 0; }
+.corner-tool-button.bottom-left { bottom: 5px; left: 5px; border-radius: 0 0 0 5px; }
+.corner-tool-button.bottom-right { bottom: 5px; right: 5px; border-radius: 0 0 5px 0; }
