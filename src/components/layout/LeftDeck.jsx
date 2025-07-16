@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import MovementFader from '../ui/MovementFader';
 import DeckJointList from '../ui/DeckJointList';
 import RotaryController from '../ui/RotaryController/RotaryController';
@@ -14,7 +15,6 @@ import classNames from 'classnames';
 import './Deck.css';
 
 const LeftDeck = ({ onPadEvent }) => {
-    // Get the new state object and its setter
     const { selectedBar, activePad, selectedJoints, activeCornerTools, setActiveCornerTools } = useUIState();
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     const { STEPS_PER_BAR } = useSequence();
@@ -35,7 +35,8 @@ const LeftDeck = ({ onPadEvent }) => {
             <div className="deck-container" data-side="left">
                 <DeckJointList side="left" />
                 <div className="side-controls-column">
-                    <MovementFader />
+                    {/* The only change is adding the side prop here */}
+                    <MovementFader side="left" />
                     <OptionButtons side="left" />
                     <PresetPageSelectors side="left" />
                 </div>
@@ -44,7 +45,6 @@ const LeftDeck = ({ onPadEvent }) => {
                     <div className="rotary-controller-container">
                         <RotaryController deckId="deck1" isEditing={isEditing} activeJointId={isEditing ? relevantSelectedJoints[0] : null} />
                     </div>
-                    {/* DEFINITIVE FIX #1: Buttons now get an 'active' class when their tool is open */}
                     <button className={classNames('corner-tool-button', 'top-left', { 'active': activeCornerTools.left === 'ROT' })} onClick={() => handleCornerToolClick('ROT')}>ROT</button>
                     <button className={classNames('corner-tool-button', 'top-right', { 'active': activeCornerTools.left === 'NRG' })} onClick={() => handleCornerToolClick('NRG')}>NRG</button>
                     <button className={classNames('corner-tool-button', 'bottom-left', { 'active': activeCornerTools.left === 'INT' })} onClick={() => handleCornerToolClick('INT')}>INT</button>
@@ -61,4 +61,9 @@ const LeftDeck = ({ onPadEvent }) => {
         </div>
     );
 };
+
+LeftDeck.propTypes = {
+    onPadEvent: PropTypes.func.isRequired,
+};
+
 export default LeftDeck;
