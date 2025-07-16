@@ -1,10 +1,16 @@
 /* src/components/ui/XYZGrid.css */
 .xyz-grid-container {
-    /* DEFINITIVE REFACTOR: Reduced size from 58% to 50% to fit inside the platter's inner circle. */
-    width: 50%;
-    height: 50%;
+    /* DEFINITIVE: Change these values to resize the grid. */
+    /* Let's try 45% for a slightly smaller grid. You can use any value. */
+    width: 42%;
+    height: 42%;
     
     position: absolute;
+    /* This part centers the grid inside its container (the platter) */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
@@ -12,7 +18,7 @@
     background-color: transparent; 
     padding: 2px;
     z-index: 2;
-    pointer-events: none;
+    pointer-events: all; /* Make sure the container itself can be interacted with */
 }
 .xyz-grid-container .xyz-grid-cell {
     pointer-events: all;

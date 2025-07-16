@@ -1,63 +1,4 @@
 /* src/components/ui/RotaryController.css */
-.base-foot-img {
-    fill: var(--color-dark-surface-1);
-    opacity: 0.6;
-    pointer-events: none;
-    /* DEFINITIVE FIX: Removed CSS transform properties. This will be handled inside the SVG component. */
-}
-
-.hotspot-indicator.active {
-    fill: var(--color-accent-green);
-    opacity: 0.9;
-    filter: url(#glow);
-    pointer-events: none;
-}
-.universal-editor-wrapper {
-    width: 100%;
-    height: 100%;
-    display: grid;
-    grid-template-columns: 40px 1fr 40px;
-    grid-template-rows: 40px 1fr 40px;
-    align-items: center;
-    justify-items: center;
-    gap: var(--spacing-xs);
-}
-
-.rotary-editor-container {
-    grid-area: 2 / 2 / 3 / 3;
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.corner-tool {
-    width: 100%;
-    height: 100%;
-    border: 1px dashed var(--color-border);
-    border-radius: var(--border-radius-sm);
-    background-color: rgba(42, 42, 42, 0.5); /* Semi-transparent */
-}
-
-.top-left { grid-area: 1 / 1; }
-.top-right { grid-area: 1 / 3; }
-.bottom-left { grid-area: 3 / 1; }
-.bottom-right { grid-area: 3 / 3; }
-
-.rotary-svg-wrapper {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 1; /* SVG is the base layer */
-}
-.rotary-svg { max-width: 100%; max-height: 100%; object-fit: contain; }
-.rotary-wheel-grab-area { 
-    cursor: grab; 
-}
-.rotary-wheel-grab-area:active { 
-    cursor: grabbing; 
-}
 
 .rotary-controller-container {
     position: relative;
@@ -67,59 +8,55 @@
     place-items: center;
 }
 
-.foot-editor-placeholder,
-.xyz-grid-container {
-    position: absolute;
-    width: 65%; /* Sized to fit inside the inner circle */
-    height: 65%;
-    z-index: 10; /* Placed on top of the SVG */
-    pointer-events: none; /* The container itself should not block clicks */
+/* DEFINITIVE FIX: The SVG wrapper is no longer absolutely positioned. */
+/* It will simply fill the space of its parent container. */
+.rotary-svg-wrapper {
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* The SVG is the base visual layer */
 }
-.xyz-grid-container .xyz-grid-cell {
-    pointer-events: all; /* Individual cells are clickable */
-}
-
-.foot-editor-placeholder {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    color: var(--color-text-secondary);
+.rotary-svg { 
+    max-width: 100%; 
+    max-height: 100%; 
+    object-fit: contain; 
 }
 
-.placeholder-text-small {
-    font-family: var(--font-primary);
-    font-size: 0.8rem;
-    color: var(--color-accent-blue);
-    padding: 0 var(--spacing-md);
-    text-align: center;
+.rotary-wheel-grab-area { 
+    cursor: grab; 
+}
+.rotary-wheel-grab-area:active { 
+    cursor: grabbing; 
+}
+
+/* The base foot image itself is transparent to clicks */
+.base-foot-img {
+    fill: var(--color-dark-surface-1);
+    opacity: 0.6;
     pointer-events: none;
-    line-height: 1.2;
 }
 
+/* The glowing green indicators */
+.hotspot-indicator.active {
+    fill: var(--color-accent-green);
+    opacity: 0.9;
+    filter: url(#glow);
+    pointer-events: none;
+}
+
+/* The invisible, larger shapes used for clicking */
 .hotspot-clickable-area {
     fill: transparent;
     cursor: pointer;
     transition: fill 0.15s ease-out;
-    z-index: 11; /* Must be on top of everything */
+    z-index: 11;
 }
 .hotspot-clickable-area:hover {
     fill: rgba(0, 255, 127, 0.3);
 }
 
-.turntable-placeholder-btn {
-    position: absolute;
-    width: 40px;
-    height: 30px;
-    background-color: var(--color-dark-surface-3);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-sm);
-    color: var(--color-text-secondary);
-    font-size: 0.7rem;
-    font-weight: bold;
-    display: grid;
-    place-items: center;
+/* Styles for the XYZGrid overlay */
+.xyz-grid-container {
+    width: 45%;
+    height: 45%;
+    /* The grid itself is positioned by its parent .editor-overlays, not here */
 }
-.placeholder-top-left { top: 25%; left: 10px; }
-.placeholder-top-right { top: 25%; right: 10px; }
-.placeholder-bottom-left { bottom: 25%; left: 10px; }

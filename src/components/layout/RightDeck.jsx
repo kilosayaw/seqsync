@@ -18,14 +18,14 @@ const RightDeck = ({ onPadEvent }) => {
     const { isPlaying, currentBar, currentBeat } = usePlayback();
     const { STEPS_PER_BAR } = useSequence();
 
-    const isJointSelected = selectedJoints.length > 0;
+    // DEFINITIVE: The Deck is the single source of truth for its editing state.
+    const relevantSelectedJoints = selectedJoints.filter(j => j.startsWith('R'));
+    const isEditing = relevantSelectedJoints.length > 0;
+    const activeJointId = isEditing ? relevantSelectedJoints[0] : null;
     
     const handleCornerToolClick = (toolName) => {
-        if (toolName === 'BLANK') {
-            setActiveCornerTool('none');
-            return;
-        }
-        setActiveCornerTool(prev => prev === toolName ? 'none' : toolName);
+        if (toolName === 'BLANK') setActiveCornerTool('none');
+        else setActiveCornerTool(prev => prev === toolName ? 'none' : toolName);
     };
 
     return (
@@ -41,9 +41,14 @@ const RightDeck = ({ onPadEvent }) => {
                 
                 <DirectionalControls />
 
-                <div className={classNames('turntable-group', { 'is-editing': isJointSelected })}>
+                <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
                     <div className="rotary-controller-container">
-                        <RotaryController deckId="deck2" />
+                        {/* DEFINITIVE: State is passed down as props. RotaryController is now a 'dumb' component. */}
+                        <RotaryController 
+                            deckId="deck2"
+                            isEditing={isEditing}
+                            activeJointId={activeJointId}
+                        />
                     </div>
                     <button className="corner-tool-button top-left" onClick={() => handleCornerToolClick('ROT')}>ROT</button>
                     <button className="corner-tool-button top-right" onClick={() => handleCornerToolClick('NRG')}>NRG</button>

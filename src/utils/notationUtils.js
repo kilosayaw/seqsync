@@ -1,45 +1,31 @@
-import { FOOT_HOTSPOT_COORDINATES } from './constants';
+import { JOINT_LIST, FOOT_HOTSPOT_COORDINATES } from './constants';
 
 export const resolveNotationFromPoints = (pointsSet, side) => {
     const sideKey = side.charAt(0).toUpperCase();
     const sidePrefix = `${sideKey}F`;
-
     const allPossiblePoints = new Set((FOOT_HOTSPOT_COORDINATES[sideKey] || []).map(p => p.notation));
-    if (pointsSet.size === allPossiblePoints.size) {
-        return `${sidePrefix}123T12345`;
-    }
-    
+    if (pointsSet.size === allPossiblePoints.size) return `${sidePrefix}123T12345`;
     const mainPoints = Array.from(pointsSet).filter(p => !p.startsWith('T')).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).join('');
     const toes = Array.from(pointsSet).filter(p => p.startsWith('T')).map(p => p.substring(1)).sort((a,b)=>a.localeCompare(b, undefined, {numeric: true})).join('');
-    
     let notation = sidePrefix;
     if (mainPoints) notation += mainPoints;
     if (toes) notation += `T${toes}`;
-    
     return notation === sidePrefix ? '' : notation;
 };
 
 export const getPointsFromNotation = (notation) => {
     const points = new Set();
     if (!notation || typeof notation !== 'string') return points;
-
     const side = notation.startsWith('LF') ? 'L' : (notation.startsWith('RF') ? 'R' : null);
     if (!side) return points;
-    
-    if (notation.includes('123T12345')) {
-        return new Set(FOOT_HOTSPOT_COORDINATES[side].map(p => p.notation));
-    }
-        
+    if (notation.includes('123T12345')) return new Set(FOOT_HOTSPOT_COORDINATES[side].map(p => p.notation));
     const remainder = notation.substring(2);
     const [mainPointsPart = '', toePart = ''] = remainder.split('T');
-    
     for (const char of mainPointsPart) { points.add(char); }
     for (const char of toePart) { points.add(`T${char}`); }
-    
     return points;
 };
 
-// ... (rest of the file is unchanged but included for completeness) ...
 export const formatTime = (seconds) => {
     if (isNaN(seconds) || seconds < 0) return '00:00:00';
     const time = new Date((seconds || 0) * 1000);
@@ -49,47 +35,49 @@ export const formatTime = (seconds) => {
     return `${minutes}:${secs}:${centiseconds}`;
 };
 
-export const formatFullNotation = (beatData, currentTime, barOverride) => {
+
+export const formatFullNotation = (beatData, currentTime, bar, beat) => {
     const timeStr = formatTime(currentTime || 0);
-    const barStr = String(barOverride || beatData?.bar || '01').padStart(2, '0');
+    const barBeatStr = `Bar:${String(bar || 1).padStart(2, '0')}:${beat || 0}`;
 
     if (!beatData || !beatData.joints) {
-        return `poSĒQr™ | ${timeStr} | ${barStr} | LF@0° | RF@0° | P(0,0,0) | P(0,0,0)`;
+        return `${timeStr}; ${barBeatStr};`;
     }
     
     const { joints } = beatData;
     
+    const displayOrder = [
+        'H', 'C', 'LF','RF', 'LA', 'RA', 'LK', 'RK', 'LH', 'RH', 'LS', 'RS', 'LE', 'RE', 'LW', 'RW', 'LP',   
+        'RP'
+    ];
+
     const formatJoint = (jointId) => {
         const joint = joints[jointId];
-        if (!joint) return jointId.endsWith('F') ? `${jointId}@0°` : 'P(0.0,0.0,0.0)';
-        
+        if (!joint) return `${jointId}(N/A)`;
+
         if (jointId.endsWith('F')) {
             const grounding = joint.grounding || `${jointId}`;
             const rotation = Math.round(joint.rotation || 0);
             return `${grounding}@${rotation}°`;
         }
-        
+
         if (joint.position) {
             const pos = joint.position;
-            return `P(${pos[0].toFixed(1)},${pos[1].toFixed(1)},${pos[2].toFixed(1)})`;
+            // DEFINITIVE FIX: Use Math.round() to remove decimals.
+            return `${jointId}(${Math.round(pos[0])},${Math.round(pos[1])},${Math.round(pos[2])})`;
         }
         
-        return 'P(0.0,0.0,0.0)';
+        return jointId;
     };
 
-    const lfNotation = formatJoint('LF');
-    const rfNotation = formatJoint('RF');
-    const lsNotation = formatJoint('LS');
-    const rsNotation = formatJoint('RS');
+    const allNotations = displayOrder.map(formatJoint).join(' | ');
 
-    return `poSĒQr™ | ${timeStr} | ${barStr} | ${lfNotation} | ${rfNotation} | ${lsNotation} | ${rsNotation}`;
+    return `${timeStr}; ${barBeatStr}; ${allNotations}`;
 };
 
 export const seekToPad = (params) => {
     const { wavesurfer, duration, bpm, padIndex, barStartTimes } = params;
-
     if (!wavesurfer || padIndex === null || !barStartTimes || !barStartTimes.length || bpm <= 0) return;
-
     const STEPS_PER_BAR = 8;
     const bar = Math.floor(padIndex / STEPS_PER_BAR);
     const stepInBar = padIndex % STEPS_PER_BAR;
@@ -97,8 +85,5 @@ export const seekToPad = (params) => {
     const timePerStep = (60 / bpm) / 2;
     const stepOffsetTime = stepInBar * timePerStep;
     const finalTime = barStartTime + stepOffsetTime;
-
-    if (duration > 0) {
-        wavesurfer.seekTo(finalTime / duration);
-    }
+    if (duration > 0) wavesurfer.seekTo(finalTime / duration);
 };
