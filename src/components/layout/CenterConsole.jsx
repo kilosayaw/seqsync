@@ -1,31 +1,26 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import BarBeatDisplay from '../ui/BarBeatDisplay'; // TYPO FIXED: Corrected 'Дisplay' to 'Display'
+import BarBeatDisplay from '../ui/BarBeatDisplay';
 import TransportControls from '../ui/TransportControls';
 import MasterFader from '../ui/MasterFader';
 import MediaDisplay from '../media/MediaDisplay';
 import VisualizerControlPanel from '../ui/VisualizerControlPanel';
-import JointEditModeToggle from '../ui/JointEditModeToggle';
+// --- DEFINITIVE FIX: The incorrect import is removed. ---
+// import GroundingDisplay from '../ui/GroundingDisplay'; 
 import './CenterConsole.css';
 
-// The component now accepts props from the parent layout
-const CenterConsole = ({ visualizerMode, setVisualizerMode }) => {
+const CenterConsole = () => {
     return (
         <div className="center-console-container">
             <div className="video-feed-placeholder">
-                {/* Passes the visualizerMode prop down to the MediaDisplay */}
-                <MediaDisplay visualizerMode={visualizerMode} />
+                <MediaDisplay />
             </div>
             
             <div className="center-controls-group">
                 <BarBeatDisplay />
                 <TransportControls />
-                {/* Passes both props to the control panel */}
-                <VisualizerControlPanel 
-                    visualizerMode={visualizerMode} 
-                    setVisualizerMode={setVisualizerMode} 
-                />
-                <JointEditModeToggle />
+                <VisualizerControlPanel />
+                {/* --- DEFINITIVE FIX: The redundant component is removed from the layout. --- */}
+                {/* The correct GroundingDisplay is inside MediaDisplay.jsx */}
             </div>
             
             <MasterFader /> 
@@ -33,10 +28,6 @@ const CenterConsole = ({ visualizerMode, setVisualizerMode }) => {
     );
 };
 
-// PropTypes are added for validation and bug prevention
-CenterConsole.propTypes = {
-    visualizerMode: PropTypes.string.isRequired,
-    setVisualizerMode: PropTypes.func.isRequired,
-};
+CenterConsole.propTypes = {};
 
 export default CenterConsole;

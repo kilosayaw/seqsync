@@ -16,21 +16,24 @@ const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
         if (!['LF', 'RF'].includes(joint.id)) {
-            // UPDATED: Use the vector object format for consistency
+            // --- DEFINITIVE FIX: The default intent is now 'BASE' ---
             joints[joint.id] = { 
                 vector: { x: 0, y: 0, z: 0 }, 
+                position: [0, 0, 0],
                 rotation: 0, 
                 rotationType: 'NEU',
-                intentType: 'PASS',
+                rotationIntensity: 100,
+                intentType: 'BASE', // Changed from 'PASS'
                 forceLevel: 0,
                 role: 'frame' 
             };
+            // --- END OF FIX ---
         }
     });
     joints['LF'] = { grounding: 'LF123T12345', rotation: 0, pivotPoint: 'L3' };
     joints['RF'] = { grounding: 'RF123T12345', rotation: 0, pivotPoint: 'R3' };
     
-    return { bar, beat: beatInBar, joints, sounds: [], meta: { isFacingCamera: false } };
+    return { bar, beat: beatInBar, joints, sounds: [], meta: {} };
 };
 
 const createDefaultSequence = () => {
@@ -44,7 +47,6 @@ const createDefaultPresets = () => ({
     left: Array(PRESET_PAGES).fill(null).map(() => Array(PRESETS_PER_PAGE).fill(null)),
     right: Array(PRESET_PAGES).fill(null).map(() => Array(PRESETS_PER_PAGE).fill(null)),
 });
-
 
 export const SequenceProvider = ({ children }) => {
     const [songData, setSongData] = useState(createDefaultSequence());
@@ -80,19 +82,15 @@ export const SequenceProvider = ({ children }) => {
         }));
     }, []);
 
-    // --- LOGIC ADDED ---
-    // The core function for real-time editing. Safely updates the vector of a specific joint.
     const updateJointVectorForActivePad = useCallback((jointId, newVector) => {
         if (activePad === null || !jointId) return;
         setSongData(produce(draft => {
             const beat = draft[activePad];
             if (beat?.joints?.[jointId]) {
-                // Merges the new vector properties (e.g., {x, y} or {z}) into the existing vector
                 beat.joints[jointId].vector = { ...beat.joints[jointId].vector, ...newVector };
             }
         }));
     }, [activePad]);
-    // --- END OF ADDED LOGIC ---
 
     const updateBeatMetaData = useCallback((globalBeatIndex, metaDataUpdate) => {
         setSongData(produce(draft => {
@@ -146,7 +144,7 @@ export const SequenceProvider = ({ children }) => {
         songData, setSongData, 
         totalBars, barStartTimes, STEPS_PER_BAR, 
         updateJointData, assignSoundToPad, updateBeatMetaData,
-        updateJointVectorForActivePad, // --- LOGIC ADDED --- Export the new function
+        updateJointVectorForActivePad,
         presets, savePoseToPreset, loadPoseFromPreset
     };
     

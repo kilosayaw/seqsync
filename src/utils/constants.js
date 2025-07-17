@@ -23,7 +23,6 @@ export const VISIBLE_JOINT_LIST = JOINT_LIST.filter(j =>
     !j.id.includes('C') && !j.id.includes('LP') && !j.id.includes('RP')
 );
 
-// DEFINITIVE FIX: Using the .png file paths as specified by the user's file system.
 export const BASE_FOOT_PATHS = {
     L: '/ground/foot-left.png',
     R: '/ground/foot-right.png',
@@ -40,7 +39,6 @@ export const DEFAULT_POSE = {
         'RE': { vector: { x: 0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
         'LW': { vector: { x: -0.6, y: -0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
         'RW': { vector: { x: 0.6, y: -0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        // DEFINITIVE: Added default data for Palm joints
         'LP': { vector: { x: -0.7, y: -0.4, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' }, 
         'RP': { vector: { x: 0.7, y: -0.4, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
         'LH': { vector: { x: -0.15, y: 0.1, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
@@ -49,6 +47,11 @@ export const DEFAULT_POSE = {
         'RK': { vector: { x: 0.2, y: -0.35, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
         'LA': { vector: { x: -0.25, y: -0.8, z: 0 }, score: 1, orientation: 'NEU', role: 'stabilizer' },
         'RA': { vector: { x: 0.25, y: -0.8, z: 0 }, score: 1, orientation: 'NEU', role: 'stabilizer' },
+        
+        // --- DEFINITIVE FIX: Add the missing default data for the feet ---
+        'LF': { vector: { x: -0.25, y: -0.9, z: -0.05 }, score: 1, orientation: 'NEU', role: 'frame' },
+        'RF': { vector: { x: 0.25, y: -0.9, z: -0.05 }, score: 1, orientation: 'NEU', role: 'frame' },
+        // --- END OF FIX ---
     }
 };
 
@@ -59,6 +62,10 @@ export const POSE_CONNECTIONS = [
     ['RS', 'RE'], ['RE', 'RW'],
     ['LH', 'LK'], ['LK', 'LA'],
     ['RH', 'RK'], ['RK', 'RA'],
+    // --- DEFINITIVE FIX: Ensure feet are connected ---
+    ['LA', 'LF'], 
+    ['RA', 'RF'],
+    // --- END OF FIX ---
 ];
 
 export const FOOT_HOTSPOT_COORDINATES = {
