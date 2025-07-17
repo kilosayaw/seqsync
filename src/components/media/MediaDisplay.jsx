@@ -8,6 +8,7 @@ import CameraQuickControls from '../ui/CameraQuickControls';
 import PopOutVisualizer from '../ui/PopOutVisualizer';
 import { useSequence } from '../../context/SequenceContext';
 import { convertPoseToVisualizerFormat } from '../../utils/poseUtils';
+import GroundingDisplay from '../ui/GroundingDisplay';
 import './MediaDisplay.css';
 
 const MediaDisplay = () => {
@@ -21,7 +22,6 @@ const MediaDisplay = () => {
         isVisualizerPoppedOut,
         cameraCommand,
         setCameraCommand,
-        // PHOENIX PROTOCOL: Get weightDistribution from state.
         weightDistribution, 
     } = useUIState();
     
@@ -33,13 +33,11 @@ const MediaDisplay = () => {
     const endSequencePose = songData[animationRange.end] || null;
 
     const startPose = convertPoseToVisualizerFormat(startSequencePose);
-    const endPose = convertPoseToVisualizerFormat(endSequencePose);
-    const isFacingCamera = activeSequencePose?.meta?.isFacingCamera || false;
+    const endPose = convertPoseToVisualizerFormat(endSequencePose || activeSequencePose);
 
-    // PHOENIX PROTOCOL: Created a separate component for the core vis to pass props.
     const CoreVisualizerComponent = () => (
         <CoreVisualizer
-            poseData={endPose} // Core viz doesn't animate, shows current pad's pose
+            poseData={endPose}
             weightDistribution={weightDistribution}
             width={isVisualizerPoppedOut ? 600 : containerRef.current?.clientWidth || 300} 
             height={isVisualizerPoppedOut ? 600 : containerRef.current?.clientHeight || 300} 
@@ -53,18 +51,17 @@ const MediaDisplay = () => {
                 endPose={endPose} 
                 animationState={animationState} 
                 highlightJoints={selectedJoints} 
-                isFacingCamera={isFacingCamera}
                 cameraCommand={cameraCommand}
                 onCommandComplete={() => setCameraCommand(null)}
                 width={isVisualizerPoppedOut ? 600 : containerRef.current?.clientWidth || 300} 
-                height={isVisualizerPoppedOut ? 600 : containerRef.current?.clientHeight || 300} 
+                height={isVisualizerPoppedOut ? 600 : containerRef.current?.clientHeight || 300}
             />
-            <CameraQuickControls />
+            <GroundingDisplay />
         </>
     );
 
     const renderVisualizer = () => {
-        if (isVisualizerPoppedOut) return null; // Rendered in portal if popped out
+        if (isVisualizerPoppedOut) return null;
 
         switch(activeVisualizer) {
             case 'full':
@@ -93,6 +90,7 @@ const MediaDisplay = () => {
         <>
             <div ref={containerRef} className="media-display-container">
                 {isCameraActive ? <><CameraFeed /><PoseOverlay /></> : renderVisualizer()}
+                {!isCameraActive && activeVisualizer !== 'none' && <CameraQuickControls />}
             </div>
 
             {isVisualizerPoppedOut && (

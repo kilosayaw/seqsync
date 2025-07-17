@@ -1,14 +1,12 @@
 .camera-quick-controls {
     position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
     display: flex;
+    flex-direction: column; /* Stack buttons vertically */
     gap: 8px;
-    background-color: rgba(40, 40, 40, 0.7);
-    padding: 8px;
-    border-radius: var(--border-radius-md);
-    z-index: 100;
+    z-index: 30; /* Ensure it's on top */
 }
 
 .camera-quick-controls button {
@@ -17,10 +15,16 @@
     color: var(--color-text-secondary);
     font-size: 0.8rem;
     font-weight: bold;
-    padding: 6px 12px;
+    /* --- STYLE UPDATE: Make buttons more compact and uniform --- */
+    width: 60px;
+    padding: 6px 0; /* Vertical padding only */
+    /* --- END STYLE UPDATE --- */
     border-radius: var(--border-radius-sm);
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .camera-quick-controls button:hover {

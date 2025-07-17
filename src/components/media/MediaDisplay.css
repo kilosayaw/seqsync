@@ -1,15 +1,24 @@
-/* src/components/media/MediaDisplay.css */
 .media-display-container {
-    position: relative;
+    position: relative; /* This is the main positioning context */
     width: 100%;
     height: 100%;
-    overflow: hidden;
-    display: grid;
+    background-color: #000;
+    border-radius: var(--border-radius-sm);
+    display: grid; /* Use grid for simple centering */
     place-items: center;
 }
-
 .placeholder-text {
-    font-family: var(--font-primary);
-    font-size: 1rem;
     color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+}
+/* --- DEFINITIVE FIX: Position camera controls on the right side --- */
+.camera-quick-controls {
+    position: absolute;
+    top: 50%;
+    right: 10px; /* Position on the right */
+    transform: translateY(-50%); /* Center vertically */
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    gap: 8px;
+    z-index: 30; /* Ensure they are on top of everything */
 }

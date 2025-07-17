@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import classNames from 'classnames';
 import { useUIState } from '../../context/UIStateContext';
-import './MasterFader.css'; // This import will now resolve correctly.
+import './MasterFader.css';
 
 const MasterFader = () => {
-    const { weightDistribution, setWeightDistribution } = useUIState();
+    // --- LOGIC UPDATED: Get the new mode state and setter ---
+    const { weightDistribution, setWeightDistribution, masterFaderMode, setMasterFaderMode } = useUIState();
+    // --- END OF LOGIC UPDATED ---
     const [isDragging, setIsDragging] = useState(false);
     const trackRef = useRef(null);
 
@@ -17,17 +20,13 @@ const MasterFader = () => {
     }, [setWeightDistribution]);
 
     const handleMouseDown = (e) => {
-        console.log("[Fader] MasterFader interaction started.");
         setIsDragging(true);
         updateValue(e.clientX);
     };
 
     const handleMouseUp = useCallback(() => {
-        if (isDragging) {
-            console.log("[Fader] MasterFader interaction ended.");
-            setIsDragging(false);
-        }
-    }, [isDragging]);
+        setIsDragging(false);
+    }, []);
 
     const handleMouseMove = useCallback((e) => {
         if (isDragging) {
@@ -47,10 +46,26 @@ const MasterFader = () => {
     const handleLeft = `${(weightDistribution + 1) / 2 * 100}%`;
 
     return (
-        <div className="master-fader-container" onMouseDown={handleMouseDown}>
-            <div ref={trackRef} className="master-fader-track">
-                <div className="master-fader-handle" style={{ left: handleLeft }}></div>
+        <div className="master-fader-wrapper">
+            {/* --- UI ADDED: Mode switching buttons --- */}
+            <button 
+                className={classNames('fader-mode-btn', 'left-btn', { 'active': masterFaderMode === 'head' })}
+                onClick={() => setMasterFaderMode('head')}
+            >
+                HEAD
+            </button>
+            <div className="master-fader-container" onMouseDown={handleMouseDown}>
+                <div ref={trackRef} className="master-fader-track">
+                    <div className="master-fader-handle" style={{ left: handleLeft }}></div>
+                </div>
             </div>
+            <button 
+                className={classNames('fader-mode-btn', 'right-btn', { 'active': masterFaderMode === 'hip' })}
+                onClick={() => setMasterFaderMode('hip')}
+            >
+                HIP
+            </button>
+            {/* --- END OF UI ADDED --- */}
         </div>
     );
 };

@@ -1,30 +1,17 @@
-// src/components/ui/VisualizerControlPanel.jsx
 import React from 'react';
-import PropTypes from 'prop-types';
 import { useUIState } from '../../context/UIStateContext';
-import { useSequence } from '../../context/SequenceContext';
-import JointRoleSelector from './JointRoleSelector';
 import { FaExternalLinkAlt } from 'react-icons/fa';
+// --- REMOVED ---
+// The JointRoleSelector is no longer needed or imported.
+// import JointRoleSelector from './JointRoleSelector'; 
 import './VisualizerControlPanel.css';
 
-// RESTORED: Now accepts props to control the view mode
-const VisualizerControlPanel = ({ visualizerMode, setVisualizerMode }) => {
+const VisualizerControlPanel = () => {
     const { 
         activeVisualizer, setActiveVisualizer, 
         isVisualizerPoppedOut, setIsVisualizerPoppedOut, 
-        activePad, selectedJoints
     } = useUIState();
     
-    const { songData, updateBeatMetaData } = useSequence();
-    const isEditing = selectedJoints.length > 0;
-    const isFacingCamera = activePad !== null && songData[activePad]?.meta?.isFacingCamera === true;
-
-    const handleFacingCameraToggle = () => {
-        if (activePad !== null) {
-            updateBeatMetaData(activePad, { isFacingCamera: !isFacingCamera });
-        }
-    };
-
     return (
         <div className="visualizer-control-panel">
             <div className="control-row">
@@ -49,32 +36,12 @@ const VisualizerControlPanel = ({ visualizerMode, setVisualizerMode }) => {
                 </button>
             </div>
             
-            {isEditing && (
-                <div className="control-row checkbox-row">
-                    <label htmlFor="face-camera-toggle" className="control-label">Face Camera:</label>
-                    <input type="checkbox" id="face-camera-toggle" checked={isFacingCamera} onChange={handleFacingCameraToggle} disabled={activePad === null} />
-                </div>
-            )}
-
-            <JointRoleSelector />
-
-            {/* RESTORED: The view mode toggle button is now here, as per your design. */}
-            <div className="control-row">
-                 <button 
-                    onClick={() => setVisualizerMode(prev => prev === 'skeleton' ? 'ribbon' : 'skeleton')}
-                    className="view-toggle-btn"
-                >
-                    View: {visualizerMode.charAt(0).toUpperCase() + visualizerMode.slice(1)}
-                </button>
-            </div>
+            {/* --- REMOVED --- */}
+            {/* The "Face Camera" checkbox and the JointRoleSelector component */}
+            {/* have been completely removed from the render output. */}
+            {/* --- END REMOVED --- */}
         </div>
     );
-};
-
-// RESTORED: Add PropTypes for validation
-VisualizerControlPanel.propTypes = {
-    visualizerMode: PropTypes.string.isRequired,
-    setVisualizerMode: PropTypes.func.isRequired,
 };
 
 export default VisualizerControlPanel;

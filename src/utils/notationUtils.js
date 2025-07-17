@@ -35,7 +35,6 @@ export const formatTime = (seconds) => {
     return `${minutes}:${secs}:${centiseconds}`;
 };
 
-
 export const formatFullNotation = (beatData, currentTime, bar, beat) => {
     const timeStr = formatTime(currentTime || 0);
     const barBeatStr = `Bar: ${String(bar || 1).padStart(2, '0')} | Beat: ${String(beat || 1).padStart(2, '0')}`;
@@ -55,22 +54,27 @@ export const formatFullNotation = (beatData, currentTime, bar, beat) => {
             return `${grounding}@${rotation}°`;
         }
 
-        if (joint.position) {
-            let notation = `${jointId}(${Math.round(joint.position[0])},${Math.round(joint.position[1])},${Math.round(joint.position[2])}`;
-            
-            // DEFINITIVE FIX: Display orientation, even if it's NEU.
-            if (joint.orientation) {
-                notation += ` ${joint.orientation}`;
+        const position = joint.position || [0, 0, 0];
+        let notation = `${jointId}(${Math.round(position[0])},${Math.round(position[1])},${Math.round(position[2])}`;
+        
+        if (joint.orientation && joint.orientation !== 'NEU') {
+            notation += ` ${joint.orientation}`;
+            if (joint.rotationIntensity !== undefined && joint.rotationIntensity < 100) {
+                notation += `@${joint.rotationIntensity}`;
             }
-            // DEFINITIVE FIX: Use new BASE/FORCE terms. 'PASS' is the default and will not be shown.
-            if (joint.intentType && joint.intentType !== 'PASS') {
-                notation += ` ${joint.intentType}`;
-            }
-            
-            notation += ')';
-            return notation;
         }
-        return `${jointId}(0,0,0)`;
+        
+        // --- DEFINITIVE FIX: Never display 'BASE' or the obsolete 'PASS' ---
+        if (joint.intentType && joint.intentType !== 'BASE' && joint.intentType !== 'PASS') {
+            notation += ` ${joint.intentType}`;
+            if (joint.intentType === 'FORCE' && joint.forceLevel > 0) {
+                notation += `@${joint.forceLevel}`;
+            }
+        }
+        // --- END OF FIX ---
+        
+        notation += ')';
+        return notation;
     };
 
     const allNotations = displayOrder.map(formatJoint).join(' | ');
