@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'; // Import useMemo
+import React, { useMemo } from 'react';
 import { useMedia } from '../../context/MediaContext.jsx';
 import { useUIState } from '../../context/UIStateContext.jsx';
 import { useSequence } from '../../context/SequenceContext.jsx';
@@ -16,36 +16,51 @@ import ConfirmDialog from '../ui/ConfirmDialog.jsx';
 import SoundBankPanel from '../ui/SoundBankPanel.jsx';
 import SourceMixerPanel from '../ui/SourceMixerPanel.jsx';
 import { useKeyboardControls } from '../../hooks/useKeyboardControls.js';
-import { seekToPad } from '../../utils/notationUtils.js';
+import { usePlaybackSync } from '../../hooks/usePlaybackSync.js';
 import './ProLayout.css';
 
 const ProLayout = () => {
-    const { 
-        isLoading, pendingFile, confirmLoad, cancelLoad, 
-        wavesurferInstance, videoRef, mediaType, duration, detectedBpm 
-    } = useMedia();
-    
-    const { activePad, setActivePad, padMode, selectedBar, selectedJoints } = useUIState();
-    const { songData, barStartTimes, STEPS_PER_BAR } = useSequence();
+    const { isLoading, pendingFile, confirmLoad, cancelLoad } = useMedia();
+    const { selectedJoints, activePad, padMode, selectedBar } = useUIState();
+    const { songData, STEPS_PER_BAR } = useSequence();
+    const { audioLevel, currentTime, isPlaying, currentBar, currentBeat } = usePlayback();
     const { playSound, stopSound } = useSound();
-    const { audioLevel, currentTime, isPlaying, playingBar, playingBeat } = usePlayback();
+    
+    const { handlePadClick } = usePlaybackSync();
 
-    const handlePadEvent = (type, padIndex) => { /* ... (This function is correct and unchanged) */ };
-    const handleKeyEvent = (type, localPadIndex) => { /* ... (This function is correct and unchanged) */ };
-    useKeyboardControls(/* ... */);
-    const mediaLoadActions = [ /* ... */ ];
+    const onPadEvent = (type, padIndex) => {
+        if (type === 'down') {
+            handlePadClick(padIndex);
+            const soundNote = songData[padIndex]?.sounds?.[0];
+            if (soundNote) playSound(soundNote);
+        } else if (type === 'up') {
+            if (padMode === 'GATE') {
+                const soundNote = songData[padIndex]?.sounds?.[0];
+                if (soundNote) stopSound(soundNote);
+            }
+        }
+    };
 
-    // --- DEFINITIVE FIX: Memoize props to prevent flickering ---
+    const handleKeyEvent = (type, localPadIndex) => {
+        const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + localPadIndex;
+        onPadEvent(type, globalPadIndex);
+    };
+
+    useKeyboardControls(
+        (localPadIndex) => handleKeyEvent('down', localPadIndex),
+        (localPadIndex) => handleKeyEvent('up', localPadIndex)
+    );
+
+    const mediaLoadActions = [
+        { label: "Cue Mode Only", onClick: () => confirmLoad('cue_only'), className: 'confirm-btn' },
+        { label: "Polyphonic (Both)", onClick: () => confirmLoad('polyphonic'), className: 'poly-btn' },
+        { label: "Cancel", onClick: cancelLoad, className: 'cancel-btn' }
+    ];
+
     const barBeatDisplayMemoProps = useMemo(() => ({
-        currentTime,
-        isPlaying,
-        playingBar,
-        playingBeat,
-        selectedBar,
-        activePad,
-        stepsPerBar: STEPS_PER_BAR
-    }), [currentTime, isPlaying, playingBar, playingBeat, selectedBar, activePad, STEPS_PER_BAR]);
-    // --- END OF FIX ---
+        currentTime, isPlaying, playingBar: currentBar, playingBeat: currentBeat,
+        selectedBar, activePad, stepsPerBar: STEPS_PER_BAR
+    }), [currentTime, isPlaying, currentBar, currentBeat, selectedBar, activePad, STEPS_PER_BAR]);
 
     return (
         <div className="pro-layout-container">
@@ -53,11 +68,11 @@ const ProLayout = () => {
             <MediaViewer />
             <NotationDisplay />
             <main className="main-content-area">
-                <LeftDeck onPadEvent={handlePadEvent} />
+                <LeftDeck onPadEvent={onPadEvent} />
                 <LevelMeter level={audioLevel} />
                 <CenterConsole selectedJoints={selectedJoints} barBeatDisplayProps={barBeatDisplayMemoProps} />
                 <LevelMeter level={audioLevel} />
-                <RightDeck onPadEvent={handlePadEvent} />
+                <RightDeck onPadEvent={onPadEvent} />
             </main>
             {isLoading && <LoadingOverlay />}
             <ConfirmDialog isVisible={!!pendingFile} message="How should this media be handled?" actions={mediaLoadActions} />

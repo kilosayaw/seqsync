@@ -2,13 +2,14 @@ import React, { useRef, useEffect } from 'react';
 import { useMedia } from '../../context/MediaContext.jsx';
 import { FaArrowAltCircleUp } from 'react-icons/fa';
 import classNames from 'classnames';
-import VideoTimeline from './VideoTimeline.jsx'; // Import our new component
+import VideoTimeline from './VideoTimeline.jsx';
 import './MediaViewer.css';
 
 const MediaViewer = () => {
     const { 
         waveformContainerRef, loadMedia, isMediaReady, setIsMediaReady,
-        mediaType, mediaSource, videoRef, setDuration
+        mediaType, mediaSource, videoRef, setDuration, setIsLoading,
+        extractVideoThumbnails, setVideoThumbnails
     } = useMedia();
     const fileInputRef = useRef(null);
 
@@ -25,36 +26,43 @@ const MediaViewer = () => {
     useEffect(() => {
         const video = videoRef.current;
         if (mediaType === 'video' && video) {
-            const handleLoadedData = () => {
+            const handleLoadedData = async () => {
+                console.log("[MediaViewer] Video metadata loaded. Updating state.");
                 setDuration(video.duration);
                 setIsMediaReady(true);
+                
+                // Now that the video is ready, extract thumbnails
+                try {
+                    const thumbs = await extractVideoThumbnails(video);
+                    setVideoThumbnails(thumbs);
+                    console.log("[MediaViewer] ✅ Thumbnail extraction complete.");
+                } catch(err) {
+                    console.error("[MediaViewer] ❌ Thumbnail extraction failed:", err);
+                } finally {
+                    setIsLoading(false); // Turn off the "Processing..." overlay
+                }
             };
-            video.addEventListener('loadeddata', handleLoadedData);
-            return () => video.removeEventListener('loadeddata', handleLoadedData);
+
+            video.addEventListener('loadedmetadata', handleLoadedData);
+            return () => video.removeEventListener('loadedmetadata', handleLoadedData);
         }
-    }, [mediaType, videoRef, setDuration, setIsMediaReady]);
+    }, [mediaType, videoRef, setDuration, setIsMediaReady, setIsLoading, extractVideoThumbnails, setVideoThumbnails]);
 
     const promptClasses = classNames('upload-prompt', { 'hidden': isMediaReady });
 
     return (
         <div className="media-viewer-container" onClick={handleContainerClick}>
             
-            {/* --- DEFINITIVE FIX: Conditional Rendering --- */}
-            {/* It now decides which visualizer to show based on mediaType */}
-            
             {mediaType === 'audio' && <div ref={waveformContainerRef} className="waveform" />}
-            
             {mediaType === 'video' && <VideoTimeline />}
-
-            {/* The video element is now only for playback, it's not visible in the timeline area */}
+            
             {mediaSource && mediaType === 'video' && (
                 <video 
                     ref={videoRef} 
                     src={mediaSource} 
-                    style={{ display: 'none' }} // The video player itself is hidden
+                    style={{ display: 'none' }}
                 />
             )}
-            {/* --- END OF FIX --- */}
             
             <div className={promptClasses}>
                 <FaArrowAltCircleUp />
@@ -71,4 +79,5 @@ const MediaViewer = () => {
         </div>
     );
 };
+
 export default MediaViewer;

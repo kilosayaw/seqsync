@@ -70,7 +70,8 @@ const RightDeck = ({ onPadEvent }) => {
                     <OptionButtons side="right" />
                     <PresetPageSelectors side="right" />
                 </div>
-                    <DirectionalControls />
+                
+                <DirectionalControls />
                 <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
                     <RotaryController deckId="deck2" isEditing={isEditing || isRotationMode} activeJointId={activeJointId} />
                     {showPositionGrid && (

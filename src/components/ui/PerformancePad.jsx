@@ -1,9 +1,10 @@
 // src/components/ui/PerformancePad.jsx
 import React from 'react';
 import classNames from 'classnames';
-import { useUIState } from '../../context/UIStateContext';
-import { useSequence } from '../../context/SequenceContext';
-import { useLongPress } from '../../hooks/useLongPress';
+import { useUIState } from '../../context/UIStateContext.jsx';
+import { useSequence } from '../../context/SequenceContext.jsx';
+import { usePlayback } from '../../context/PlaybackContext.jsx'; // Import playback context
+import { useLongPress } from '../../hooks/useLongPress.js';
 import './PerformancePad.css';
 
 // This is the Chevron Icon sub-component. It is unchanged but necessary.
@@ -16,9 +17,20 @@ const ChevronIcon = ({ position }) => {
     return <div className="chevron-icon" style={style}>›</div>;
 };
 
-const PerformancePad = ({ padIndex, beatNum, isPulsing, isSelected, onMouseDown, onMouseUp, onMouseLeave, side }) => {
-    const { activePad, activePresetPage, showNotification } = useUIState();
+const PerformancePad = ({ padIndex, beatNum, side }) => {
+    const { activePad, activePresetPage, showNotification, setSelectedJoints, setActivePad } = useUIState();
     const { songData, savePoseToPreset } = useSequence();
+    const { isPlaying, currentBeat } = usePlayback(); // Get isPlaying and currentBeat
+
+    // --- DEFINITIVE FIX: Determine if this pad is the current playhead ---
+    const isCurrentlyPlaying = isPlaying && (padIndex % 8 === currentBeat);
+    const isSelected = activePad === padIndex;
+    // --- END OF FIX ---
+
+    const handleShortClick = () => {
+        setActivePad(padIndex);
+        setSelectedJoints([]); // Deselect joints when changing pads
+    };
     
     // The long press logic for saving presets is unchanged.
     const handleLongPress = () => {
@@ -31,11 +43,13 @@ const PerformancePad = ({ padIndex, beatNum, isPulsing, isSelected, onMouseDown,
         savePoseToPreset(side, pageIndex, presetIndex);
         showNotification(`Pose saved to ${side.toUpperCase()} Preset Page ${pageIndex + 1}, Slot ${presetIndex + 1}.`, 2000);
     };
-    const longPressEvents = useLongPress(() => {}, handleLongPress, { ms: 500 });
+    const longPressEvents = useLongPress(handleShortClick, handleLongPress, { ms: 500 });
     
-    const padClasses = classNames('performance-pad', { 'pulsing': isPulsing, 'selected': isSelected });
+    const padClasses = classNames('performance-pad', { 
+        'pulsing': isCurrentlyPlaying, 
+        'selected': isSelected 
+    });
 
-    // --- DEFINITIVE FIX: Logic to find the FORCE joint and its data ---
     const beatData = songData[padIndex];
     let forceJointDisplay = null;
     if (beatData?.joints) {

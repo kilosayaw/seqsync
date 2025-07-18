@@ -51,21 +51,26 @@ export const SequenceProvider = ({ children }) => {
     const [totalBars, setTotalBars] = useState(DEFAULT_BAR_COUNT);
     const [barStartTimes, setBarStartTimes] = useState([]);
     const { isMediaReady, duration, detectedBpm } = useMedia();
-    const { activePad, setActivePad } = useUIState(); 
+    const { setActivePad } = useUIState(); 
 
     useEffect(() => {
-        if (isMediaReady && duration > 0 && detectedBpm) {
+        if (isMediaReady && duration > 0 && detectedBpm > 0) {
+            console.log(`[SequenceContext] Media is ready. Rebuilding sequence with Duration: ${duration}, BPM: ${detectedBpm}`);
             const timePerStep = (60 / detectedBpm) / 2;
             const totalSteps = Math.ceil(duration / timePerStep);
             const calculatedTotalBars = Math.max(1, Math.ceil(totalSteps / STEPS_PER_BAR));
+            
             setTotalBars(calculatedTotalBars);
+            
             const newSongData = Array.from({ length: totalSteps }, (_, i) => 
                 createBeatData(Math.floor(i / STEPS_PER_BAR) + 1, i % STEPS_PER_BAR)
             );
             setSongData(newSongData);
+            
             const timePerBar = timePerStep * STEPS_PER_BAR;
             const newBarStartTimes = Array.from({ length: calculatedTotalBars }, (_, i) => i * timePerBar);
             setBarStartTimes(newBarStartTimes);
+            
             setActivePad(0);
         }
     }, [isMediaReady, duration, detectedBpm, setActivePad]);
@@ -79,7 +84,7 @@ export const SequenceProvider = ({ children }) => {
         }));
     }, []);
 
-    const updateJointVectorForActivePad = useCallback((jointId, newVector) => {
+    const updateJointVectorForActivePad = useCallback((jointId, newVector, activePad) => {
         if (activePad === null || !jointId) return;
         setSongData(produce(draft => {
             const beat = draft[activePad];
@@ -87,7 +92,7 @@ export const SequenceProvider = ({ children }) => {
                 beat.joints[jointId].vector = { ...beat.joints[jointId].vector, ...newVector };
             }
         }));
-    }, [activePad]);
+    }, []);
 
     const updateBeatMetaData = useCallback((globalBeatIndex, metaDataUpdate) => {
         setSongData(produce(draft => {
@@ -110,7 +115,7 @@ export const SequenceProvider = ({ children }) => {
         }));
     }, []);
     
-    const savePoseToPreset = useCallback((side, pageIndex, presetIndex) => {
+    const savePoseToPreset = useCallback((side, pageIndex, presetIndex, activePad) => {
         if (activePad === null) return;
         const sidePrefix = side === 'left' ? 'L' : 'R';
         const poseToSave = {};
@@ -123,9 +128,9 @@ export const SequenceProvider = ({ children }) => {
         setPresets(produce(draft => {
             draft[side][pageIndex][presetIndex] = poseToSave;
         }));
-    }, [activePad, songData]);
+    }, [songData]);
 
-    const loadPoseFromPreset = useCallback((side, pageIndex, presetIndex) => {
+    const loadPoseFromPreset = useCallback((side, pageIndex, presetIndex, activePad) => {
         if (activePad === null) return;
         const presetPose = presets[side][pageIndex][presetIndex];
         if (!presetPose) return;
@@ -135,7 +140,7 @@ export const SequenceProvider = ({ children }) => {
                 beat.joints = { ...beat.joints, ...presetPose };
             }
         }));
-    }, [activePad, presets]);
+    }, [presets]);
     
     const value = { 
         songData, setSongData, 
