@@ -1,14 +1,12 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+import PropTypes from 'prop-types'; // Added for prop validation
 import DigitalDisplay from './DigitalDisplay.jsx';
 import { formatTime } from '../../utils/notationUtils.js';
 import './BarBeatDisplay.css';
 
+// --- DEFINITIVE FIX: The component now receives all its data as props ---
 const BarBeatDisplay = (props) => {
-    const {
-        currentTime, isPlaying, playingBar, playingBeat,
-        selectedBar, activePad, stepsPerBar
-    } = props;
+    const { currentTime, isPlaying, playingBar, playingBeat, selectedBar, activePad, stepsPerBar } = props;
 
     const displayBar = isPlaying ? playingBar : selectedBar;
     const beatInBar = isPlaying ? playingBeat : (activePad !== null ? activePad % stepsPerBar : 0);
@@ -29,8 +27,9 @@ BarBeatDisplay.propTypes = {
     playingBar: PropTypes.number.isRequired,
     playingBeat: PropTypes.number.isRequired,
     selectedBar: PropTypes.number.isRequired,
-    activePad: PropTypes.number.isRequired,
+    activePad: PropTypes.number,
     stepsPerBar: PropTypes.number.isRequired,
 };
 
+// --- DEFINITIVE FIX: Wrap in React.memo for performance ---
 export default React.memo(BarBeatDisplay);

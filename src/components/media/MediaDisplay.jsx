@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useUIState } from '../../context/UIStateContext.jsx';
 import { useMedia } from '../../context/MediaContext.jsx';
+import { useMotion } from '../../context/MotionContext.jsx';
 import CameraFeed from '../ui/CameraFeed.jsx';
 import PoseOverlay from '../ui/PoseOverlay.jsx';
 import SkeletalVisualizer from './SkeletalVisualizer.jsx';
@@ -11,7 +12,8 @@ import PopOutVisualizer from '../ui/PopOutVisualizer.jsx';
 import { useSequence } from '../../context/SequenceContext.jsx';
 import { convertPoseToVisualizerFormat } from '../../utils/poseUtils.js';
 import GroundingDisplay from '../ui/GroundingDisplay.jsx';
-import './MediaDisplay.css'; // This now includes the video player styles
+import { useMotionAnalysis } from '../../hooks/useMotionAnalysis.js';
+import './MediaDisplay.css';
 
 const MediaDisplay = ({ selectedJoints }) => {
     const { mediaType, mediaSource, videoRef } = useMedia();
@@ -22,6 +24,10 @@ const MediaDisplay = ({ selectedJoints }) => {
         isVisualizerPoppedOut,
         weightDistribution 
     } = useUIState();
+    const { setLivePoseData } = useMotion();
+    
+    // Wire up motion analysis to the main video ref
+    useMotionAnalysis(videoRef, setLivePoseData);
     
     const { songData } = useSequence();
     const containerRef = useRef(null);
@@ -39,10 +45,8 @@ const MediaDisplay = ({ selectedJoints }) => {
                 return <SkeletalVisualizer poseData={endPose} highlightJoints={selectedJoints} width={width} height={height} />;
             case 'core':
                 return <CoreVisualizer poseData={endPose} highlightJoints={selectedJoints} width={width} height={height} weightDistribution={weightDistribution} />;
-            case 'none':
-                return <div className="placeholder-text">Select a Visualizer</div>;
             default:
-                return <div className="placeholder-text">Visualizer Coming Soon</div>;
+                return <div className="placeholder-text">Select a Visualizer</div>;
         }
     };
 
@@ -52,7 +56,10 @@ const MediaDisplay = ({ selectedJoints }) => {
                 {isCameraActive ? (
                     <><CameraFeed /><PoseOverlay /></>
                 ) : mediaType === 'video' && mediaSource ? (
-                    <video ref={videoRef} src={mediaSource} className="video-player-element" playsInline muted />
+                    <>
+                        <video ref={videoRef} src={mediaSource} className="video-player-element" playsInline muted />
+                        <PoseOverlay />
+                    </>
                 ) : (
                     <VisualizerComponent />
                 )}

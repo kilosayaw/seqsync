@@ -1,82 +1,28 @@
-// src/components/ui/TransportControls.jsx
 import React from 'react';
-import { usePlayback } from '../../context/PlaybackContext';
-import { useUIState } from '../../context/UIStateContext';
-import { useSequence } from '../../context/SequenceContext';
-import { useMedia } from '../../context/MediaContext';
-import { seekToPad } from '../../utils/notationUtils';
+import { usePlayback } from '../../context/PlaybackContext.jsx';
+import { useUIState } from '../../context/UIStateContext.jsx';
+import { useSequence } from '../../context/SequenceContext.jsx';
+import { usePlaybackSync } from '../../hooks/usePlaybackSync.js';
 import classNames from 'classnames';
 import './TransportControls.css';
 
 const TransportControls = () => {
-    const { isPlaying, togglePlay, isRecording, handleRecord } = usePlayback();
-    const { selectedBar, setSelectedBar, activePad, setActivePad } = useUIState();
-    // DEFINITIVE: Get totalBars to enable/disable buttons
-    const { totalBars, STEPS_PER_BAR, barStartTimes } = useSequence();
-    const { wavesurferInstance, duration, detectedBpm } = useMedia();
-
-    const handleBeatStep = (direction) => {
-        if (isPlaying || isRecording) return;
-        const newPad = (activePad + direction + (totalBars * STEPS_PER_BAR)) % (totalBars * STEPS_PER_BAR);
-        const newBar = Math.floor(newPad / STEPS_PER_BAR) + 1;
-        
-        setActivePad(newPad);
-        if (newBar !== selectedBar) setSelectedBar(newBar);
-
-        if (wavesurferInstance) {
-            seekToPad({
-                wavesurfer: wavesurferInstance,
-                duration,
-                bpm: detectedBpm,
-                padIndex: newPad,
-                barStartTimes,
-                noteDivision: 8,
-            });
-        }
-    };
+    const { isPlaying, isRecording } = usePlayback();
+    const { selectedBar } = useUIState();
+    const { totalBars } = useSequence();
     
-    const handleBarJump = (direction) => {
-        if (isPlaying || isRecording) return;
-        const newBar = selectedBar + direction;
-
-        if (newBar >= 1 && newBar <= totalBars) {
-            const newPad = (newBar - 1) * STEPS_PER_BAR;
-            setActivePad(newPad);
-            setSelectedBar(newBar);
-
-            if (wavesurferInstance) {
-                seekToPad({
-                    wavesurfer: wavesurferInstance,
-                    duration,
-                    bpm: detectedBpm,
-                    padIndex: newPad,
-                    barStartTimes,
-                    noteDivision: 8,
-                });
-            }
-        }
-    };
+    const { handleBeatStep, handleBarJump, togglePlay, handleRecord } = usePlaybackSync();
 
     return (
         <div className="transport-controls-container">
-            <button 
-                className={classNames('transport-btn', 'record-btn', { 'active': isRecording })} 
-                onClick={handleRecord}
-                title="Record"
-            >
+            <button className={classNames('transport-btn', 'record-btn', { 'active': isRecording })} onClick={handleRecord} title="Record">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
             </button>
-            <button 
-                className="transport-btn" 
-                title="Back Bar" 
-                onClick={() => handleBarJump(-1)}
-                // DEFINITIVE FIX: Disable button if at the first bar
-                disabled={selectedBar <= 1}
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L12 12L18 18M12 6L6 12L12 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <button className="transport-btn" title="Back Bar" onClick={() => handleBarJump(-1)} disabled={selectedBar <= 1}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 6L12 12L18 18M12 6L6 12L12 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
             <button className="transport-btn" title="Back Beat" onClick={() => handleBeatStep(-1)}>
-                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
             <button className="transport-btn play-btn" onClick={togglePlay} title={isPlaying ? "Pause" : "Play"}>
                 {isPlaying 
@@ -85,19 +31,12 @@ const TransportControls = () => {
                 }
             </button>
             <button className="transport-btn" title="Forward Beat" onClick={() => handleBeatStep(1)}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
-            <button 
-                className="transport-btn" 
-                title="Forward Bar" 
-                onClick={() => handleBarJump(1)}
-                // DEFINITIVE FIX: Disable button if at the last bar
-                disabled={selectedBar >= totalBars}
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L12 12L6 18M12 6L18 12L12 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <button className="transport-btn" title="Forward Bar" onClick={() => handleBarJump(1)} disabled={selectedBar >= totalBars}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 6L12 12L6 18M12 6L18 12L12 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
         </div>
     );
 };
-
-export default TransportControls;
+export default React.memo(TransportControls);

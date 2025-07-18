@@ -1,8 +1,6 @@
-// src/hooks/useMotionAnalysis.js
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as poseDetection from '@tensorflow-models/pose-detection';
-import '@tensorflow/tfjs-core';
+import * as tf from '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 
 export const useMotionAnalysis = (videoRef, setLivePoseData) => {
@@ -12,21 +10,29 @@ export const useMotionAnalysis = (videoRef, setLivePoseData) => {
     useEffect(() => {
         const initDetector = async () => {
             try {
+                // --- DEFINITIVE FIX: Explicitly set the backend and wait for it to be ready ---
+                await tf.setBackend('webgl');
+                await tf.ready();
+                // --- END OF FIX ---
+
                 const model = poseDetection.SupportedModels.BlazePose;
                 const detectorConfig = { runtime: 'tfjs', modelType: 'full' };
                 const createdDetector = await poseDetection.createDetector(model, detectorConfig);
                 setDetector(createdDetector);
-                console.log("[useMotionAnalysis] ✅ Pose detector initialized.");
+                console.log("[useMotionAnalysis] ✅ Pose detector initialized with WebGL backend.");
             } catch (error) {
                 console.error("[useMotionAnalysis] ❌ Error initializing pose detector:", error);
             }
         };
         initDetector();
-    }, []);
+    }, []); // This effect runs only once on mount
 
     const analyzePose = useCallback(async () => {
-        if (detector && videoRef.current?.video?.readyState === 4 && typeof setLivePoseData === 'function') {
-            const video = videoRef.current.video;
+        // --- DEFINITIVE FIX: Check the video element directly ---
+        // The '.video' property is an implementation detail of WaveSurfer, not a standard video element.
+        if (detector && videoRef.current && videoRef.current.readyState >= 3 && typeof setLivePoseData === 'function') {
+            const video = videoRef.current;
+        // --- END OF FIX ---
             try {
                 const poses = await detector.estimatePoses(video, { flipHorizontal: true });
                 if (poses && poses.length > 0) {
@@ -35,7 +41,6 @@ export const useMotionAnalysis = (videoRef, setLivePoseData) => {
                     setLivePoseData(null);
                 }
             } catch (error) {
-                // This can be noisy, so it's often commented out during development
                 // console.error("[useMotionAnalysis] ❌ Error estimating pose:", error);
             }
         }
@@ -53,5 +58,5 @@ export const useMotionAnalysis = (videoRef, setLivePoseData) => {
         };
     }, [detector, videoRef, analyzePose]);
 
-    return {}; // This hook doesn't need to return anything directly
+    return {};
 };

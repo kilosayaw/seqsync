@@ -10,4 +10,5 @@ const DigitalDisplay = ({ label, value, className = '' }) => {
     );
 };
 
+// --- DEFINITIVE FIX: Wrap in React.memo to prevent unnecessary re-renders ---
 export default React.memo(DigitalDisplay);

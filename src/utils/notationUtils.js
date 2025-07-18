@@ -1,4 +1,4 @@
-import { JOINT_LIST, FOOT_HOTSPOT_COORDINATES } from './constants';
+import { JOINT_LIST, FOOT_HOTSPOT_COORDINATES } from './constants.js';
 
 export const resolveNotationFromPoints = (pointsSet, side) => {
     const sideKey = side.charAt(0).toUpperCase();
@@ -64,14 +64,12 @@ export const formatFullNotation = (beatData, currentTime, bar, beat) => {
             }
         }
         
-        // --- DEFINITIVE FIX: Never display 'BASE' or the obsolete 'PASS' ---
         if (joint.intentType && joint.intentType !== 'BASE' && joint.intentType !== 'PASS') {
             notation += ` ${joint.intentType}`;
             if (joint.intentType === 'FORCE' && joint.forceLevel > 0) {
                 notation += `@${joint.forceLevel}`;
             }
         }
-        // --- END OF FIX ---
         
         notation += ')';
         return notation;
@@ -82,18 +80,33 @@ export const formatFullNotation = (beatData, currentTime, bar, beat) => {
     return `${timeStr}; ${barBeatStr}; ${allNotations}`;
 };
 
+// --- DEFINITIVE FIX: The complete and correct seekToPad function ---
 export const seekToPad = (params) => {
-    // --- DEFINITIVE FIX: Handle both video and audio players ---
-    const { player, mediaType, duration, bpm, padIndex, barStartTimes } = params;
-    if (!player || padIndex === null || !barStartTimes || !barStartTimes.length || bpm <= 0) return;
+    const { 
+        player,           // The generic player instance (WaveSurfer or <video>)
+        mediaType,        // 'audio' or 'video'
+        duration, 
+        bpm, 
+        padIndex, 
+        barStartTimes,
+        noteDivision = 8 // Default to 8th notes if not provided
+    } = params;
+
+    if (!player || padIndex === null || !barStartTimes || !barStartTimes.length || bpm <= 0) {
+        return;
+    }
+
+    const STEPS_PER_BAR = 8; // Assuming 8 steps per bar as per context
+    const bar = Math.floor(padIndex / STEPS_PER_BAR) + 1;
+    const barStartTime = barStartTimes[bar - 1] || 0;
     
-    const STEPS_PER_BAR = 8;
-    const bar = Math.floor(padIndex / STEPS_PER_BAR);
-    const stepInBar = padIndex % STEPS_PER_BAR;
-    const barStartTime = barStartTimes[bar] || 0;
-    const timePerStep = (60 / bpm) / 2;
-    const stepOffsetTime = stepInBar * timePerStep;
-    const finalTime = barStartTime + stepOffsetTime;
+    // Use your original, correct logic for calculating offset with noteDivision
+    const stepMultiplier = 16 / noteDivision;
+    const padOffsetInSixteenths = (padIndex % noteDivision) * stepMultiplier;
+    const timePerSixteenth = 60 / bpm / 4;
+    const padOffsetTime = padOffsetInSixteenths * timePerSixteenth;
+    
+    const finalTime = barStartTime + padOffsetTime;
 
     if (duration > 0) {
         if (mediaType === 'audio') {
@@ -103,3 +116,4 @@ export const seekToPad = (params) => {
         }
     }
 };
+// --- END OF FIX ---

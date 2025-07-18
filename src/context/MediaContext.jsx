@@ -15,23 +15,19 @@ export const MediaProvider = ({ children }) => {
     const [audioLevel, setAudioLevel] = useState(0);
     const [mediaType, setMediaType] = useState('none');
     const [mediaSource, setMediaSource] = useState(null);
-
-    // --- TIMELINE VISUALIZER: New state to hold the extracted video frame thumbnails ---
     const [videoThumbnails, setVideoThumbnails] = useState([]);
-    // --- END ---
 
     const waveformContainerRef = useRef(null);
     const wavesurferInstanceRef = useRef(null);
     const audioAnalyserRef = useRef(null);
-    const videoRef = useRef(null);
+    const videoRef = useRef(null); // This ref will be for the MAIN video player in MediaDisplay
 
-    // This useEffect for Wavesurfer setup is unchanged.
     useEffect(() => {
         if (waveformContainerRef.current && !wavesurferInstanceRef.current) {
             const ws = WaveSurfer.create({
-                container: waveformContainerRef.current,
-                waveColor: '#637381', progressColor: '#00ab55', cursorColor: '#ffffff',
-                barWidth: 3, barRadius: 3, responsive: true, height: 40, normalize: true, interact: true,
+                container: waveformContainerRef.current, waveColor: '#637381',
+                progressColor: '#00ab55', cursorColor: '#ffffff', barWidth: 3,
+                barRadius: 3, responsive: true, height: 40, normalize: true, interact: true,
             });
             wavesurferInstanceRef.current = ws;
             ws.on('ready', () => {
@@ -51,118 +47,133 @@ export const MediaProvider = ({ children }) => {
         };
     }, []);
 
-    // This useEffect for audio level metering is unchanged.
-    useEffect(() => { /* ... */ }, []);
+    useEffect(() => {
+        let animationFrameId;
+        const animate = () => {
+            if (audioAnalyserRef.current && wavesurferInstanceRef.current?.isPlaying()) {
+                const bufferLength = audioAnalyserRef.current.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                audioAnalyserRef.current.getByteTimeDomainData(dataArray);
+                let sumSquares = 0.0;
+                for (const amplitude of dataArray) {
+                    const val = (amplitude / 128.0) - 1.0;
+                    sumSquares += val * val;
+                }
+                const rms = Math.sqrt(sumSquares / dataArray.length);
+                setAudioLevel(rms * 100);
+            } else {
+                setAudioLevel(level => Math.max(0, level - 2));
+            }
+            animationFrameId = requestAnimationFrame(animate);
+        };
+        animate();
+        return () => cancelAnimationFrame(animationFrameId);
+    }, []);
 
-    // The analyzeAudio function is unchanged.
-    const analyzeAudio = useCallback(async (audioBuffer) => { /* ... */ }, []);
+    const analyzeAudio = useCallback(async (audioBuffer) => {
+        try {
+            const aubio = await Aubio();
+            const sampleRate = audioBuffer.sampleRate;
+            const tempo = new aubio.Tempo(4096, 512, sampleRate);
+            const channelData = audioBuffer.getChannelData(0);
+            const bpms = [];
+            for (let i = 0; i < Math.floor(channelData.length / 512); i++) {
+                if (tempo.do(channelData.subarray(i * 512, (i + 1) * 512))) {
+                    bpms.push(tempo.getBpm());
+                }
+            }
+            let finalBpm = 120;
+            if (bpms.length > 0) {
+                bpms.sort((a, b) => a - b);
+                finalBpm = bpms[Math.floor(bpms.length / 2)];
+                while (finalBpm < 60) finalBpm *= 2;
+                while (finalBpm > 180) finalBpm /= 2;
+            }
+            return { duration: audioBuffer.duration, detectedBpm: Math.round(finalBpm) };
+        } catch (error) {
+            console.error("Error during audio analysis:", error);
+            return { duration: audioBuffer.duration, detectedBpm: 120 };
+        }
+    }, []);
 
-    // --- TIMELINE VISUALIZER: New function to extract frames from a video ---
-    const extractVideoThumbnails = useCallback(async (videoFile) => {
-        return new Promise((resolve) => {
-            const video = document.createElement('video');
+    const extractVideoThumbnails = useCallback(async (videoElement) => {
+        return new Promise((resolve, reject) => {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             const thumbnails = [];
-            
-            video.preload = 'metadata';
-            video.src = URL.createObjectURL(videoFile);
+            const videoDuration = videoElement.duration;
+            canvas.width = 160;
+            canvas.height = 90;
+            const interval = 1;
+            let currentTime = 0;
 
-            video.onloadedmetadata = () => {
-                const videoDuration = video.duration;
-                canvas.width = 160; // A reasonable thumbnail width
-                canvas.height = 90;
-                
-                // Define how many thumbnails to capture (e.g., one per second)
-                const interval = 1; // seconds
-                let currentTime = 0;
-
-                video.onseeked = async () => {
-                    if (currentTime < videoDuration) {
-                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        thumbnails.push(canvas.toDataURL('image/jpeg', 0.7)); // Store as base64 jpeg
-                        currentTime += interval;
-                        video.currentTime = currentTime;
-                    } else {
-                        URL.revokeObjectURL(video.src); // Clean up the object URL
-                        resolve(thumbnails);
-                    }
-                };
-
-                // Start the seeking process
-                video.currentTime = 0;
+            const captureFrame = () => {
+                if (currentTime >= videoDuration) {
+                    resolve(thumbnails);
+                    return;
+                }
+                videoElement.currentTime = currentTime;
             };
+            
+            videoElement.onseeked = () => {
+                context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                thumbnails.push(canvas.toDataURL('image/jpeg', 0.7));
+                currentTime += interval;
+                captureFrame();
+            };
+            
+            videoElement.onerror = (e) => reject(new Error("Error seeking video for thumbnail extraction."));
+
+            captureFrame();
         });
     }, []);
-    // --- END ---
+    
+    const loadAndProcessVideo = useCallback(async (file) => {
+        setIsLoading(true);
+        setIsMediaReady(false);
+        setVideoThumbnails([]);
+        setMediaType('video');
+        setMediaFile(file);
+
+        const url = URL.createObjectURL(file);
+        setMediaSource(url);
+
+        // The video element in MediaViewer will now trigger the rest of the process
+        // via its `onloadedmetadata` event handler. This prevents race conditions.
+
+    }, []);
 
     const loadMedia = useCallback((file) => {
         if (!file) return;
-        if (file.type.startsWith('video/')) setMediaType('video');
-        else if (file.type.startsWith('audio/')) setMediaType('audio');
-        else { console.error("Unsupported file type:", file.type); return; }
-        setPendingFile(file);
-    }, []);
-    
-    const confirmLoad = useCallback(async () => {
-        const fileToLoad = pendingFile;
-        if (!fileToLoad) return;
-        
-        setPendingFile(null);
-        setIsLoading(true);
-        setIsMediaReady(false);
-        setVideoThumbnails([]); // Clear old thumbnails
-        setMediaFile(fileToLoad);
-        
-        const url = URL.createObjectURL(fileToLoad);
-        setMediaSource(url);
-
-        try {
-            if (mediaType === 'audio') {
-                const ws = wavesurferInstanceRef.current;
-                if (!ws) throw new Error("WaveSurfer not initialized");
-                await new Promise((res, rej) => { ws.once('ready', res); ws.once('error', rej); ws.load(url); });
-                const audioBuffer = ws.getDecodedData();
-                if (audioBuffer) {
-                    const analysis = await analyzeAudio(audioBuffer);
-                    if (analysis) {
-                        setDuration(analysis.duration);
-                        setDetectedBpm(analysis.detectedBpm);
-                        setIsMediaReady(true);
-                    }
-                }
-            } else if (mediaType === 'video') {
-                // --- TIMELINE VISUALIZER: Process the video for thumbnails ---
-                const thumbs = await extractVideoThumbnails(fileToLoad);
-                setVideoThumbnails(thumbs);
-                // We'll get the real duration from the video element itself later.
-                // For now, mark as ready so the UI can update.
-                setIsMediaReady(true);
-                // --- END ---
-            }
-        } catch (error) {
-            console.error("Error processing media file:", error);
-            setIsMediaReady(false);
-        } finally {
-            setIsLoading(false);
+        if (file.type.startsWith('video/')) {
+            loadAndProcessVideo(file);
+        } else if (file.type.startsWith('audio/')) {
+            // Handle audio loading as before
+            setIsLoading(true);
+            setMediaType('audio');
+            setMediaFile(file);
+            const url = URL.createObjectURL(file);
+            setMediaSource(url);
+            wavesurferInstanceRef.current.load(url);
+        } else {
+            console.error("Unsupported file type:", file.type);
         }
-    }, [pendingFile, mediaType, analyzeAudio, extractVideoThumbnails]);
+    }, [loadAndProcessVideo]);
 
-    const cancelLoad = () => { setPendingFile(null); };
-    
     const value = { 
-        isLoading, isMediaReady, setIsMediaReady,
+        isLoading, setIsLoading,
+        isMediaReady, setIsMediaReady,
         duration, setDuration,
-        detectedBpm, mediaFile,
+        detectedBpm, setDetectedBpm,
+        mediaFile,
         wavesurferInstance: wavesurferInstanceRef.current,
-        waveformContainerRef, loadMedia, pendingFile, confirmLoad, cancelLoad,
+        waveformContainerRef, loadMedia, // Simplified loadMedia
         audioLevel,
         mediaType,
         mediaSource,
         videoRef,
-        // --- TIMELINE VISUALIZER: Export the thumbnails ---
-        videoThumbnails,
-        // --- END ---
+        videoThumbnails, setVideoThumbnails, // Expose setter
+        extractVideoThumbnails, // Expose helper
     };
     
     return <MediaContext.Provider value={value}>{children}</MediaContext.Provider>;
