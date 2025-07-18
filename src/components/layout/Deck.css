@@ -1,6 +1,5 @@
-/* src/components/layout/Deck.css */
 .deck-wrapper {
-    position: relative; /* This allows the modal to be positioned relative to the deck */
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
@@ -18,11 +17,14 @@
 .deck-container {
     flex-grow: 1;
     display: grid;
+    /* --- DEFINITIVE FIX: Updated grid layout to include dir-controls --- */
     grid-template-rows: auto 1fr auto; 
+    grid-template-columns: auto 1fr auto; /* Added columns */
     grid-template-areas:
         "joints dir-controls side-controls"
         "joints turntable-area side-controls"
         "joints pads-area side-controls";
+    /* --- END OF FIX --- */
     gap: var(--spacing-md);
     background-color: var(--color-dark-surface-1);
     padding: var(--spacing-md);
@@ -63,6 +65,9 @@
     min-width: 0;
     min-height: 0;
     aspect-ratio: 1 / 1; 
+    /* --- DEFINITIVE FIX: Reduce the max-width to make the wheel smaller --- */
+    max-width: 420px; 
+    /* --- END OF FIX --- */
     width: 100%;
     max-height: 100%; 
     margin: 0 auto;
@@ -70,32 +75,30 @@
     border-radius: var(--border-radius-md);
     padding: var(--spacing-sm);
     border: 1px solid var(--color-border);
-    position: relative; /* This is the main positioning context */
+    position: relative;
     display: grid;
     place-items: center;
 }
 
-/* DEFINITIVE FIX: The controller container is now a simple grid area, not absolutely positioned. */
 .rotary-controller-container {
-    grid-area: 1 / 1; /* Occupy the single grid cell of the parent */
-    position: relative; /* It can be a positioning context for its children */
+    grid-area: 1 / 1;
+    position: relative;
     width: 100%;
     height: 100%;
     display: grid;
     place-items: center;
 }
 
-.editor-overlays {
-    grid-area: 1 / 1; /* The overlays occupy the SAME grid cell, stacking on top. */
+.xyz-grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     display: grid;
     place-items: center;
-    pointer-events: none;
-    z-index: 10; /* Ensure overlays are on top of the SVG */
+    z-index: 15;
 }
-
-.editor-overlays > * { pointer-events: all; }
 
 .pads-group {
     width: 100%;
@@ -127,7 +130,7 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease-in-out;
-    z-index: 20; /* Must be on top of everything */
+    z-index: 20;
 }
 .turntable-group.is-editing .corner-tool-button {
     opacity: 1;

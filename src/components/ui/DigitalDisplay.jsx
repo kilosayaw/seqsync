@@ -1,5 +1,3 @@
-// src/components/ui/DigitalDisplay.jsx
-
 import React from 'react';
 import './DigitalDisplay.css';
 
@@ -12,4 +10,4 @@ const DigitalDisplay = ({ label, value, className = '' }) => {
     );
 };
 
-export default DigitalDisplay;
+export default React.memo(DigitalDisplay);

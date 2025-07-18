@@ -83,8 +83,10 @@ export const formatFullNotation = (beatData, currentTime, bar, beat) => {
 };
 
 export const seekToPad = (params) => {
-    const { wavesurfer, duration, bpm, padIndex, barStartTimes } = params;
-    if (!wavesurfer || padIndex === null || !barStartTimes || !barStartTimes.length || bpm <= 0) return;
+    // --- DEFINITIVE FIX: Handle both video and audio players ---
+    const { player, mediaType, duration, bpm, padIndex, barStartTimes } = params;
+    if (!player || padIndex === null || !barStartTimes || !barStartTimes.length || bpm <= 0) return;
+    
     const STEPS_PER_BAR = 8;
     const bar = Math.floor(padIndex / STEPS_PER_BAR);
     const stepInBar = padIndex % STEPS_PER_BAR;
@@ -92,5 +94,12 @@ export const seekToPad = (params) => {
     const timePerStep = (60 / bpm) / 2;
     const stepOffsetTime = stepInBar * timePerStep;
     const finalTime = barStartTime + stepOffsetTime;
-    if (duration > 0) wavesurfer.seekTo(finalTime / duration);
+
+    if (duration > 0) {
+        if (mediaType === 'audio') {
+            player.seekTo(finalTime / duration);
+        } else if (mediaType === 'video') {
+            player.currentTime = finalTime;
+        }
+    }
 };

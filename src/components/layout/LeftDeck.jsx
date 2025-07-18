@@ -8,14 +8,15 @@ import OptionButtons from '../ui/OptionButtons';
 import PresetPageSelectors from '../ui/PresetPageSelectors';
 import CornerToolPanel from '../ui/CornerToolPanel';
 import XYZGrid from '../ui/XYZGrid';
+import DirectionalControls from '../ui/DirectionalControls'; // --- ADDED ---
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useSequence } from '../../context/SequenceContext';
+import { DEFAULT_POSE } from '../../utils/constants';
 import classNames from 'classnames';
 import './Deck.css';
 
 const LeftDeck = ({ onPadEvent }) => {
-    // --- DEFINITIVE FIX: Get movementFaderValues from context ---
     const { 
         selectedBar, activePad, selectedJoints, 
         activeCornerTools, setActiveCornerTools, jointEditMode, movementFaderValues
@@ -35,24 +36,32 @@ const LeftDeck = ({ onPadEvent }) => {
     const liveJointData = songData[activePad]?.joints?.[activeJointId] || {};
     const livePosition = liveJointData.position || [0, 0, 0];
     
-    // --- DEFINITIVE FIX: Integrate MovementFader logic ---
-    const handlePositionChange = (posArray) => {
+    const handlePositionChange = (newGridPosition) => {
         if (!activeJointId) return;
 
-        const [gridX, gridY, gridZ] = posArray;
+        const [gridX, gridY, gridZ] = newGridPosition;
+        const defaultPosition = DEFAULT_POSE.jointInfo[activeJointId]?.vector || {x:0, y:0, z:0};
         
-        // Map fader value (0-1) to movement magnitude (1-10)
-        const magnitude = 1 + (movementFaderValues.left * 9);
+        if (gridX === 0 && gridY === 0 && gridZ === 0) {
+            updateJointData(activePad, activeJointId, { 
+                position: [0, 0, 0],
+                vector: defaultPosition 
+            });
+            return;
+        }
 
-        // Apply magnitude to the grid's direction vector
-        const newPositionArray = [
-            gridX * magnitude,
-            gridY * magnitude,
-            gridZ * magnitude // Z is also scaled for forward/backward movement
-        ];
+        const MAX_DISPLACEMENT = 0.5; 
+        const faderValue = movementFaderValues.left;
+        const finalVector = {
+            x: defaultPosition.x + (gridX * MAX_DISPLACEMENT * faderValue),
+            y: defaultPosition.y + (gridY * MAX_DISPLACEMENT * faderValue),
+            z: defaultPosition.z + (gridZ * MAX_DISPLACEMENT * faderValue)
+        };
 
-        const newVector = { x: newPositionArray[0], y: newPositionArray[1], z: newPositionArray[2] };
-        updateJointData(activePad, activeJointId, { position: newPositionArray, vector: newVector });
+        updateJointData(activePad, activeJointId, { 
+            position: newGridPosition, 
+            vector: finalVector 
+        });
     };
     
     const handleCornerToolClick = (toolName) => {
@@ -60,7 +69,7 @@ const LeftDeck = ({ onPadEvent }) => {
         else setActiveCornerTools(prev => ({ ...prev, left: prev.left === toolName ? 'none' : toolName }));
     };
 
-    return (
+     return (
         <div className="deck-wrapper">
             <div className="deck-container" data-side="left">
                 <DeckJointList side="left" />
@@ -69,17 +78,9 @@ const LeftDeck = ({ onPadEvent }) => {
                     <OptionButtons side="left" />
                     <PresetPageSelectors side="left" />
                 </div>
-                
-                {/* --- DEFINITIVE FIX: The 'is-editing' class is now correctly applied --- */}
+                    <DirectionalControls />
                 <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
-                    <RotaryController 
-                        deckId="deck1" 
-                        // The controller is always considered "editing" when a joint is selected,
-                        // but its internal logic will only allow interaction in the correct mode.
-                        isEditing={isEditing} 
-                        activeJointId={activeJointId} 
-                    />
-                    
+                    <RotaryController deckId="deck1" isEditing={isEditing || isRotationMode} activeJointId={activeJointId} />
                     {showPositionGrid && (
                         <div className="xyz-grid-overlay">
                             <XYZGrid 
@@ -88,15 +89,11 @@ const LeftDeck = ({ onPadEvent }) => {
                             />
                         </div>
                     )}
-
-                    {/* These buttons will now appear correctly whenever 'isEditing' is true */}
                     <button className={classNames('corner-tool-button', 'top-left', { 'active': activeCornerTools.left === 'ROT' })} onClick={() => handleCornerToolClick('ROT')}>ROT</button>
                     <button className={classNames('corner-tool-button', 'top-right', { 'active': activeCornerTools.left === 'NRG' })} onClick={() => handleCornerToolClick('NRG')}>NRG</button>
                     <button className={classNames('corner-tool-button', 'bottom-left', { 'active': activeCornerTools.left === 'INT' })} onClick={() => handleCornerToolClick('INT')}>INT</button>
                     <button className="corner-tool-button bottom-right" onClick={() => handleCornerToolClick('BLANK')}></button>
                 </div>
-                {/* --- END OF FIX --- */}
-
                 <div className="pads-group">
                     {Array.from({ length: 4 }).map((_, i) => {
                         const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + i;
