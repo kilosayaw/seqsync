@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { useUIState } from '../../context/UIStateContext';
 import CameraFeed from '../ui/CameraFeed';
 import PoseOverlay from '../ui/PoseOverlay';
@@ -12,6 +13,10 @@ import GroundingDisplay from '../ui/GroundingDisplay';
 import './MediaDisplay.css';
 
 const MediaDisplay = ({ selectedJoints }) => {
+    // --- DEFINITIVE FIX: Manage visualizer state here ---
+    const [zoom, setZoom] = useState(1.0);
+    // --- END OF FIX ---
+    
     const { 
         isCameraActive, 
         activeVisualizer, 
@@ -25,6 +30,9 @@ const MediaDisplay = ({ selectedJoints }) => {
 
     const endSequencePose = songData[activePad] || null;
     const endPose = convertPoseToVisualizerFormat(endSequencePose);
+    
+    // Get the first selected joint to pass down for highlighting
+    const activeJointId = selectedJoints.length > 0 ? selectedJoints[0] : null;
 
     const VisualizerComponent = ({ isPoppedOut = false }) => {
         const container = isPoppedOut ? { clientWidth: 600, clientHeight: 600 } : containerRef.current;
@@ -33,9 +41,25 @@ const MediaDisplay = ({ selectedJoints }) => {
 
         switch(activeVisualizer) {
             case 'full':
-                return <SkeletalVisualizer poseData={endPose} highlightJoints={selectedJoints} width={width} height={height} />;
+                return (
+                    <SkeletalVisualizer 
+                        poseData={endPose} 
+                        activeJointId={activeJointId}
+                        width={width} 
+                        height={height}
+                        zoom={zoom}
+                        onZoomChange={setZoom} 
+                    />
+                );
             case 'core':
-                return <CoreVisualizer poseData={endPose} width={width} height={height} weightDistribution={weightDistribution} />;
+                return (
+                    <CoreVisualizer 
+                        poseData={endPose} 
+                        width={width} 
+                        height={height} 
+                        weightDistribution={weightDistribution} 
+                    />
+                );
             case 'none':
                 return <div className="placeholder-text">Select a Visualizer</div>;
             default:
@@ -59,4 +83,9 @@ const MediaDisplay = ({ selectedJoints }) => {
         </>
     );
 };
+
+MediaDisplay.propTypes = {
+    selectedJoints: PropTypes.arrayOf(PropTypes.string).isRequired,
+};
+
 export default MediaDisplay;

@@ -15,9 +15,10 @@ import classNames from 'classnames';
 import './Deck.css';
 
 const RightDeck = ({ onPadEvent }) => {
+    // --- DEFINITIVE FIX: Get movementFaderValues from context ---
     const { 
         selectedBar, activePad, selectedJoints, 
-        activeCornerTools, setActiveCornerTools, jointEditMode 
+        activeCornerTools, setActiveCornerTools, jointEditMode, movementFaderValues
     } = useUIState();
 
     const { isPlaying, currentBar, currentBeat } = usePlayback();
@@ -29,14 +30,23 @@ const RightDeck = ({ onPadEvent }) => {
 
     const isFootSelected = activeJointId === 'RF';
     const showPositionGrid = isEditing && !isFootSelected && jointEditMode === 'position';
-    
+    const isRotationMode = isEditing && !isFootSelected && jointEditMode === 'rotation';
+
     const liveJointData = songData[activePad]?.joints?.[activeJointId] || {};
     const livePosition = liveJointData.position || [0, 0, 0];
     
+    // --- DEFINITIVE FIX: Integrate MovementFader logic ---
     const handlePositionChange = (newPositionArray) => {
         if (!activeJointId) return;
-        const newVector = { x: newPositionArray[0], y: newPositionArray[1], z: newPositionArray[2] };
-        updateJointData(activePad, activeJointId, { position: newPositionArray, vector: newVector });
+        const [gridX, gridY, gridZ] = newPositionArray;
+        const magnitude = 1 + (movementFaderValues.right * 9);
+        const finalPosition = [
+            gridX * magnitude,
+            gridY * magnitude,
+            gridZ * magnitude
+        ];
+        const newVector = { x: finalPosition[0], y: finalPosition[1], z: finalPosition[2] };
+        updateJointData(activePad, activeJointId, { position: finalPosition, vector: newVector });
     };
     
     const handleCornerToolClick = (toolName) => {

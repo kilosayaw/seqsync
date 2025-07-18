@@ -1,6 +1,6 @@
 // src/components/ui/PivotControl.jsx
 import React from 'react';
-import { useUIState } from '../../context/UIStateContext';
+import { useUIState } from '../../context/UIStateContext.jsx';
 import { useSequence } from '../../context/SequenceContext';
 import './PivotControl.css';
 

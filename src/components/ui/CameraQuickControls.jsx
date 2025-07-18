@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaUndo } from 'react-icons/fa';
-import { useUIState } from '../../context/UIStateContext';
+import { useUIState } from '../../context/UIStateContext.jsx';
 import './CameraQuickControls.css';
 
 const CameraQuickControls = () => {

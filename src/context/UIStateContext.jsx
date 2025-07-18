@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useMemo, useCallback } from 'react';
-import { produce } from 'immer'; // For safe and easy state updates
+import { produce } from 'immer';
 
 const UIStateContext = createContext(null);
 export const useUIState = () => useContext(UIStateContext);
@@ -13,7 +13,6 @@ const initialMixerState = {
 };
 
 export const UIStateProvider = ({ children }) => {
-    // All existing states from your project are preserved
     const [isCameraActive, setIsCameraActive] = useState(false);
     const [isVisualizerPoppedOut, setIsVisualizerPoppedOut] = useState(false);
     const [mixerState, setMixerState] = useState(initialMixerState);
@@ -39,10 +38,7 @@ export const UIStateProvider = ({ children }) => {
         left: 0.1,
         right: 0.1,
     });
-    
-    // --- LOGIC ADDED: New state for the Master Fader's mode ---
-    const [masterFaderMode, setMasterFaderMode] = useState('hip'); // Default to 'hip' mode for weight distribution
-    // --- END OF LOGIC ADDED ---
+    const [masterFaderMode, setMasterFaderMode] = useState('hip');
 
     const setMovementFaderValue = useCallback((side, value) => {
         setMovementFaderValues(produce(draft => {
@@ -73,7 +69,6 @@ export const UIStateProvider = ({ children }) => {
     };
     
     const value = useMemo(() => ({
-        // All original values
         selectedBar, setSelectedBar, activePad, setActivePad, animationState, triggerAnimation,
         animationRange, editMode, setEditMode, noteDivision, setNoteDivision, padMode, setPadMode,
         activePanel, setActivePanel, selectedJoints, setSelectedJoints, activeDirection, setActiveDirection,
@@ -82,21 +77,13 @@ export const UIStateProvider = ({ children }) => {
         isVisualizerPoppedOut, setIsVisualizerPoppedOut, cameraCommand, setCameraCommand,
         weightDistribution, setWeightDistribution, jointEditMode, setJointEditMode,
         activeCornerTools, setActiveCornerTools, movementFaderValues, setMovementFaderValue,
-        
-        // --- LOGIC ADDED: Export the new state and setter for MasterFader ---
         masterFaderMode, setMasterFaderMode,
-        // --- END OF LOGIC ADDED ---
     }), [
-        // All original dependencies
         selectedBar, activePad, animationState, animationRange, editMode, noteDivision, padMode,
         activePanel, selectedJoints, activeDirection, notification, activeVisualizer,
         mixerState, activePresetPage, activeCornerTools, isCameraActive, isVisualizerPoppedOut,
         cameraCommand, weightDistribution, jointEditMode, showNotification,
-        movementFaderValues, setMovementFaderValue,
-
-        // --- LOGIC ADDED: Add new state to dependency array ---
-        masterFaderMode,
-        // --- END OF LOGIC ADDED ---
+        movementFaderValues, setMovementFaderValue, masterFaderMode,
     ]);
 
     return <UIStateContext.Provider value={value}>{children}</UIStateContext.Provider>;

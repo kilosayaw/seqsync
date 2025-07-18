@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { produce } from 'immer';
-import { useMedia } from './MediaContext';
-import { useUIState } from './UIStateContext';
-import { JOINT_LIST } from '../utils/constants';
+import { useMedia } from './MediaContext.jsx';
+import { useUIState } from './UIStateContext.jsx';
+import { JOINT_LIST } from '../utils/constants.js';
 
 const SequenceContext = createContext(null);
 export const useSequence = () => useContext(SequenceContext);
@@ -16,9 +16,6 @@ const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
         if (!['LF', 'RF'].includes(joint.id)) {
-            // --- DEFINITIVE FIX: Remove the conflicting 'position' property. ---
-            // By not defining 'position' or 'vector' here, we force the system
-            // to use the correct T-pose coordinates from constants.js as the default.
             joints[joint.id] = { 
                 rotation: 0, 
                 rotationType: 'NEU',
@@ -27,7 +24,6 @@ const createBeatData = (bar, beatInBar) => {
                 forceLevel: 0,
                 role: 'frame' 
             };
-            // --- END OF FIX ---
         }
     });
     joints['LF'] = { grounding: 'LF123T12345', rotation: 0, pivotPoint: 'L3' };
@@ -47,6 +43,7 @@ const createDefaultPresets = () => ({
     left: Array(PRESET_PAGES).fill(null).map(() => Array(PRESETS_PER_PAGE).fill(null)),
     right: Array(PRESET_PAGES).fill(null).map(() => Array(PRESETS_PER_PAGE).fill(null)),
 });
+
 
 export const SequenceProvider = ({ children }) => {
     const [songData, setSongData] = useState(createDefaultSequence());

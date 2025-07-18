@@ -1,7 +1,7 @@
 import React from 'react';
-import { useUIState } from '../../context/UIStateContext';
-import { useSequence } from '../../context/SequenceContext';
-import { getPointsFromNotation } from '../../utils/notationUtils';
+import { useUIState } from '../../context/UIStateContext.jsx';
+import { useSequence } from '../../context/SequenceContext.jsx';
+import { getPointsFromNotation } from '../../utils/notationUtils.js';
 import './GroundingDisplay.css';
 
 // A simplified 2D coordinate map for the feet display.

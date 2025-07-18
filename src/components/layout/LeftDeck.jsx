@@ -15,9 +15,10 @@ import classNames from 'classnames';
 import './Deck.css';
 
 const LeftDeck = ({ onPadEvent }) => {
+    // --- DEFINITIVE FIX: Get movementFaderValues from context ---
     const { 
         selectedBar, activePad, selectedJoints, 
-        activeCornerTools, setActiveCornerTools, jointEditMode 
+        activeCornerTools, setActiveCornerTools, jointEditMode, movementFaderValues
     } = useUIState();
 
     const { isPlaying, currentBar, currentBeat } = usePlayback();
@@ -34,8 +35,22 @@ const LeftDeck = ({ onPadEvent }) => {
     const liveJointData = songData[activePad]?.joints?.[activeJointId] || {};
     const livePosition = liveJointData.position || [0, 0, 0];
     
-    const handlePositionChange = (newPositionArray) => {
+    // --- DEFINITIVE FIX: Integrate MovementFader logic ---
+    const handlePositionChange = (posArray) => {
         if (!activeJointId) return;
+
+        const [gridX, gridY, gridZ] = posArray;
+        
+        // Map fader value (0-1) to movement magnitude (1-10)
+        const magnitude = 1 + (movementFaderValues.left * 9);
+
+        // Apply magnitude to the grid's direction vector
+        const newPositionArray = [
+            gridX * magnitude,
+            gridY * magnitude,
+            gridZ * magnitude // Z is also scaled for forward/backward movement
+        ];
+
         const newVector = { x: newPositionArray[0], y: newPositionArray[1], z: newPositionArray[2] };
         updateJointData(activePad, activeJointId, { position: newPositionArray, vector: newVector });
     };
