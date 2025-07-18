@@ -1,54 +1,96 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useUIState } from '../../context/UIStateContext.jsx';
 import { useMedia } from '../../context/MediaContext.jsx';
 import { useMotion } from '../../context/MotionContext.jsx';
+import { useSequence } from '../../context/SequenceContext.jsx';
 import CameraFeed from '../ui/CameraFeed.jsx';
 import PoseOverlay from '../ui/PoseOverlay.jsx';
 import SkeletalVisualizer from './SkeletalVisualizer.jsx';
-import { useSequence } from '../../context/SequenceContext.jsx';
-import { convertPoseToVisualizerFormat } from '../../utils/poseUtils.js';
 import { useMotionAnalysis } from '../../hooks/useMotionAnalysis.js';
+import { TENSORFLOW_TO_SEQ_MAP, DEFAULT_POSE } from '../../utils/constants'; // Import constants
 import './MediaDisplay.css';
 
 const MediaDisplay = ({ selectedJoints }) => {
-    const { mediaType, mediaSource, videoRef: fileVideoRef } = useMedia(); // This is the ref for the loaded file
+    const { mediaType, mediaSource, videoRef: fileVideoRef } = useMedia();
     const { isCameraActive, activeVisualizer, activePad } = useUIState();
-    const { setLivePoseData } = useMotion();
+    const { livePoseData, setLivePoseData } = useMotion();
     const { songData } = useSequence();
     
     const containerRef = useRef(null);
-    const cameraVideoRef = useRef(null); // Create a separate ref for the CameraFeed's video element
+    const cameraVideoRef = useRef(null);
 
-    // DEFINITIVE FIX: Conditionally select which video ref to send for analysis
     const analysisTargetRef = isCameraActive ? cameraVideoRef : fileVideoRef;
     useMotionAnalysis(analysisTargetRef, setLivePoseData);
     
-    const endSequencePose = songData[activePad] || null;
-    const endPose = convertPoseToVisualizerFormat(endSequencePose);
+    // --- DEFINITIVE FIX & UPGRADE for Phase 1 ---
+    // This replaces the old `convertPoseToVisualizerFormat` logic.
+    // It creates the rich pose object required by the new ribbon renderer.
+    const transformedPoseData = useMemo(() => {
+        let sourceJoints;
 
+        if (livePoseData?.keypoints) {
+            // If live camera data exists, use it as the primary source for vectors.
+            sourceJoints = {};
+            livePoseData.keypoints.forEach(kp => {
+                const jointId = TENSORFLOW_TO_SEQ_MAP[kp.name];
+                if (jointId) {
+                    // CRITICAL: Get rotation data from the *current pad's* sequence data.
+                    // This allows you to "steer" the live model with your saved notations.
+                    const sequenceJoint = songData[activePad]?.joints?.[jointId] || {};
+                    sourceJoints[jointId] = {
+                        vector: { x: kp.x, y: kp.y, z: kp.z || 0 },
+                        score: kp.score,
+                        rotationType: sequenceJoint.rotationType || 'NEU',
+                        rotationIntensity: sequenceJoint.rotationIntensity || 0,
+                    };
+                }
+            });
+        } else if (songData[activePad]?.joints) {
+            // If no live data, use the complete saved pose from the active pad.
+            sourceJoints = songData[activePad].joints;
+        } else {
+            // Fallback to a default pose if nothing else is available.
+            sourceJoints = DEFAULT_POSE.jointInfo;
+        }
+
+        return { jointInfo: sourceJoints };
+
+    }, [livePoseData, songData, activePad]);
+
+    // This component renders the correct visualizer based on the current state.
     const VisualizerComponent = () => {
         const width = containerRef.current?.clientWidth || 300;
         const height = containerRef.current?.clientHeight || 300;
-        if (activeVisualizer === 'full') {
-            return <SkeletalVisualizer poseData={endPose} highlightJoints={selectedJoints} width={width} height={height} />;
+
+        switch(activeVisualizer) {
+            case 'full':
+                // It now passes the new, rich data structure to the renderer.
+                return <SkeletalVisualizer poseData={transformedPoseData} highlightJoints={selectedJoints} width={width} height={height} />;
+            // Your 'core' visualizer case would go here.
+            // case 'core':
+            //     return <CoreVisualizer ... />;
+            default:
+                return <div className="placeholder-text">Select a Visualizer</div>;
         }
-        // Add other visualizers like CoreVisualizer here if needed
-        return <div className="placeholder-text">Select a Visualizer</div>;
     };
 
     return (
         <div ref={containerRef} className="media-display-container">
             {isCameraActive ? (
-                // Pass the dedicated ref to the CameraFeed component
-                <><CameraFeed ref={cameraVideoRef} /><PoseOverlay /></>
+                <>
+                    <CameraFeed ref={cameraVideoRef} />
+                    <PoseOverlay />
+                </>
             ) : mediaType === 'video' && mediaSource ? (
-                // The loaded video uses the fileVideoRef from MediaContext
-                <><video ref={fileVideoRef} src={mediaSource} className="video-player-element" playsInline muted /><PoseOverlay /></>
+                <>
+                    <video ref={fileVideoRef} src={mediaSource} className="video-player-element" playsInline muted />
+                    <PoseOverlay />
+                </>
             ) : (
                 <VisualizerComponent />
             )}
-            {/* Other controls like CameraQuickControls can remain here */}
+            {/* Your other controls (CameraQuickControls, etc.) remain untouched. */}
         </div>
     );
 };

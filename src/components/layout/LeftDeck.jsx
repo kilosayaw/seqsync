@@ -8,7 +8,8 @@ import OptionButtons from '../ui/OptionButtons';
 import PresetPageSelectors from '../ui/PresetPageSelectors';
 import CornerToolPanel from '../ui/CornerToolPanel';
 import XYZGrid from '../ui/XYZGrid';
-import DirectionalControls from '../ui/DirectionalControls'; // --- ADDED ---
+import DirectionalControls from '../ui/DirectionalControls';
+import GroundingEditor from '../ui/GroundingEditor'; // --- ADDED ---
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -78,9 +79,13 @@ const LeftDeck = ({ onPadEvent }) => {
                     <OptionButtons side="left" />
                     <PresetPageSelectors side="left" />
                 </div>
-                    <DirectionalControls />
+                <DirectionalControls />
                 <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
                     <RotaryController deckId="deck1" isEditing={isEditing || isRotationMode} activeJointId={activeJointId} />
+                    
+                    {/* --- UPDATED: Conditionally render the correct editor overlay --- */}
+                    {isFootSelected && <GroundingEditor side="left" />}
+                    
                     {showPositionGrid && (
                         <div className="xyz-grid-overlay">
                             <XYZGrid 
@@ -89,6 +94,7 @@ const LeftDeck = ({ onPadEvent }) => {
                             />
                         </div>
                     )}
+                    
                     <button className={classNames('corner-tool-button', 'top-left', { 'active': activeCornerTools.left === 'ROT' })} onClick={() => handleCornerToolClick('ROT')}>ROT</button>
                     <button className={classNames('corner-tool-button', 'top-right', { 'active': activeCornerTools.left === 'NRG' })} onClick={() => handleCornerToolClick('NRG')}>NRG</button>
                     <button className={classNames('corner-tool-button', 'bottom-left', { 'active': activeCornerTools.left === 'INT' })} onClick={() => handleCornerToolClick('INT')}>INT</button>

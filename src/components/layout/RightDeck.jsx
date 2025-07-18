@@ -8,7 +8,8 @@ import OptionButtons from '../ui/OptionButtons';
 import PresetPageSelectors from '../ui/PresetPageSelectors';
 import CornerToolPanel from '../ui/CornerToolPanel';
 import XYZGrid from '../ui/XYZGrid';
-import DirectionalControls from '../ui/DirectionalControls'; // --- ADDED ---
+import DirectionalControls from '../ui/DirectionalControls';
+import GroundingEditor from '../ui/GroundingEditor'; // --- ADDED ---
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -47,7 +48,7 @@ const RightDeck = ({ onPadEvent }) => {
         }
 
         const MAX_DISPLACEMENT = 0.5;
-        const faderValue = movementFaderValues.right; // Use the right fader value
+        const faderValue = movementFaderValues.right;
         const finalVector = {
             x: defaultPosition.x + (gridX * MAX_DISPLACEMENT * faderValue),
             y: defaultPosition.y + (gridY * MAX_DISPLACEMENT * faderValue),
@@ -74,6 +75,10 @@ const RightDeck = ({ onPadEvent }) => {
                 <DirectionalControls />
                 <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
                     <RotaryController deckId="deck2" isEditing={isEditing || isRotationMode} activeJointId={activeJointId} />
+                    
+                    {/* --- UPDATED: Conditionally render the correct editor overlay --- */}
+                    {isFootSelected && <GroundingEditor side="right" />}
+                    
                     {showPositionGrid && (
                         <div className="xyz-grid-overlay">
                             <XYZGrid 
@@ -82,6 +87,7 @@ const RightDeck = ({ onPadEvent }) => {
                             />
                         </div>
                     )}
+
                     <button className={classNames('corner-tool-button', 'top-left', { 'active': activeCornerTools.right === 'ROT' })} onClick={() => handleCornerToolClick('ROT')}>ROT</button>
                     <button className={classNames('corner-tool-button', 'top-right', { 'active': activeCornerTools.right === 'NRG' })} onClick={() => handleCornerToolClick('NRG')}>NRG</button>
                     <button className={classNames('corner-tool-button', 'bottom-left', { 'active': activeCornerTools.right === 'INT' })} onClick={() => handleCornerToolClick('INT')}>INT</button>
