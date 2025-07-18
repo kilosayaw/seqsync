@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // RESTORED: Import useState
+import React, { useState, useEffect, useCallback } from 'react';
 import { useMedia } from '../../context/MediaContext';
 import { useUIState } from '../../context/UIStateContext';
 import { useSequence } from '../../context/SequenceContext';
@@ -21,29 +21,19 @@ import './ProLayout.css';
 
 const ProLayout = () => {
     const { isLoading, pendingFile, confirmLoad, cancelLoad, wavesurferInstance, duration, detectedBpm } = useMedia();
-    const { activePad, setActivePad, padMode, selectedBar } = useUIState();
+    // --- DEFINITIVE FIX: Destructure selectedJoints from the UI state ---
+    const { activePad, setActivePad, padMode, selectedBar, selectedJoints } = useUIState();
     const { songData, barStartTimes, STEPS_PER_BAR } = useSequence();
     const { playSound, stopSound } = useSound();
     const { audioLevel } = usePlayback();
-
-    // RESTORED: State for the visualizer mode is now correctly managed here.
-    const [visualizerMode, setVisualizerMode] = useState('ribbon');
 
     const handlePadEvent = (type, padIndex) => {
         if (type === 'down') {
             setActivePad(padIndex);
             const soundNote = songData[padIndex]?.sounds?.[0];
             if (soundNote) playSound(soundNote);
-
             if (wavesurferInstance) {
-                seekToPad({
-                    wavesurfer: wavesurferInstance,
-                    duration,
-                    bpm: detectedBpm,
-                    padIndex,
-                    barStartTimes,
-                    noteDivision: 8,
-                });
+                seekToPad({ wavesurfer: wavesurferInstance, duration, bpm: detectedBpm, padIndex, barStartTimes, noteDivision: 8 });
             }
         } else if (type === 'up') {
             if (padMode === 'GATE') {
@@ -74,25 +64,16 @@ const ProLayout = () => {
             <TopNavBar />
             <WaveformNavigator />
             <NotationDisplay />
-            
             <main className="main-content-area">
                 <LeftDeck onPadEvent={handlePadEvent} />
                 <LevelMeter level={audioLevel} />
-                {/* RESTORED: This now correctly passes down the state and the setter function. */}
-                <CenterConsole 
-                    visualizerMode={visualizerMode}
-                    setVisualizerMode={setVisualizerMode}
-                />
+                {/* --- DEFINITIVE FIX: Pass the selectedJoints state down --- */}
+                <CenterConsole selectedJoints={selectedJoints} />
                 <LevelMeter level={audioLevel} />
                 <RightDeck onPadEvent={handlePadEvent} />
             </main>
-
             {isLoading && <LoadingOverlay />}
-            <ConfirmDialog
-                isVisible={!!pendingFile}
-                message="How should this media be handled?"
-                actions={mediaLoadActions}
-            />
+            <ConfirmDialog isVisible={!!pendingFile} message="How should this media be handled?" actions={mediaLoadActions} />
             <SoundBankPanel />
             <SourceMixerPanel />
         </div>

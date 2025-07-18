@@ -6,12 +6,10 @@ function sketch(p5) {
     let poseData;
     let canvasSize = { width: 300, height: 300 };
     let colors = {};
-    // PHOENIX PROTOCOL: Initialize weightDistribution.
     let weightDistribution = 0;
 
     p5.updateWithProps = props => {
         if (props.poseData) poseData = props.poseData;
-        // PHOENIX PROTOCOL: Update weightDistribution from props.
         if (props.weightDistribution !== undefined) {
             weightDistribution = props.weightDistribution;
         }
@@ -46,7 +44,7 @@ function sketch(p5) {
         return {
             x: v.x * (canvasSize.width / 4),
             y: -v.y * (canvasSize.height / 3),
-            z: v.z * (canvasSize.width / 4),
+            z: (v.z || 0) * (canvasSize.width / 4),
         };
     }
 
@@ -54,24 +52,22 @@ function sketch(p5) {
         if (!poseData || !poseData.jointInfo) return;
         
         const j = poseData.jointInfo;
-        const coreJoints = { LS: j.LS?.vector, RS: j.RS?.vector, LH: j.LH?.vector, RH: j.RH?.vector };
+        // --- DEFINITIVE FIX: Add the Core 'C' joint to the render ---
+        const coreJoints = { 
+            LS: j.LS?.vector, RS: j.RS?.vector, 
+            LH: j.LH?.vector, RH: j.RH?.vector,
+            C: j.C?.vector, // Safely get the Core joint
+        };
 
+        // This check is now robust.
         if (Object.values(coreJoints).some(v => !v)) return;
 
         const coords = {
             LS: getCoords(coreJoints.LS), RS: getCoords(coreJoints.RS),
-            LH: getCoords(coreJoints.LH), RH: getCoords(coreJoints.RH)
+            LH: getCoords(coreJoints.LH), RH: getCoords(coreJoints.RH),
+            C: getCoords(coreJoints.C),
         };
-
-        // PHOENIX PROTOCOL: Weighted average calculation for the core center.
-        const leftWeight = (1 - weightDistribution) / 2.0;
-        const rightWeight = (1 + weightDistribution) / 2.0;
-
-        const coreCenter = {
-            x: (coords.LS.x + coords.LH.x) * leftWeight + (coords.RS.x + coords.RH.x) * rightWeight,
-            y: (coords.LS.y + coords.RS.y + coords.LH.y + coords.RH.y) / 4,
-            z: (coords.LS.z + coords.LH.z) * leftWeight + (coords.RS.z + coords.RH.z) * rightWeight,
-        };
+        // --- END OF FIX ---
 
         p5.stroke(colors.tether);
         p5.strokeWeight(2);
@@ -83,7 +79,8 @@ function sketch(p5) {
         connections.forEach(([start, end]) => p5.line(start.x, start.y, start.z, end.x, end.y, end.z));
 
         p5.noStroke();
-        Object.values(coords).forEach(pos => {
+        // Draw the shoulder and hip nodes
+        [coords.LS, coords.RS, coords.LH, coords.RH].forEach(pos => {
             p5.push();
             p5.translate(pos.x, pos.y, pos.z);
             p5.ambientMaterial(colors.joint);
@@ -91,8 +88,9 @@ function sketch(p5) {
             p5.pop();
         });
 
+        // Draw the central core node
         p5.push();
-        p5.translate(coreCenter.x, coreCenter.y, coreCenter.z);
+        p5.translate(coords.C.x, coords.C.y, coords.C.z);
         p5.ambientMaterial(colors.core);
         p5.sphere(10);
         p5.pop();
@@ -109,7 +107,6 @@ const CoreVisualizer = (props) => {
 
 CoreVisualizer.propTypes = {
     poseData: PropTypes.object,
-    // PHOENIX PROTOCOL: Add new prop type for validation.
     weightDistribution: PropTypes.number,
     width: PropTypes.number.isRequired,
     height: PropTypes.number.isRequired,

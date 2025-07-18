@@ -16,14 +16,14 @@ const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
         if (!['LF', 'RF'].includes(joint.id)) {
-            // --- DEFINITIVE FIX: The default intent is now 'BASE' ---
+            // --- DEFINITIVE FIX: Remove the conflicting 'position' property. ---
+            // By not defining 'position' or 'vector' here, we force the system
+            // to use the correct T-pose coordinates from constants.js as the default.
             joints[joint.id] = { 
-                vector: { x: 0, y: 0, z: 0 }, 
-                position: [0, 0, 0],
                 rotation: 0, 
                 rotationType: 'NEU',
                 rotationIntensity: 100,
-                intentType: 'BASE', // Changed from 'PASS'
+                intentType: 'BASE',
                 forceLevel: 0,
                 role: 'frame' 
             };

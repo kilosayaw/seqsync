@@ -1,71 +1,52 @@
 export const JOINT_LIST = [
-    { id: 'H', name: 'Head'},
-    { id: 'C', name: 'Core'},
-    { id: 'LS', name: 'LS' }, { id: 'RS', name: 'RS' },
-    { id: 'LE', name: 'LE' }, { id: 'RE', name: 'RE' },
-    { id: 'LW', name: 'LW' }, { id: 'RW', name: 'RW' },
-    { id: 'LP', name: 'LP' }, { id: 'RP', name: 'RP' },
-    { id: 'LW1', name: 'LW1' }, { id: 'RW1', name: 'RW1' },
-    { id: 'LW2', name: 'LW2' }, { id: 'RW2', name: 'RW2' },
-    { id: 'LH', name: 'LH' }, { id: 'RH', name: 'RH' },
-    { id: 'LK', name: 'LK' }, { id: 'RK', name: 'RK' },
-    { id: 'LA', name: 'LA' }, { id: 'RA', name: 'RA' },
-    { id: 'LA1', name: 'LA1' }, { id: 'RA1', name: 'RA1' },
-    { id: 'LA2', name: 'LA2' }, { id: 'RA2', name: 'RA2' },
-    { id: 'LF', name: 'LF' }, { id: 'RF', name: 'RF' },
+    { id: 'H', name: 'Head' }, { id: 'N', name: 'Neck' }, 
+    { id: 'CHEST', name: 'Chest' }, { id: 'PELV', name: 'Pelvis' },
+    { id: 'LS', name: 'L Shoulder' }, { id: 'RS', name: 'R Shoulder' },
+    { id: 'LE', name: 'L Elbow' }, { id: 'RE', name: 'R Elbow' },
+    { id: 'LW', name: 'L Wrist' }, { id: 'RW', name: 'R Wrist' },
+    { id: 'LH', name: 'L Hip' }, { id: 'RH', name: 'R Hip' },
+    { id: 'LK', name: 'L Knee' }, { id: 'RK', name: 'R Knee' },
+    { id: 'LA', name: 'L Ankle' }, { id: 'RA', name: 'R Ankle' },
+    { id: 'LF', name: 'L Foot' }, { id: 'RF', name: 'R Foot' },
 ];
 
 export const VISIBLE_JOINT_LIST = JOINT_LIST.filter(j => 
-    !j.id.includes('LW1') && !j.id.includes('LW2') &&
-    !j.id.includes('LA1') && !j.id.includes('LA2') &&
-    !j.id.includes('RW1') && !j.id.includes('RW2') &&
-    !j.id.includes('RA1') && !j.id.includes('RA2') &&
-    !j.id.includes('C') && !j.id.includes('LP') && !j.id.includes('RP')
+    !['N', 'CHEST', 'PELV'].includes(j.id)
 );
 
-export const BASE_FOOT_PATHS = {
-    L: '/ground/foot-left.png',
-    R: '/ground/foot-right.png',
-};
+export const BASE_FOOT_PATHS = { L: '/ground/foot-left.png', R: '/ground/foot-right.png' };
 
 export const DEFAULT_POSE_VECTOR = { x: 0, y: 0, z: 0 };
 
+const T_POSE_VECTORS = {
+    H: { x: 0, y: 0.9, z: 0 }, N: { x: 0, y: 0.7, z: 0 },
+    CHEST: { x: 0, y: 0.5, z: 0 }, PELV: { x: 0, y: 0.1, z: 0 },
+    LS: { x: -0.2, y: 0.6, z: 0 }, RS: { x: 0.2, y: 0.6, z: 0 },
+    LE: { x: -0.5, y: 0.6, z: 0 }, RE: { x: 0.5, y: 0.6, z: 0 },
+    LW: { x: -0.8, y: 0.6, z: 0 }, RW: { x: 0.8, y: 0.6, z: 0 },
+    LH: { x: -0.15, y: 0.1, z: 0 }, RH: { x: 0.15, y: 0.1, z: 0 },
+    LK: { x: -0.15, y: -0.4, z: 0 }, RK: { x: 0.15, y: -0.4, z: 0 },
+    LA: { x: -0.15, y: -0.8, z: 0 }, RA: { x: 0.15, y: -0.8, z: 0 },
+    LF: { x: -0.15, y: -0.9, z: 0.05 }, RF: { x: 0.15, y: -0.9, z: 0.05 },
+};
+
 export const DEFAULT_POSE = {
-    jointInfo: {
-        'H':  { vector: { ...DEFAULT_POSE_VECTOR, y: 0.8 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'LS': { vector: { x: -0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'RS': { vector: { x: 0.2, y: 0.6, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'LE': { vector: { x: -0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'RE': { vector: { x: 0.4, y: 0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'LW': { vector: { x: -0.6, y: -0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'RW': { vector: { x: 0.6, y: -0.2, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'LP': { vector: { x: -0.7, y: -0.4, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' }, 
-        'RP': { vector: { x: 0.7, y: -0.4, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'LH': { vector: { x: -0.15, y: 0.1, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'RH': { vector: { x: 0.15, y: 0.1, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'LK': { vector: { x: -0.2, y: -0.35, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'RK': { vector: { x: 0.2, y: -0.35, z: 0 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'LA': { vector: { x: -0.25, y: -0.8, z: 0 }, score: 1, orientation: 'NEU', role: 'stabilizer' },
-        'RA': { vector: { x: 0.25, y: -0.8, z: 0 }, score: 1, orientation: 'NEU', role: 'stabilizer' },
-        
-        // --- DEFINITIVE FIX: Add the missing default data for the feet ---
-        'LF': { vector: { x: -0.25, y: -0.9, z: -0.05 }, score: 1, orientation: 'NEU', role: 'frame' },
-        'RF': { vector: { x: 0.25, y: -0.9, z: -0.05 }, score: 1, orientation: 'NEU', role: 'frame' },
-        // --- END OF FIX ---
-    }
+    jointInfo: Object.fromEntries(
+        JOINT_LIST.map(j => [j.id, { vector: T_POSE_VECTORS[j.id] || { ...DEFAULT_POSE_VECTOR }, score: 1.0 }])
+    )
 };
 
 export const POSE_CONNECTIONS = [
-    ['H', 'LS'], ['H', 'RS'],
+    ['N', 'H'], ['CHEST', 'N'], ['CHEST', 'LS'], ['CHEST', 'RS'], 
+    ['LS', 'LE'], ['RS', 'RE'], ['LE', 'LW'], ['RE', 'RW'],
+    ['CHEST', 'PELV'], ['PELV', 'LH'], ['PELV', 'RH'],
+    ['LH', 'LK'], ['RH', 'RK'], ['LK', 'LA'], ['RK', 'RA'],
+    ['LA', 'LF'], ['RA', 'RF']
+];
+
+export const CORE_CONNECTIONS = [
     ['LS', 'RS'], ['LH', 'RH'], ['LS', 'LH'], ['RS', 'RH'],
-    ['LS', 'LE'], ['LE', 'LW'],
-    ['RS', 'RE'], ['RE', 'RW'],
-    ['LH', 'LK'], ['LK', 'LA'],
-    ['RH', 'RK'], ['RK', 'RA'],
-    // --- DEFINITIVE FIX: Ensure feet are connected ---
-    ['LA', 'LF'], 
-    ['RA', 'RF'],
-    // --- END OF FIX ---
+    ['LS', 'RH'], ['RS', 'LH']
 ];
 
 export const FOOT_HOTSPOT_COORDINATES = {
