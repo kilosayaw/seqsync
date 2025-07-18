@@ -12,6 +12,7 @@ const DEFAULT_BAR_COUNT = 16;
 const PRESET_PAGES = 3;
 const PRESETS_PER_PAGE = 4;
 
+// Your data creation helpers are correct and do not need changes.
 const createBeatData = (bar, beatInBar) => {
     const joints = {};
     JOINT_LIST.forEach(joint => {
@@ -44,37 +45,50 @@ const createDefaultPresets = () => ({
     right: Array(PRESET_PAGES).fill(null).map(() => Array(PRESETS_PER_PAGE).fill(null)),
 });
 
-
 export const SequenceProvider = ({ children }) => {
     const [songData, setSongData] = useState(createDefaultSequence());
     const [presets, setPresets] = useState(createDefaultPresets());
     const [totalBars, setTotalBars] = useState(DEFAULT_BAR_COUNT);
     const [barStartTimes, setBarStartTimes] = useState([]);
     const { isMediaReady, duration, detectedBpm } = useMedia();
-    const { setActivePad } = useUIState(); 
+    const { setActivePad, setSelectedBar } = useUIState(); // Get setSelectedBar to reset UI
 
+    // --- DEFINITIVE FIX ---
+    // This effect now correctly handles the sequence generation workflow.
     useEffect(() => {
-        if (isMediaReady && duration > 0 && detectedBpm > 0) {
-            console.log(`[SequenceContext] Media is ready. Rebuilding sequence with Duration: ${duration}, BPM: ${detectedBpm}`);
-            const timePerStep = (60 / detectedBpm) / 2;
+        // The condition is now less strict. It runs as long as the media is ready and has a duration.
+        if (isMediaReady && duration > 0) {
+            
+            // Step 1: Default to 80 BPM if detection failed (returned 0 or less).
+            const bpm = detectedBpm > 0 ? detectedBpm : 80;
+            console.log(`[SequenceContext] Building sequence with Duration: ${duration}s, BPM: ${bpm}`);
+
+            // Step 2: Calculate total steps based on the determined BPM.
+            // Assuming 8 steps (eighth notes) per bar in 4/4 time.
+            const timePerStep = (60 / bpm) / 2; 
             const totalSteps = Math.ceil(duration / timePerStep);
             const calculatedTotalBars = Math.max(1, Math.ceil(totalSteps / STEPS_PER_BAR));
             
             setTotalBars(calculatedTotalBars);
             
+            // Step 3: Create the main songData array with the correct number of steps.
             const newSongData = Array.from({ length: totalSteps }, (_, i) => 
                 createBeatData(Math.floor(i / STEPS_PER_BAR) + 1, i % STEPS_PER_BAR)
             );
             setSongData(newSongData);
             
+            // Step 4: Create the barStartTimes array, crucial for accurate seeking.
             const timePerBar = timePerStep * STEPS_PER_BAR;
             const newBarStartTimes = Array.from({ length: calculatedTotalBars }, (_, i) => i * timePerBar);
             setBarStartTimes(newBarStartTimes);
             
+            // Step 5: Reset the UI to the start of the new sequence.
             setActivePad(0);
+            setSelectedBar(1);
         }
-    }, [isMediaReady, duration, detectedBpm, setActivePad]);
+    }, [isMediaReady, duration, detectedBpm, setActivePad, setSelectedBar]); // Added setSelectedBar to dependency array
 
+    // All your update functions below this are correct and do not need to be changed.
     const updateJointData = useCallback((globalBeatIndex, jointId, jointDataUpdate) => {
         setSongData(produce(draft => {
             const beat = draft[globalBeatIndex];

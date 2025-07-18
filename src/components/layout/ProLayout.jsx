@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useMedia } from '../../context/MediaContext.jsx';
 import { useUIState } from '../../context/UIStateContext.jsx';
 import { useSequence } from '../../context/SequenceContext.jsx';
@@ -16,7 +16,7 @@ import ConfirmDialog from '../ui/ConfirmDialog.jsx';
 import SoundBankPanel from '../ui/SoundBankPanel.jsx';
 import SourceMixerPanel from '../ui/SourceMixerPanel.jsx';
 import { useKeyboardControls } from '../../hooks/useKeyboardControls.js';
-import { usePlaybackSync } from '../../hooks/usePlaybackSync.js';
+import { usePlaybackSync } from '../../hooks/usePlaybackSync.js'; // The FIXED hook
 import './ProLayout.css';
 
 const ProLayout = () => {
@@ -26,11 +26,15 @@ const ProLayout = () => {
     const { audioLevel, currentTime, isPlaying, currentBar, currentBeat } = usePlayback();
     const { playSound, stopSound } = useSound();
     
+    // This now gets the corrected, reliable navigation functions.
     const { handlePadClick } = usePlaybackSync();
 
-    const onPadEvent = (type, padIndex) => {
+    // This is the single handler for all pad interactions (mouse or keyboard).
+    const onPadEvent = useCallback((type, padIndex) => {
+        if (!songData || !songData[padIndex]) return;
+
         if (type === 'down') {
-            handlePadClick(padIndex);
+            handlePadClick(padIndex); // This now correctly updates state and seeks media.
             const soundNote = songData[padIndex]?.sounds?.[0];
             if (soundNote) playSound(soundNote);
         } else if (type === 'up') {
@@ -39,18 +43,21 @@ const ProLayout = () => {
                 if (soundNote) stopSound(soundNote);
             }
         }
-    };
+    }, [songData, padMode, handlePadClick, playSound, stopSound]);
 
-    const handleKeyEvent = (type, localPadIndex) => {
+    // This function translates a local key press (0-7) to a global pad index.
+    const handleKeyEvent = useCallback((type, localPadIndex) => {
         const globalPadIndex = (selectedBar - 1) * STEPS_PER_BAR + localPadIndex;
         onPadEvent(type, globalPadIndex);
-    };
+    }, [selectedBar, STEPS_PER_BAR, onPadEvent]);
 
+    // Your keyboard hook is correct and will now work with the reliable handler.
     useKeyboardControls(
         (localPadIndex) => handleKeyEvent('down', localPadIndex),
         (localPadIndex) => handleKeyEvent('up', localPadIndex)
     );
 
+    // Your existing logic below this is correct.
     const mediaLoadActions = [
         { label: "Cue Mode Only", onClick: () => confirmLoad('cue_only'), className: 'confirm-btn' },
         { label: "Polyphonic (Both)", onClick: () => confirmLoad('polyphonic'), className: 'poly-btn' },
