@@ -1,0 +1,24 @@
+/* src/components/visualizers/SkeletalVisualizer.css */
+.skeletal-visualizer-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.live-video-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* This mirrors the video, so the overlay should also be mirrored */
+    transform: scaleX(-1);
+}
+
+.visualizer-placeholder {
+    color: var(--color-text-secondary);
+    font-size: 1.5rem;
+}

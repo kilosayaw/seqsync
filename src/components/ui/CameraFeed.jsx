@@ -1,49 +1,37 @@
-// src/components/ui/CameraFeed.jsx
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { useMotion } from '../../context/MotionContext';
-import { useMotionAnalysis } from '../../hooks/useMotionAnalysis';
 import './CameraFeed.css';
 
-const CameraFeed = () => {
-    const videoRef = useRef(null);
-    const { setLivePoseData } = useMotion();
-    
-    // This hook will automatically handle starting the pose analysis
-    useMotionAnalysis(videoRef, setLivePoseData);
+// DEFINITIVE FIX: Use forwardRef to pass the ref from MediaDisplay to the <video> element
+const CameraFeed = forwardRef((props, ref) => {
+    const internalVideoRef = useRef(null);
+    // This hook allows the parent's ref to point to our internal video element
+    useImperativeHandle(ref, () => internalVideoRef.current);
+
+    const { videoStream, startCamera, stopCamera } = useMotion(); // Assuming MotionContext provides these
 
     useEffect(() => {
-        const startCamera = async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: 640, height: 480 } 
-                });
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                }
-            } catch (err) {
-                console.error("Error accessing camera:", err);
-                // We could show an error message to the user here
-            }
-        };
-        startCamera();
-
-        // Cleanup function to stop the camera stream when the component unmounts
+        startCamera(); // Tell the context to start the camera stream
         return () => {
-            if (videoRef.current && videoRef.current.srcObject) {
-                videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-            }
+            stopCamera(); // Tell the context to stop the camera on unmount
         };
-    }, []);
+    }, [startCamera, stopCamera]);
+
+    useEffect(() => {
+        if (videoStream && internalVideoRef.current) {
+            internalVideoRef.current.srcObject = videoStream;
+        }
+    }, [videoStream]);
 
     return (
         <video 
-            ref={videoRef} 
+            ref={internalVideoRef} 
             className="camera-feed-video" 
             autoPlay 
             playsInline 
             muted
         />
     );
-};
+});
 
 export default CameraFeed;
