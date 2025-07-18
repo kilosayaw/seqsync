@@ -1,25 +1,17 @@
-// src/components/ui/BarBeatDisplay.jsx
 import React from 'react';
-import DigitalDisplay from './DigitalDisplay';
-import { usePlayback } from '../../context/PlaybackContext';
-import { useUIState } from '../../context/UIStateContext';
-import { useSequence } from '../../context/SequenceContext'; // DEFINITIVE: Import useSequence
-import { formatTime } from '../../utils/notationUtils';
+import PropTypes from 'prop-types';
+import DigitalDisplay from './DigitalDisplay.jsx';
+import { formatTime } from '../../utils/notationUtils.js';
 import './BarBeatDisplay.css';
 
-const BarBeatDisplay = () => {
-    const { currentTime, isPlaying, currentBar: playingBar, currentBeat: playingBeat } = usePlayback();
-    const { selectedBar, activePad } = useUIState();
-    const { STEPS_PER_BAR } = useSequence(); // DEFINITIVE: Get steps per bar
+const BarBeatDisplay = (props) => {
+    const {
+        currentTime, isPlaying, playingBar, playingBeat,
+        selectedBar, activePad, stepsPerBar
+    } = props;
 
-    // If playing, use the real-time bar from the playback context. Otherwise, use the selected bar.
     const displayBar = isPlaying ? playingBar : selectedBar;
-    
-    // DEFINITIVE: The beat display logic is now unified.
-    // If playing, use the real-time beat. Otherwise, use the selected pad's beat.
-    const beatInBar = isPlaying ? playingBeat : (activePad !== null ? activePad % STEPS_PER_BAR : 0);
-    
-    // Add 1 to make it one-based for the display.
+    const beatInBar = isPlaying ? playingBeat : (activePad !== null ? activePad % stepsPerBar : 0);
     const displayBeat = beatInBar + 1;
 
     return (
@@ -31,4 +23,14 @@ const BarBeatDisplay = () => {
     );
 };
 
-export default BarBeatDisplay;
+BarBeatDisplay.propTypes = {
+    currentTime: PropTypes.number.isRequired,
+    isPlaying: PropTypes.bool.isRequired,
+    playingBar: PropTypes.number.isRequired,
+    playingBeat: PropTypes.number.isRequired,
+    selectedBar: PropTypes.number.isRequired,
+    activePad: PropTypes.number.isRequired,
+    stepsPerBar: PropTypes.number.isRequired,
+};
+
+export default React.memo(BarBeatDisplay);

@@ -1,7 +1,6 @@
-// src/context/PlaybackContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { useMedia } from './MediaContext'; // DEFINITIVE FIX: Re-added missing import
-import { useSequence } from './SequenceContext';
+import { useMedia } from './MediaContext.jsx';
+import { useSequence } from './SequenceContext.jsx';
 import * as Tone from 'tone';
 
 const PlaybackContext = createContext(null);
@@ -16,14 +15,16 @@ export const PlaybackProvider = ({ children }) => {
     const [currentBar, setCurrentBar] = useState(1);
     const [currentBeat, setCurrentBeat] = useState(0);
 
-    // DEFINITIVE FIX: Re-added useMedia hook to get necessary values
-    const { wavesurferInstance, detectedBpm } = useMedia(); 
+    const { wavesurferInstance, detectedBpm, mediaType, videoRef } = useMedia(); 
     const { barStartTimes, STEPS_PER_BAR } = useSequence();
     const metronome = useRef(null);
     const animationFrameId = useRef();
 
     useEffect(() => {
         metronome.current = new Tone.MembraneSynth().toDestination();
+        return () => {
+            metronome.current?.dispose();
+        };
     }, []);
 
     useEffect(() => {
@@ -35,8 +36,18 @@ export const PlaybackProvider = ({ children }) => {
 
     useEffect(() => {
         const animate = () => {
-            if (wavesurferInstance && wavesurferInstance.isPlaying()) {
-                const time = wavesurferInstance.getCurrentTime();
+            let time = 0;
+            let isPlayingFlag = false;
+
+            if (mediaType === 'audio' && wavesurferInstance?.isPlaying()) {
+                time = wavesurferInstance.getCurrentTime();
+                isPlayingFlag = true;
+            } else if (mediaType === 'video' && videoRef.current && !videoRef.current.paused) {
+                time = videoRef.current.currentTime;
+                isPlayingFlag = true;
+            }
+            
+            if (isPlayingFlag) {
                 setCurrentTime(time);
 
                 if (barStartTimes.length > 0) {
@@ -46,8 +57,7 @@ export const PlaybackProvider = ({ children }) => {
                         if (time >= barStartTimes[i]) {
                             bar = i + 1;
                             const timeIntoBar = time - barStartTimes[i];
-                            // Time per step (eighth note)
-                            const timePerStep = (60 / bpm) / 2;
+                            const timePerStep = (60 / bpm) / 2; // Time per eighth note
                             beat = Math.floor(timeIntoBar / timePerStep);
                             break;
                         }
@@ -66,29 +76,42 @@ export const PlaybackProvider = ({ children }) => {
         }
 
         return () => cancelAnimationFrame(animationFrameId.current);
-    }, [isPlaying, wavesurferInstance, barStartTimes, bpm, STEPS_PER_BAR, currentBar, currentBeat]);
+    }, [isPlaying, mediaType, wavesurferInstance, videoRef, barStartTimes, bpm, STEPS_PER_BAR, currentBar, currentBeat]);
 
     const seekToTime = useCallback((time) => {
-        if (wavesurferInstance) {
+        if (mediaType === 'audio' && wavesurferInstance) {
             const duration = wavesurferInstance.getDuration();
             if (duration > 0) {
                 wavesurferInstance.seekTo(time / duration);
-                setCurrentTime(time);
             }
+        } else if (mediaType === 'video' && videoRef.current) {
+            videoRef.current.currentTime = time;
         }
-    }, [wavesurferInstance]);
+        setCurrentTime(time);
+    }, [mediaType, wavesurferInstance, videoRef]);
 
     const togglePlay = useCallback(async () => {
-        if (!wavesurferInstance) return;
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        wavesurferInstance.playPause();
-        setIsPlaying(wavesurferInstance.isPlaying());
-    }, [wavesurferInstance]);
+
+        if (mediaType === 'audio' && wavesurferInstance) {
+            wavesurferInstance.playPause();
+            setIsPlaying(wavesurferInstance.isPlaying());
+        } else if (mediaType === 'video' && videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+                setIsPlaying(true);
+            } else {
+                videoRef.current.pause();
+                setIsPlaying(false);
+            }
+        }
+    }, [mediaType, wavesurferInstance, videoRef]);
     
     const playPreRollAndStart = useCallback(() => {
-        if (!wavesurferInstance || !metronome.current) return;
+        const player = mediaType === 'audio' ? wavesurferInstance : videoRef.current;
+        if (!player || !metronome.current) return;
         
         const now = Tone.now();
         const timePerBeat = 60 / bpm;
@@ -106,22 +129,29 @@ export const PlaybackProvider = ({ children }) => {
             setPreRollCount(0);
             setIsPlaying(true);
             setIsRecording(true);
-            wavesurferInstance.play();
+            if (mediaType === 'audio') {
+                player.play();
+            } else {
+                player.play();
+            }
         }, 4 * timePerBeat * 1000);
 
-    }, [wavesurferInstance, bpm]);
+    }, [mediaType, wavesurferInstance, videoRef, bpm]);
 
     const handleRecord = useCallback(() => {
+        const player = mediaType === 'audio' ? wavesurferInstance : videoRef.current;
         if (isRecording) {
             setIsRecording(false);
             if (isPlaying) {
-                wavesurferInstance.pause();
+                if (player) {
+                    mediaType === 'audio' ? player.pause() : player.pause();
+                }
                 setIsPlaying(false);
             }
         } else {
             playPreRollAndStart();
         }
-    }, [isRecording, isPlaying, wavesurferInstance, playPreRollAndStart]);
+    }, [isRecording, isPlaying, mediaType, wavesurferInstance, videoRef, playPreRollAndStart]);
 
     const value = { 
         isPlaying,

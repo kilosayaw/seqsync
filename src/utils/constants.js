@@ -49,7 +49,9 @@ export const CORE_CONNECTIONS = [
     ['LS', 'RH'], ['RS', 'LH']
 ];
 
+// --- DEFINITIVE FIX: The missing constant has been restored. ---
 export const FOOT_HOTSPOT_COORDINATES = {
     L: [ { type: 'circle', notation: '3', cx: 176, cy: 281, r: 27 }, { type: 'circle', notation: '1', cx: 209, cy: 144, r: 27 }, { type: 'circle', notation: '2', cx: 139, cy: 178, r: 16 }, { type: 'ellipse', notation: 'T1', cx: 207, cy: 73, rx: 18, ry: 25, rotation: -17 }, { type: 'ellipse', notation: 'T2', cx: 168, cy: 75, rx: 10, ry: 12, rotation: -10 }, { type: 'ellipse', notation: 'T3', cx: 145, cy: 91, rx: 10, ry: 12, rotation: -35 }, { type: 'ellipse', notation: 'T4', cx: 126, cy: 113, rx: 10, ry: 13, rotation: -50 }, { type: 'ellipse', notation: 'T5', cx: 116, cy: 139, rx: 11, ry: 12, rotation: -25 }, ],
     R: [ { type: 'circle', notation: '3', cx: 174, cy: 281, r: 27 }, { type: 'circle', notation: '1', cx: 141, cy: 144, r: 27 }, { type: 'circle', notation: '2', cx: 212, cy: 177, r: 16 }, { type: 'ellipse', notation: 'T1', cx: 142, cy: 75, rx: 18, ry: 26, rotation: 17 }, { type: 'ellipse', notation: 'T2', cx: 183, cy: 76, rx: 10, ry: 12, rotation: 11 }, { type: 'ellipse', notation: 'T3', cx: 205, cy: 92, rx: 10, ry: 12, rotation: 25 }, { type: 'ellipse', notation: 'T4', cx: 224, cy: 114, rx: 10, ry: 13, rotation: 35 }, { type: 'ellipse', notation: 'T5', cx: 235, cy: 141, rx: 11, ry: 12, rotation: 15 }, ]
 };
+// --- END OF FIX ---

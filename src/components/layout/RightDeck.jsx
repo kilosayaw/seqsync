@@ -8,14 +8,15 @@ import OptionButtons from '../ui/OptionButtons';
 import PresetPageSelectors from '../ui/PresetPageSelectors';
 import CornerToolPanel from '../ui/CornerToolPanel';
 import XYZGrid from '../ui/XYZGrid';
+import DirectionalControls from '../ui/DirectionalControls'; // --- ADDED ---
 import { useUIState } from '../../context/UIStateContext';
 import { usePlayback } from '../../context/PlaybackContext';
 import { useSequence } from '../../context/SequenceContext';
+import { DEFAULT_POSE } from '../../utils/constants';
 import classNames from 'classnames';
 import './Deck.css';
 
 const RightDeck = ({ onPadEvent }) => {
-    // --- DEFINITIVE FIX: Get movementFaderValues from context ---
     const { 
         selectedBar, activePad, selectedJoints, 
         activeCornerTools, setActiveCornerTools, jointEditMode, movementFaderValues
@@ -35,18 +36,24 @@ const RightDeck = ({ onPadEvent }) => {
     const liveJointData = songData[activePad]?.joints?.[activeJointId] || {};
     const livePosition = liveJointData.position || [0, 0, 0];
     
-    // --- DEFINITIVE FIX: Integrate MovementFader logic ---
-    const handlePositionChange = (newPositionArray) => {
+    const handlePositionChange = (newGridPosition) => {
         if (!activeJointId) return;
-        const [gridX, gridY, gridZ] = newPositionArray;
-        const magnitude = 1 + (movementFaderValues.right * 9);
-        const finalPosition = [
-            gridX * magnitude,
-            gridY * magnitude,
-            gridZ * magnitude
-        ];
-        const newVector = { x: finalPosition[0], y: finalPosition[1], z: finalPosition[2] };
-        updateJointData(activePad, activeJointId, { position: finalPosition, vector: newVector });
+        const [gridX, gridY, gridZ] = newGridPosition;
+        const defaultPosition = DEFAULT_POSE.jointInfo[activeJointId]?.vector || {x:0, y:0, z:0};
+        
+        if (gridX === 0 && gridY === 0 && gridZ === 0) {
+            updateJointData(activePad, activeJointId, { position: [0,0,0], vector: defaultPosition });
+            return;
+        }
+
+        const MAX_DISPLACEMENT = 0.5;
+        const faderValue = movementFaderValues.right; // Use the right fader value
+        const finalVector = {
+            x: defaultPosition.x + (gridX * MAX_DISPLACEMENT * faderValue),
+            y: defaultPosition.y + (gridY * MAX_DISPLACEMENT * faderValue),
+            z: defaultPosition.z + (gridZ * MAX_DISPLACEMENT * faderValue)
+        };
+        updateJointData(activePad, activeJointId, { position: newGridPosition, vector: finalVector });
     };
     
     const handleCornerToolClick = (toolName) => {
@@ -63,15 +70,9 @@ const RightDeck = ({ onPadEvent }) => {
                     <OptionButtons side="right" />
                     <PresetPageSelectors side="right" />
                 </div>
-                
-                {/* --- DEFINITIVE FIX: The 'is-editing' class is now correctly applied --- */}
+                    <DirectionalControls />
                 <div className={classNames('turntable-group', { 'is-editing': isEditing })}>
-                    <RotaryController 
-                        deckId="deck2"
-                        isEditing={isEditing}
-                        activeJointId={activeJointId} 
-                    />
-                    
+                    <RotaryController deckId="deck2" isEditing={isEditing || isRotationMode} activeJointId={activeJointId} />
                     {showPositionGrid && (
                         <div className="xyz-grid-overlay">
                             <XYZGrid 
@@ -80,15 +81,11 @@ const RightDeck = ({ onPadEvent }) => {
                             />
                         </div>
                     )}
-
-                    {/* These buttons will now appear correctly whenever 'isEditing' is true */}
                     <button className={classNames('corner-tool-button', 'top-left', { 'active': activeCornerTools.right === 'ROT' })} onClick={() => handleCornerToolClick('ROT')}>ROT</button>
                     <button className={classNames('corner-tool-button', 'top-right', { 'active': activeCornerTools.right === 'NRG' })} onClick={() => handleCornerToolClick('NRG')}>NRG</button>
                     <button className={classNames('corner-tool-button', 'bottom-left', { 'active': activeCornerTools.right === 'INT' })} onClick={() => handleCornerToolClick('INT')}>INT</button>
                     <button className="corner-tool-button bottom-right" onClick={() => handleCornerToolClick('BLANK')}></button>
                 </div>
-                {/* --- END OF FIX --- */}
-
                 <div className="pads-group">
                     {Array.from({ length: 4 }).map((_, i) => {
                         const stepInBar = i + 4;

@@ -1,26 +1,24 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
-import { useUIState } from '../../context/UIStateContext';
-import CameraFeed from '../ui/CameraFeed';
-import PoseOverlay from '../ui/PoseOverlay';
-import SkeletalVisualizer from './SkeletalVisualizer';
-import CoreVisualizer from '../ui/CoreVisualizer';
-import CameraQuickControls from '../ui/CameraQuickControls';
-import PopOutVisualizer from '../ui/PopOutVisualizer';
-import { useSequence } from '../../context/SequenceContext';
-import { convertPoseToVisualizerFormat } from '../../utils/poseUtils';
-import GroundingDisplay from '../ui/GroundingDisplay';
-import './MediaDisplay.css';
+import { useUIState } from '../../context/UIStateContext.jsx';
+import { useMedia } from '../../context/MediaContext.jsx';
+import CameraFeed from '../ui/CameraFeed.jsx';
+import PoseOverlay from '../ui/PoseOverlay.jsx';
+import SkeletalVisualizer from './SkeletalVisualizer.jsx';
+import CoreVisualizer from '../ui/CoreVisualizer.jsx';
+import CameraQuickControls from '../ui/CameraQuickControls.jsx';
+import PopOutVisualizer from '../ui/PopOutVisualizer.jsx';
+import { useSequence } from '../../context/SequenceContext.jsx';
+import { convertPoseToVisualizerFormat } from '../../utils/poseUtils.js';
+import GroundingDisplay from '../ui/GroundingDisplay.jsx';
+import './MediaDisplay.css'; // This now includes the video player styles
 
 const MediaDisplay = ({ selectedJoints }) => {
-    // --- DEFINITIVE FIX: Manage visualizer state here ---
-    const [zoom, setZoom] = useState(1.0);
-    // --- END OF FIX ---
-    
+    const { mediaType, mediaSource, videoRef } = useMedia();
     const { 
         isCameraActive, 
         activeVisualizer, 
-        activePad, 
+        activePad,
         isVisualizerPoppedOut,
         weightDistribution 
     } = useUIState();
@@ -30,9 +28,6 @@ const MediaDisplay = ({ selectedJoints }) => {
 
     const endSequencePose = songData[activePad] || null;
     const endPose = convertPoseToVisualizerFormat(endSequencePose);
-    
-    // Get the first selected joint to pass down for highlighting
-    const activeJointId = selectedJoints.length > 0 ? selectedJoints[0] : null;
 
     const VisualizerComponent = ({ isPoppedOut = false }) => {
         const container = isPoppedOut ? { clientWidth: 600, clientHeight: 600 } : containerRef.current;
@@ -41,25 +36,9 @@ const MediaDisplay = ({ selectedJoints }) => {
 
         switch(activeVisualizer) {
             case 'full':
-                return (
-                    <SkeletalVisualizer 
-                        poseData={endPose} 
-                        activeJointId={activeJointId}
-                        width={width} 
-                        height={height}
-                        zoom={zoom}
-                        onZoomChange={setZoom} 
-                    />
-                );
+                return <SkeletalVisualizer poseData={endPose} highlightJoints={selectedJoints} width={width} height={height} />;
             case 'core':
-                return (
-                    <CoreVisualizer 
-                        poseData={endPose} 
-                        width={width} 
-                        height={height} 
-                        weightDistribution={weightDistribution} 
-                    />
-                );
+                return <CoreVisualizer poseData={endPose} highlightJoints={selectedJoints} width={width} height={height} weightDistribution={weightDistribution} />;
             case 'none':
                 return <div className="placeholder-text">Select a Visualizer</div>;
             default:
@@ -70,7 +49,14 @@ const MediaDisplay = ({ selectedJoints }) => {
     return (
         <>
             <div ref={containerRef} className="media-display-container">
-                {isCameraActive ? <><CameraFeed /><PoseOverlay /></> : <VisualizerComponent />}
+                {isCameraActive ? (
+                    <><CameraFeed /><PoseOverlay /></>
+                ) : mediaType === 'video' && mediaSource ? (
+                    <video ref={videoRef} src={mediaSource} className="video-player-element" playsInline muted />
+                ) : (
+                    <VisualizerComponent />
+                )}
+                
                 {!isCameraActive && activeVisualizer !== 'none' && <CameraQuickControls />}
                 {!isCameraActive && activeVisualizer !== 'none' && <GroundingDisplay />}
             </div>
